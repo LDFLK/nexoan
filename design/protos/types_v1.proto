@@ -45,9 +45,8 @@ message TimeBasedValueList {
 
 // Request message for reading an entity
 message ReadEntityRequest {
-    string id = 1;
-    Entity entity = 2;
-    repeated string output = 3;  // Specifies which parts of the entity to return
+    Entity entity = 1;
+    repeated string output = 2;  // Specifies which parts of the entity to return
 }
 
 // Service definition for CRUD operations

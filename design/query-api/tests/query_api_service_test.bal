@@ -220,7 +220,6 @@ function testEntityMetadataRetrieval() returns error? {
     };
     
     ReadEntityRequest readRequest = {
-        id: testId,
         entity: metadataFilter,
         output: ["metadata"]
     };

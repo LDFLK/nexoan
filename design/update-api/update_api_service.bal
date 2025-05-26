@@ -73,8 +73,20 @@ service / on ep0 {
     resource function get entities/[string id]() returns Entity|error {
         // Call the ReadEntity function with the ID
         ReadEntityRequest readEntityRequest = {
-            id: id,
-            entity: {},
+            entity: {
+                id: id,
+                kind: {},
+                created: "",
+                terminated: "",
+                name: {
+                    startTime: "",
+                    endTime: "",
+                    value: check pbAny:pack("")
+                },
+                metadata: [],
+                attributes: [],
+                relationships: []
+            },
             output: ["metadata", "attributes", "relationships"]
         };
         Entity|error result = ep->ReadEntity(readEntityRequest);

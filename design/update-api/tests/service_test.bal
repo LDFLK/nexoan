@@ -124,7 +124,6 @@ function testMetadataHandling() returns error? {
     
     // Read entity
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -181,7 +180,6 @@ function testMetadataUnpackError() returns error? {
     
     // Try to read a non-existent entity
     ReadEntityRequest readEntityRequest = {
-        id: "non-existent-entity",
         entity: {
             id: "non-existent-entity",
             kind: {},
@@ -253,7 +251,6 @@ function testMetadataUpdating() returns error? {
     
     // Verify initial metadata
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -310,7 +307,6 @@ function testMetadataUpdating() returns error? {
     
     // Verify updated metadata
     ReadEntityRequest updatedReadRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -401,7 +397,6 @@ function testEntityReading() returns error? {
     
     // Read the entity
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -445,7 +440,6 @@ function testEntityReading() returns error? {
     // Test reading non-existent entity
     string nonExistentId = "non-existent-entity-" + testId;
     ReadEntityRequest nonExistentRequest = {
-        id: nonExistentId,
         entity: {
             id: nonExistentId,
             kind: {},
@@ -516,7 +510,6 @@ function testCreateMinimalGraphEntity() returns error? {
     
     // Verify entity was created correctly
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -600,7 +593,6 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     
     // Verify entity data
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -742,7 +734,6 @@ function testEntityWithRelationship() returns error? {
     
     // Read source entity to verify relationship
     ReadEntityRequest readEntityRequest = {
-        id: sourceEntityId,
         entity: {
             id: sourceEntityId,
             kind: {},

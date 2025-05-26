@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.17.3
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.5
 )
 

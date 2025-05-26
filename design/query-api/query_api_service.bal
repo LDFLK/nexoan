@@ -82,7 +82,6 @@ service /v1 on ep0 {
         
         // Create ReadEntityRequest with output field set to attributes only
         ReadEntityRequest request = {
-            id: entityId,
             entity: entityFilter,
             output: ["attributes"]  // Only request attributes field
         };
@@ -161,7 +160,6 @@ service /v1 on ep0 {
 
         // Create ReadEntityRequest with output field set to metadata only
         ReadEntityRequest request = {
-            id: entityId,
             entity: entityFilter,
             output: ["metadata"]  // Only request metadata field
         };
@@ -216,7 +214,6 @@ service /v1 on ep0 {
 
         // Create ReadEntityRequest with output field set to relationships only
         ReadEntityRequest request = {
-            id: entityId,
             entity: entityFilter,
             output: ["relationships"]  // Only request relationships field
         };
@@ -282,7 +279,6 @@ service /v1 on ep0 {
         
         // Create ReadEntityRequest with output field set to relationships only
         ReadEntityRequest request = {
-            id: entityId,
             entity: entityFilter,
             output: ["relationships"]  // Only request relationships field
         };
