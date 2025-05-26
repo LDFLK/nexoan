@@ -85,6 +85,7 @@ func JSONToAny(jsonStr string) (*anypb.Any, error) {
 
 // TestScalarTypes tests type inference for scalar data types
 func TestScalarTypes(t *testing.T) {
+	// FIXME: https://github.com/LDFLK/nexoan/issues/142
 	testCases := map[string]struct {
 		json     string
 		expected DataType

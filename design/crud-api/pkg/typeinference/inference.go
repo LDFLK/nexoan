@@ -101,14 +101,19 @@ func (ti *TypeInferrer) inferTypeFromValue(value *structpb.Value) (*TypeInfo, er
 
 	case *structpb.Value_NumberValue:
 		num := v.NumberValue
-		// Check if the number has a decimal part
+		// Check if the number is a float by comparing it with its integer conversion
+		// This works because float64(int64(num)) truncates any decimal part
+		// If the original number has a decimal part, the comparison will be false
 		if num != float64(int64(num)) {
 			return &TypeInfo{Type: FloatType}, nil
 		}
+
 		// For zero, check if it was originally a float by looking at the string representation
+		// This is necessary because 0.0 and 0 have the same numeric value but different types
+		// We convert to string to check if the original format had a decimal point
 		if num == 0 {
-			// Convert back to string to check original format
-			str := fmt.Sprintf("%v", num)
+			// Use %g format to preserve decimal point for zero values
+			str := fmt.Sprintf("%g", num)
 			if strings.Contains(str, ".") {
 				return &TypeInfo{Type: FloatType}, nil
 			}
@@ -139,6 +144,10 @@ func (ti *TypeInferrer) inferTypeFromValue(value *structpb.Value) (*TypeInfo, er
 		}
 
 		// Infer type from first element
+		// Assumption: All elements in the list are of the same type
+		// This is a common assumption in type systems, though it may not always hold true
+		// For example, [1, "two", 3] would be inferred as an array of integers based on the first element
+		// A more robust implementation might check all elements or use a union type
 		elemType, err := ti.inferTypeFromValue(list.Values[0])
 		if err != nil {
 			return nil, err
@@ -156,7 +165,12 @@ func (ti *TypeInferrer) inferTypeFromValue(value *structpb.Value) (*TypeInfo, er
 			return &TypeInfo{Type: StringType}, nil
 		}
 
-		// For map types, we just need to know it's a map
+		// For map types, we use StringType as a base type because:
+		// 1. In many systems, complex objects are serialized to strings (e.g., JSON)
+		// 2. The actual structure and types of the map's contents are handled separately
+		//    through the Properties field in the schema
+		// 3. This allows for flexible handling of nested structures while maintaining
+		//    a simple type system at the top level
 		return &TypeInfo{
 			Type: StringType,
 		}, nil
