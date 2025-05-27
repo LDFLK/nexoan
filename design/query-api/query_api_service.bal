@@ -308,7 +308,56 @@ service /v1 on ep0 {
     # Find entities based on criteria
     #
     # + return - List of matching entities 
-    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok {
-        return {body: {body: []}};
+    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok|error {
+        // Safely extract kind major and minor
+        string kindMajor = "";
+        string kindMinor = "";
+        if payload.kind is () {
+            // leave as empty
+        } else {
+            kindMajor = (<entitiessearch_kind>payload.kind)?.major ?: "";
+            kindMinor = (<entitiessearch_kind>payload.kind)?.minor ?: "";
+        }
+        Entity entityFilter = {
+            id: "",
+            kind: {
+                major: kindMajor,
+                minor: kindMinor
+            },
+            created: payload.created ?: "",
+            terminated: payload.terminated ?: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: {
+                    typeUrl: "type.googleapis.com/google.protobuf.StringValue",
+                    value: payload.name ?: ""
+                }
+            },
+            metadata: [],
+            attributes: [],
+            relationships: []
+        };
+
+        ReadEntityRequest request = {
+            entity: entityFilter,
+            output: [] // Return all fields by default
+        };
+
+        // Call the ReadEntities method
+        EntityList entityList = check ep->ReadEntities(request);
+
+        // Map the result to the expected response format
+        record {string id?; record {string major?; string? minor?;} kind?; string name?; string created?; string? terminated?;}[] response = [];
+        foreach var entity in entityList.entities {
+            response.push({
+                id: entity.id,
+                kind: {major: entity.kind.major, minor: entity.kind.minor},
+                name: entity.name.value.toString(),
+                created: entity.created,
+                terminated: entity.terminated
+            });
+        }
+        return {body: {body: response}};
     }
 }

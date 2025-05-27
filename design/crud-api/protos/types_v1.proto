@@ -47,6 +47,7 @@ message TimeBasedValueList {
 service CrudService {
     rpc CreateEntity(Entity) returns (Entity);
     rpc ReadEntity(ReadEntityRequest) returns (Entity);
+    rpc ReadEntities(ReadEntityRequest) returns (EntityList);
     rpc UpdateEntity(UpdateEntityRequest) returns (Entity);
     rpc DeleteEntity(EntityId) returns (Empty);
 }

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	CrudService_CreateEntity_FullMethodName = "/crud.CrudService/CreateEntity"
 	CrudService_ReadEntity_FullMethodName   = "/crud.CrudService/ReadEntity"
+	CrudService_ReadEntities_FullMethodName = "/crud.CrudService/ReadEntities"
 	CrudService_UpdateEntity_FullMethodName = "/crud.CrudService/UpdateEntity"
 	CrudService_DeleteEntity_FullMethodName = "/crud.CrudService/DeleteEntity"
 )
@@ -33,6 +34,7 @@ const (
 type CrudServiceClient interface {
 	CreateEntity(ctx context.Context, in *Entity, opts ...grpc.CallOption) (*Entity, error)
 	ReadEntity(ctx context.Context, in *ReadEntityRequest, opts ...grpc.CallOption) (*Entity, error)
+	ReadEntities(ctx context.Context, in *ReadEntityRequest, opts ...grpc.CallOption) (*EntityList, error)
 	UpdateEntity(ctx context.Context, in *UpdateEntityRequest, opts ...grpc.CallOption) (*Entity, error)
 	DeleteEntity(ctx context.Context, in *EntityId, opts ...grpc.CallOption) (*Empty, error)
 }
@@ -59,6 +61,16 @@ func (c *crudServiceClient) ReadEntity(ctx context.Context, in *ReadEntityReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Entity)
 	err := c.cc.Invoke(ctx, CrudService_ReadEntity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *crudServiceClient) ReadEntities(ctx context.Context, in *ReadEntityRequest, opts ...grpc.CallOption) (*EntityList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EntityList)
+	err := c.cc.Invoke(ctx, CrudService_ReadEntities_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +105,7 @@ func (c *crudServiceClient) DeleteEntity(ctx context.Context, in *EntityId, opts
 type CrudServiceServer interface {
 	CreateEntity(context.Context, *Entity) (*Entity, error)
 	ReadEntity(context.Context, *ReadEntityRequest) (*Entity, error)
+	ReadEntities(context.Context, *ReadEntityRequest) (*EntityList, error)
 	UpdateEntity(context.Context, *UpdateEntityRequest) (*Entity, error)
 	DeleteEntity(context.Context, *EntityId) (*Empty, error)
 	mustEmbedUnimplementedCrudServiceServer()
@@ -110,6 +123,9 @@ func (UnimplementedCrudServiceServer) CreateEntity(context.Context, *Entity) (*E
 }
 func (UnimplementedCrudServiceServer) ReadEntity(context.Context, *ReadEntityRequest) (*Entity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReadEntity not implemented")
+}
+func (UnimplementedCrudServiceServer) ReadEntities(context.Context, *ReadEntityRequest) (*EntityList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadEntities not implemented")
 }
 func (UnimplementedCrudServiceServer) UpdateEntity(context.Context, *UpdateEntityRequest) (*Entity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEntity not implemented")
@@ -174,6 +190,24 @@ func _CrudService_ReadEntity_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CrudService_ReadEntities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadEntityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CrudServiceServer).ReadEntities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CrudService_ReadEntities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CrudServiceServer).ReadEntities(ctx, req.(*ReadEntityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CrudService_UpdateEntity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateEntityRequest)
 	if err := dec(in); err != nil {
@@ -224,6 +258,10 @@ var CrudService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReadEntity",
 			Handler:    _CrudService_ReadEntity_Handler,
+		},
+		{
+			MethodName: "ReadEntities",
+			Handler:    _CrudService_ReadEntities_Handler,
 		},
 		{
 			MethodName: "UpdateEntity",

@@ -651,11 +651,12 @@ const file_types_v1_proto_rawDesc = "" +
 	"\x05Empty\"6\n" +
 	"\n" +
 	"EntityList\x12(\n" +
-	"\bentities\x18\x01 \x03(\v2\f.crud.EntityR\bentities2\xd4\x01\n" +
+	"\bentities\x18\x01 \x03(\v2\f.crud.EntityR\bentities2\x8f\x02\n" +
 	"\vCrudService\x12*\n" +
 	"\fCreateEntity\x12\f.crud.Entity\x1a\f.crud.Entity\x123\n" +
 	"\n" +
-	"ReadEntity\x12\x17.crud.ReadEntityRequest\x1a\f.crud.Entity\x127\n" +
+	"ReadEntity\x12\x17.crud.ReadEntityRequest\x1a\f.crud.Entity\x129\n" +
+	"\fReadEntities\x12\x17.crud.ReadEntityRequest\x1a\x10.crud.EntityList\x127\n" +
 	"\fUpdateEntity\x12\x19.crud.UpdateEntityRequest\x1a\f.crud.Entity\x12+\n" +
 	"\fDeleteEntity\x12\x0e.crud.EntityId\x1a\v.crud.EmptyB\x1cZ\x1alk/datafoundation/crud-apib\x06proto3"
 
@@ -704,14 +705,16 @@ var file_types_v1_proto_depIdxs = []int32{
 	2,  // 12: crud.Entity.RelationshipsEntry.value:type_name -> crud.Relationship
 	3,  // 13: crud.CrudService.CreateEntity:input_type -> crud.Entity
 	5,  // 14: crud.CrudService.ReadEntity:input_type -> crud.ReadEntityRequest
-	7,  // 15: crud.CrudService.UpdateEntity:input_type -> crud.UpdateEntityRequest
-	6,  // 16: crud.CrudService.DeleteEntity:input_type -> crud.EntityId
-	3,  // 17: crud.CrudService.CreateEntity:output_type -> crud.Entity
-	3,  // 18: crud.CrudService.ReadEntity:output_type -> crud.Entity
-	3,  // 19: crud.CrudService.UpdateEntity:output_type -> crud.Entity
-	8,  // 20: crud.CrudService.DeleteEntity:output_type -> crud.Empty
-	17, // [17:21] is the sub-list for method output_type
-	13, // [13:17] is the sub-list for method input_type
+	5,  // 15: crud.CrudService.ReadEntities:input_type -> crud.ReadEntityRequest
+	7,  // 16: crud.CrudService.UpdateEntity:input_type -> crud.UpdateEntityRequest
+	6,  // 17: crud.CrudService.DeleteEntity:input_type -> crud.EntityId
+	3,  // 18: crud.CrudService.CreateEntity:output_type -> crud.Entity
+	3,  // 19: crud.CrudService.ReadEntity:output_type -> crud.Entity
+	9,  // 20: crud.CrudService.ReadEntities:output_type -> crud.EntityList
+	3,  // 21: crud.CrudService.UpdateEntity:output_type -> crud.Entity
+	8,  // 22: crud.CrudService.DeleteEntity:output_type -> crud.Empty
+	18, // [18:23] is the sub-list for method output_type
+	13, // [13:18] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
