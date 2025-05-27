@@ -551,6 +551,51 @@ func (*Empty) Descriptor() ([]byte, []int) {
 	return file_types_v1_proto_rawDescGZIP(), []int{8}
 }
 
+// EntityList represents a list of entities
+type EntityList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entities      []*Entity              `protobuf:"bytes,1,rep,name=entities,proto3" json:"entities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EntityList) Reset() {
+	*x = EntityList{}
+	mi := &file_types_v1_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EntityList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EntityList) ProtoMessage() {}
+
+func (x *EntityList) ProtoReflect() protoreflect.Message {
+	mi := &file_types_v1_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EntityList.ProtoReflect.Descriptor instead.
+func (*EntityList) Descriptor() ([]byte, []int) {
+	return file_types_v1_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *EntityList) GetEntities() []*Entity {
+	if x != nil {
+		return x.Entities
+	}
+	return nil
+}
+
 var File_types_v1_proto protoreflect.FileDescriptor
 
 const file_types_v1_proto_rawDesc = "" +
@@ -603,7 +648,10 @@ const file_types_v1_proto_rawDesc = "" +
 	"\x13UpdateEntityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
 	"\x06entity\x18\x02 \x01(\v2\f.crud.EntityR\x06entity\"\a\n" +
-	"\x05Empty2\xd4\x01\n" +
+	"\x05Empty\"6\n" +
+	"\n" +
+	"EntityList\x12(\n" +
+	"\bentities\x18\x01 \x03(\v2\f.crud.EntityR\bentities2\xd4\x01\n" +
 	"\vCrudService\x12*\n" +
 	"\fCreateEntity\x12\f.crud.Entity\x1a\f.crud.Entity\x123\n" +
 	"\n" +
@@ -623,7 +671,7 @@ func file_types_v1_proto_rawDescGZIP() []byte {
 	return file_types_v1_proto_rawDescData
 }
 
-var file_types_v1_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_types_v1_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_types_v1_proto_goTypes = []any{
 	(*Kind)(nil),                // 0: crud.Kind
 	(*TimeBasedValue)(nil),      // 1: crud.TimeBasedValue
@@ -634,37 +682,39 @@ var file_types_v1_proto_goTypes = []any{
 	(*EntityId)(nil),            // 6: crud.EntityId
 	(*UpdateEntityRequest)(nil), // 7: crud.UpdateEntityRequest
 	(*Empty)(nil),               // 8: crud.Empty
-	nil,                         // 9: crud.Entity.MetadataEntry
-	nil,                         // 10: crud.Entity.AttributesEntry
-	nil,                         // 11: crud.Entity.RelationshipsEntry
-	(*anypb.Any)(nil),           // 12: google.protobuf.Any
+	(*EntityList)(nil),          // 9: crud.EntityList
+	nil,                         // 10: crud.Entity.MetadataEntry
+	nil,                         // 11: crud.Entity.AttributesEntry
+	nil,                         // 12: crud.Entity.RelationshipsEntry
+	(*anypb.Any)(nil),           // 13: google.protobuf.Any
 }
 var file_types_v1_proto_depIdxs = []int32{
-	12, // 0: crud.TimeBasedValue.value:type_name -> google.protobuf.Any
+	13, // 0: crud.TimeBasedValue.value:type_name -> google.protobuf.Any
 	0,  // 1: crud.Entity.kind:type_name -> crud.Kind
 	1,  // 2: crud.Entity.name:type_name -> crud.TimeBasedValue
-	9,  // 3: crud.Entity.metadata:type_name -> crud.Entity.MetadataEntry
-	10, // 4: crud.Entity.attributes:type_name -> crud.Entity.AttributesEntry
-	11, // 5: crud.Entity.relationships:type_name -> crud.Entity.RelationshipsEntry
+	10, // 3: crud.Entity.metadata:type_name -> crud.Entity.MetadataEntry
+	11, // 4: crud.Entity.attributes:type_name -> crud.Entity.AttributesEntry
+	12, // 5: crud.Entity.relationships:type_name -> crud.Entity.RelationshipsEntry
 	1,  // 6: crud.TimeBasedValueList.values:type_name -> crud.TimeBasedValue
 	3,  // 7: crud.ReadEntityRequest.entity:type_name -> crud.Entity
 	3,  // 8: crud.UpdateEntityRequest.entity:type_name -> crud.Entity
-	12, // 9: crud.Entity.MetadataEntry.value:type_name -> google.protobuf.Any
-	4,  // 10: crud.Entity.AttributesEntry.value:type_name -> crud.TimeBasedValueList
-	2,  // 11: crud.Entity.RelationshipsEntry.value:type_name -> crud.Relationship
-	3,  // 12: crud.CrudService.CreateEntity:input_type -> crud.Entity
-	5,  // 13: crud.CrudService.ReadEntity:input_type -> crud.ReadEntityRequest
-	7,  // 14: crud.CrudService.UpdateEntity:input_type -> crud.UpdateEntityRequest
-	6,  // 15: crud.CrudService.DeleteEntity:input_type -> crud.EntityId
-	3,  // 16: crud.CrudService.CreateEntity:output_type -> crud.Entity
-	3,  // 17: crud.CrudService.ReadEntity:output_type -> crud.Entity
-	3,  // 18: crud.CrudService.UpdateEntity:output_type -> crud.Entity
-	8,  // 19: crud.CrudService.DeleteEntity:output_type -> crud.Empty
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	3,  // 9: crud.EntityList.entities:type_name -> crud.Entity
+	13, // 10: crud.Entity.MetadataEntry.value:type_name -> google.protobuf.Any
+	4,  // 11: crud.Entity.AttributesEntry.value:type_name -> crud.TimeBasedValueList
+	2,  // 12: crud.Entity.RelationshipsEntry.value:type_name -> crud.Relationship
+	3,  // 13: crud.CrudService.CreateEntity:input_type -> crud.Entity
+	5,  // 14: crud.CrudService.ReadEntity:input_type -> crud.ReadEntityRequest
+	7,  // 15: crud.CrudService.UpdateEntity:input_type -> crud.UpdateEntityRequest
+	6,  // 16: crud.CrudService.DeleteEntity:input_type -> crud.EntityId
+	3,  // 17: crud.CrudService.CreateEntity:output_type -> crud.Entity
+	3,  // 18: crud.CrudService.ReadEntity:output_type -> crud.Entity
+	3,  // 19: crud.CrudService.UpdateEntity:output_type -> crud.Entity
+	8,  // 20: crud.CrudService.DeleteEntity:output_type -> crud.Empty
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_types_v1_proto_init() }
@@ -678,7 +728,7 @@ func file_types_v1_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_v1_proto_rawDesc), len(file_types_v1_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -71,3 +71,8 @@ message UpdateEntityRequest {
 
 // Empty message response
 message Empty {}
+
+// EntityList represents a list of entities
+message EntityList {
+    repeated Entity entities = 1;
+}

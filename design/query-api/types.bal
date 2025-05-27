@@ -4,39 +4,47 @@
 import ballerina/http;
 
 public type entities_search_body record {
-    string kind?;
+    entitiessearch_kind kind?;
+    string name?;
     string created?;
     string terminated?;
-    # Attribute filters. Example: {"height":180, "eyeColor":"blue"}
-    record {} attributes?;
 };
 
 public type EntitiesEntityIdMetadataResponse record {
 };
 
-public type InlineResponse2002ArrayOk record {|
+public type entitiessearch_kind record {
+    string major?;
+    string? minor?;
+};
+
+public type InlineResponse2001Ok record {|
     *http:Ok;
-    inline_response_200_2[] body;
+    inline_response_200_1 body;
 |};
 
-public type InlineResponse200Ok record {|
-    *http:Ok;
-    inline_response_200 body;
-|};
-
-public type inline_response_200_1 record {string 'start?; string? end?; string value?;}|record {string 'start?; string? end?; string value?;}[]|string?;
-
+public type inline_response_200_1 record {
+    record {string id?; record {string major?; string? minor?;} kind?; string name?; string created?; string? terminated?;}[] body?;
+};
+ 
 public type inline_response_200 record {
     string[] body?;
 };
 
-public type inline_response_200_2 record {
+public type inline_response_200_2 record {string 'start?; string? end?; string value?;}|record {string 'start?; string? end?; string value?;}[]|string?;
+
+public type inline_response_200_3 record {
     string relatedEntityId?;
     string startTime?;
     string endTime?;
     string id?;
     string name?;
 };
+
+public type InlineResponse2003ArrayOk record {|
+    *http:Ok;
+    inline_response_200_3[] body;
+|};
 
 public type entityId_relations_body record {
     string relatedEntityId;

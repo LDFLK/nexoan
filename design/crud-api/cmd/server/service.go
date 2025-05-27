@@ -72,7 +72,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 
 // ReadEntity retrieves an entity's metadata
 func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb.Entity, error) {
-	log.Printf(">>>> Reading Entity: %s with output fields: %v", req.Entity.Id, req.Output)
+	log.Printf("Reading Entity: %s with output fields: %v", req.Entity.Id, req.Output)
 
 	// Initialize a complete response entity with empty fields
 	response := &pb.Entity{
@@ -239,6 +239,54 @@ func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty,
 	// TODO: Implement Entity Deletion in Neo4j
 	// TODO: Implement Attribute Deletion in Neo4j
 	return &pb.Empty{}, nil
+}
+
+// ReadEntities retrieves a list of entities filtered by base attributes
+func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*pb.EntityList, error) {
+	if req.Entity == nil || req.Entity.Kind == nil || req.Entity.Kind.Major == "" {
+		return nil, fmt.Errorf("Kind.Major is required for filtering entities")
+	}
+
+	log.Printf("Filtering entities by Kind.Major: %s", req.Entity.Kind.Major)
+
+	// Use HandleGraphEntityFilter to get filtered entities
+	filteredEntities, err := s.neo4jRepo.HandleGraphEntityFilter(ctx, req)
+	if err != nil {
+		log.Printf("Error filtering entities: %v", err)
+		return nil, err
+	}
+
+	// Convert filtered entities to pb.Entity format
+	var entities []*pb.Entity
+	for _, entity := range filteredEntities {
+		pbEntity := &pb.Entity{
+			Id: entity["id"].(string),
+			Kind: &pb.Kind{
+				Major: entity["kind"].(string),
+				Minor: entity["minorKind"].(string),
+			},
+			Created: entity["created"].(string),
+			Name: &pb.TimeBasedValue{ // How to represent time based value name?
+				StartTime: entity["created"].(string),
+				Value: &anypb.Any{
+					TypeUrl: "type.googleapis.com/google.protobuf.StringValue",
+					Value:   []byte(entity["name"].(string)),
+				},
+			},
+		}
+
+		// Add terminated if present
+		if terminated, ok := entity["terminated"].(string); ok && terminated != "" {
+			pbEntity.Terminated = terminated
+			pbEntity.Name.EndTime = terminated
+		}
+
+		entities = append(entities, pbEntity)
+	}
+
+	return &pb.EntityList{
+		Entities: entities,
+	}, nil
 }
 
 // Start the gRPC server

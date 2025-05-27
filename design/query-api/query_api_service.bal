@@ -41,7 +41,7 @@ service /v1 on ep0 {
     # Get entity attribute
     #
     # + return - Attribute value(s) 
-    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime) returns inline_response_200_1|http:NotFound|error {
+    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime) returns inline_response_200_2|http:NotFound|error {
         // Create entity filter with specific attribute and time range
         Entity entityFilter = {
             id: entityId,
@@ -189,7 +189,7 @@ service /v1 on ep0 {
     # Get all related entity IDs
     #
     # + return - List of all related entities 
-    resource function post entities/[string entityId]/allrelations() returns InlineResponse2002ArrayOk|error {
+    resource function post entities/[string entityId]/allrelations() returns InlineResponse2003ArrayOk|error {
         // Create entity filter without any relationship filtering criteria
         Entity entityFilter = {
             id: entityId,
@@ -222,7 +222,7 @@ service /v1 on ep0 {
         Entity entity = check ep->ReadEntity(request);
 
         // Process the relationships returned by the backend
-        inline_response_200_2[] relationships = [];
+        inline_response_200_3[] relationships = [];
 
         foreach var relEntry in entity.relationships {
             Relationship rel = relEntry.value;
@@ -243,7 +243,7 @@ service /v1 on ep0 {
     # Get related entity IDs
     #
     # + return - List of related entities 
-    resource function post entities/[string entityId]/relations(@http:Payload entityId_relations_body payload) returns InlineResponse2002ArrayOk|error {
+    resource function post entities/[string entityId]/relations(@http:Payload entityId_relations_body payload) returns InlineResponse2003ArrayOk|error {
         // Create entity filter with embedded relationship criteria
         Entity entityFilter = {
             id: entityId,
@@ -287,7 +287,7 @@ service /v1 on ep0 {
         Entity entity = check ep->ReadEntity(request);
         
         // Process the relationships returned by the backend
-        inline_response_200_2[] relationships = [];
+        inline_response_200_3[] relationships = [];
         
         foreach var relEntry in entity.relationships {
             Relationship rel = relEntry.value;
@@ -307,9 +307,8 @@ service /v1 on ep0 {
 
     # Find entities based on criteria
     #
-    # + return - List of matching entity IDs 
-    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse200Ok|error {
-        // Create entity filter with search criteria from payload
+    # + return - List of matching entities 
+    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok {
         return {body: {body: []}};
     }
 }

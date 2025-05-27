@@ -391,3 +391,34 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 
 	return nil
 }
+
+// HandleGraphEntityFilter processes a ReadEntityRequest and calls FilterEntities
+func (repo *Neo4jRepository) HandleGraphEntityFilter(ctx context.Context, req *pb.ReadEntityRequest) ([]map[string]interface{}, error) {
+	if req == nil || req.Entity == nil {
+		return nil, fmt.Errorf("invalid request: ReadEntityRequest or Entity is nil")
+	}
+
+	// Extract filters from the request
+	filters := make(map[string]interface{})
+
+	// Add name if present
+	if req.Entity.Name != nil && req.Entity.Name.Value != nil {
+		var stringValue wrapperspb.StringValue
+		if err := req.Entity.Name.Value.UnmarshalTo(&stringValue); err == nil {
+			filters["name"] = stringValue.Value
+		}
+	}
+
+	// Add created timestamp if present
+	if req.Entity.Created != "" {
+		filters["created"] = req.Entity.Created
+	}
+
+	// Add terminated timestamp if present
+	if req.Entity.Terminated != "" {
+		filters["terminated"] = req.Entity.Terminated
+	}
+
+	// Call FilterEntities with the extracted filters
+	return repo.FilterEntities(ctx, req.Entity.Kind, filters)
+}

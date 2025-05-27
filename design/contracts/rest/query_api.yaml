@@ -39,6 +39,14 @@ paths:
               type: object
               properties:
                 kind:
+                  type: object
+                  properties:
+                    major:
+                      type: string
+                    minor:
+                      type: string
+                      nullable: true
+                name:
                   type: string
                 created:
                   type: string
@@ -46,14 +54,9 @@ paths:
                 terminated:
                   type: string
                   format: date-time
-                attributes:
-                  type: object
-                  additionalProperties: true
-                  description: >
-                    Attribute filters. Example: {"height":180, "eyeColor":"blue"}
       responses:
         200:
-          description: List of matching entity IDs
+          description: List of matching entities
           content:
             application/json:
               schema:
@@ -62,7 +65,27 @@ paths:
                   body:
                     type: array
                     items:
-                      type: string
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        kind:
+                          type: object
+                          properties:
+                            major:
+                              type: string
+                            minor:
+                              type: string
+                              nullable: true
+                        name:
+                          type: string
+                        created:
+                          type: string
+                          format: date-time
+                        terminated:
+                          type: string
+                          format: date-time
+                          nullable: true
 
   /entities/{entityId}/metadata:
     get:
