@@ -24,6 +24,14 @@ RELATED_ID_1 = "query-related-entity-1"
 RELATED_ID_2 = "query-related-entity-2"
 RELATED_ID_3 = "query-related-entity-3"
 
+# Constants for government organization test
+GOVERNMENT_ID = "gov-lk-001"
+MINISTER_ID_1 = "minister-tech-001"
+MINISTER_ID_2 = "minister-health-001"
+DEPT_ID_1 = "dept-it-001"
+DEPT_ID_2 = "dept-digital-001"
+DEPT_ID_3 = "dept-hospitals-001"
+DEPT_ID_4 = "dept-pharma-001"
 
 """
 The current tests only contain metadata validation.
@@ -414,26 +422,358 @@ def test_allrelationships_query():
     
     print("✅ All relationships retrieved successfully without a payload.")
 
-def test_entity_search():
-    """Test search by entity ID."""
-    print("\n🔍 Testing entity search...")
+# def test_entity_search():
+#     """Test search by entity ID."""
+#     print("\n🔍 Testing entity search...")
+#     url = f"{QUERY_API_URL}/search"
+#     payload = {
+#         "id": ENTITY_ID,
+#         "created": "",
+#         "terminated": ""
+#     }
+#     res = requests.post(url, json=payload)
+#     assert res.status_code == 200, f"Search failed: {res.text}"
+    
+#     body = res.json()
+#     # Add search response validation
+#     ## FIXME: Make sure to implement the entities/search and update this test case
+#     assert isinstance(body, dict), "Search response should be a dictionary"
+#     assert "body" in body, "Search response should have a 'body' field"
+#     assert isinstance(body["body"], list), "Search response body should be a list"
+#     assert len(body["body"]) == 0, "Expected an empty list in search response"
+
+def create_government_entities():
+    """Create government organizational hierarchy for search tests."""
+    print("\n🟢 Creating government organizational hierarchy...")
+
+    # Create Government entity
+    gov_payload = {
+        "id": GOVERNMENT_ID,
+        "kind": {"major": "Organization", "minor": "Government"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Government of Sri Lanka"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": [
+            {
+                "key": "minister-rel-1",
+                "value": {
+                    "relatedEntityId": MINISTER_ID_1,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "gov-rel-001",
+                    "name": "has_minister"
+                }
+            },
+            {
+                "key": "minister-rel-2",
+                "value": {
+                    "relatedEntityId": MINISTER_ID_2,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "gov-rel-002",
+                    "name": "has_minister"
+                }
+            }
+        ]
+    }
+
+    # Create Technology Minister entity
+    tech_minister_payload = {
+        "id": MINISTER_ID_1,
+        "kind": {"major": "Organization", "minor": "Minister"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Ministry of Technology"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": [
+            {
+                "key": "dept-rel-1",
+                "value": {
+                    "relatedEntityId": DEPT_ID_1,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "minister-rel-001",
+                    "name": "has_department"
+                }
+            },
+            {
+                "key": "dept-rel-2",
+                "value": {
+                    "relatedEntityId": DEPT_ID_2,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "minister-rel-002",
+                    "name": "has_department"
+                }
+            }
+        ]
+    }
+
+    # Create Health Minister entity
+    health_minister_payload = {
+        "id": MINISTER_ID_2,
+        "kind": {"major": "Organization", "minor": "Minister"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Ministry of Health"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": [
+            {
+                "key": "dept-rel-3",
+                "value": {
+                    "relatedEntityId": DEPT_ID_3,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "minister-rel-003",
+                    "name": "has_department"
+                }
+            },
+            {
+                "key": "dept-rel-4",
+                "value": {
+                    "relatedEntityId": DEPT_ID_4,
+                    "startTime": "2024-01-01T00:00:00Z",
+                    "endTime": "",
+                    "id": "minister-rel-004",
+                    "name": "has_department"
+                }
+            }
+        ]
+    }
+
+    # Create Technology Department entities
+    dept1_payload = {
+        "id": DEPT_ID_1,
+        "kind": {"major": "Organization", "minor": "Department"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "IT Department"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": []
+    }
+
+    dept2_payload = {
+        "id": DEPT_ID_2,
+        "kind": {"major": "Organization", "minor": "Department"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Digital Services Department"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": []
+    }
+
+    # Create Health Department entities
+    dept3_payload = {
+        "id": DEPT_ID_3,
+        "kind": {"major": "Organization", "minor": "Department"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Hospitals Department"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": []
+    }
+
+    dept4_payload = {
+        "id": DEPT_ID_4,
+        "kind": {"major": "Organization", "minor": "Department"},
+        "created": "2024-01-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-01-01T00:00:00Z",
+            "endTime": "",
+            "value": {
+                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "Pharmaceutical Department"
+            }
+        },
+        "metadata": [],
+        "attributes": [],
+        "relationships": []
+    }
+
+    # Create all entities
+    # Create departments first
+    for payload in [dept1_payload, dept2_payload, dept3_payload, dept4_payload]:
+        res = requests.post(UPDATE_API_URL, json=payload)
+        assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
+        print(f"✅ Created {payload['kind']['minor']} entity: {payload['id']}")
+
+    # Then create ministers
+    for payload in [tech_minister_payload, health_minister_payload]:
+        res = requests.post(UPDATE_API_URL, json=payload)
+        assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
+        print(f"✅ Created {payload['kind']['minor']} entity: {payload['id']}")
+
+    # Finally create government
+    res = requests.post(UPDATE_API_URL, json=gov_payload)
+    assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
+    print(f"✅ Created {gov_payload['kind']['minor']} entity: {gov_payload['id']}")
+
+def test_search_without_major_kind():
+    """Test that search fails when major kind is not provided."""
+    print("\n🔍 Testing search without major kind...")
     url = f"{QUERY_API_URL}/search"
     payload = {
-        "id": ENTITY_ID,
-        "created": "",
-        "terminated": ""
+        "kind": {
+            "minor": "Department"  # Only providing minor kind
+        }
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 400, f"Search should fail without major kind: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Error response should be a dictionary"
+    assert "error" in body, "Error response should contain error message"
+    print("✅ Search correctly failed without major kind")
+
+def test_search_by_kind_major():
+    """Test searching entities by major kind."""
+    print("\n🔍 Testing search by major kind...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"
+        }
     }
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Search failed: {res.text}"
     
     body = res.json()
-    # Add search response validation
-    ## FIXME: Make sure to implement the entities/search and update this test case
     assert isinstance(body, dict), "Search response should be a dictionary"
     assert "body" in body, "Search response should have a 'body' field"
     assert isinstance(body["body"], list), "Search response body should be a list"
-    assert len(body["body"]) == 0, "Expected an empty list in search response"
+    assert len(body["body"]) == 7, "Expected 7 organizations in search response"
+    
+    # Verify all returned entities are of major kind "Organization"
+    for entity in body["body"]:
+        assert entity["kind"]["major"] == "Organization", f"Expected major kind 'Organization', got {entity['kind']['major']}"
+    
+    print("✅ Search by major kind successful")
 
+def test_search_by_kind_minor():
+    """Test searching entities by minor kind."""
+    print("\n🔍 Testing search by minor kind...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",  # Adding compulsory major kind
+            "minor": "Department"
+        }
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 4, "Expected 4 departments in search response"
+    
+    # Verify all returned entities are departments
+    for entity in body["body"]:
+        assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+    
+    print("✅ Search by minor kind successful")
+
+def test_search_by_name():
+    """Test searching entities by name."""
+    print("\n🔍 Testing search by name...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"  # Adding compulsory major kind
+        },
+        "name": "Ministry of Technology"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected 1 entity in search response"
+    
+    # Verify the returned entity is the Technology Minister
+    entity = body["body"][0]
+    assert entity["id"] == MINISTER_ID_1, f"Expected minister ID {MINISTER_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Minister", f"Expected minor kind 'Minister', got {entity['kind']['minor']}"
+    
+    print("✅ Search by name successful")
+
+def test_search_by_created_date():
+    """Test searching entities by creation date."""
+    print("\n🔍 Testing search by creation date...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"  # Adding compulsory major kind
+        },
+        "created": "2024-01-01T00:00:00Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 7, "Expected 7 entities created on the same date"
+    
+    # Verify all returned entities have the same creation date
+    for entity in body["body"]:
+        assert entity["created"] == "2024-01-01T00:00:00Z", f"Expected creation date '2024-01-01T00:00:00Z', got {entity['created']}"
+    
+    print("✅ Search by creation date successful")
 
 if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
@@ -446,7 +786,16 @@ if __name__ == "__main__":
         test_relationship_query_associated()
         test_relationship_query_linked()
         test_allrelationships_query()
-        test_entity_search()
+        # test_entity_search()
+        
+        # Run government organization search tests
+        create_government_entities()
+        #test_search_without_major_kind()
+        test_search_by_kind_major()
+        test_search_by_kind_minor()
+        #test_search_by_name()
+        test_search_by_created_date()
+        
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")

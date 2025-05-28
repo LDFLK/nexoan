@@ -308,7 +308,7 @@ service /v1 on ep0 {
     # Find entities based on criteria
     #
     # + return - List of matching entities 
-    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok|error {
+    resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok|http:BadRequest|error {
         // Safely extract kind major and minor
         string kindMajor = "";
         string kindMinor = "";
@@ -318,6 +318,7 @@ service /v1 on ep0 {
             kindMajor = (<entitiessearch_kind>payload.kind)?.major ?: "";
             kindMinor = (<entitiessearch_kind>payload.kind)?.minor ?: "";
         }
+
         Entity entityFilter = {
             id: "",
             kind: {
@@ -345,7 +346,14 @@ service /v1 on ep0 {
         };
 
         // Call the ReadEntities method
-        EntityList entityList = check ep->ReadEntities(request);
+        EntityList|error entityList = ep->ReadEntities(request);
+        if entityList is error {
+            return <http:BadRequest> {
+                body: {
+                    "error": entityList.message()
+                }
+            };
+        }
 
         // Map the result to the expected response format
         record {string id?; record {string major?; string? minor?;} kind?; string name?; string created?; string? terminated?;}[] response = [];
@@ -358,6 +366,10 @@ service /v1 on ep0 {
                 terminated: entity.terminated
             });
         }
-        return {body: {body: response}};
+        return <InlineResponse2001Ok> {
+            body: {
+                body: response
+            }
+        };
     }
 }
