@@ -31,6 +31,12 @@
 # - MONGO_ADMIN_PASSWORD: MongoDB admin password (default: test123456)
 # - CRUD_SERVICE_HOST: Host address to bind the service (default: 0.0.0.0)
 # - CRUD_SERVICE_PORT: Port to expose the gRPC service (default: 50051)
+# - POSTGRES_HOST: PostgreSQL host (default: postgres)
+# - POSTGRES_PORT: PostgreSQL port (default: 5432)
+# - POSTGRES_USER: PostgreSQL username (default: postgres)
+# - POSTGRES_PASSWORD: PostgreSQL password (default: postgres123)
+# - POSTGRES_DB: PostgreSQL database name (default: tabular_data)
+# - POSTGRES_SSLMODE: PostgreSQL SSL mode (default: disable)
 #
 # Note: This service should be run on the same Docker network as Neo4j and MongoDB
 # services for proper connectivity. Use the 'crud-network' created with:
@@ -109,6 +115,14 @@ ENV MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD:-admin123}
 # Set CRUD service environment variables
 ENV CRUD_SERVICE_HOST=${CRUD_SERVICE_HOST:-0.0.0.0}
 ENV CRUD_SERVICE_PORT=${CRUD_SERVICE_PORT:-50051}
+
+# Set PostgreSQL environment variables
+ENV POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+ENV POSTGRES_PORT=${POSTGRES_PORT:-5432}
+ENV POSTGRES_USER=${POSTGRES_USER:-postgres}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
+ENV POSTGRES_DB=${POSTGRES_DB:-tabular_data}
+ENV POSTGRES_SSLMODE=${POSTGRES_SSLMODE:-disable}
 
 # Add log configuration
 ENV LOG_LEVEL=debug

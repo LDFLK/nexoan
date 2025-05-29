@@ -20,6 +20,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    restart: unless-stopped
 
   neo4j:
     platform: linux/amd64
@@ -43,6 +44,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+
+  postgres:
+    platform: linux/amd64
+    image: postgres:14
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ldf-network
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=tabular_data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
 
   crud:
     platform: linux/amd64
@@ -65,10 +89,18 @@ services:
       - MONGO_ADMIN_PASSWORD=admin123
       - CRUD_SERVICE_HOST=0.0.0.0
       - CRUD_SERVICE_PORT=50051
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=tabular_data
+      - POSTGRES_SSLMODE=disable
     depends_on:
       mongodb:
         condition: service_healthy
       neo4j:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - ldf-network
@@ -77,6 +109,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   update:
     platform: linux/amd64
@@ -96,6 +129,7 @@ services:
     depends_on:
       crud:
         condition: service_healthy
+    restart: unless-stopped
 
   query:
     platform: linux/amd64
@@ -115,6 +149,7 @@ services:
     depends_on:
       crud:
         condition: service_healthy
+    restart: unless-stopped
     # TODO: Add healthcheck for query service
 
   e2e:
@@ -149,4 +184,5 @@ networks:
 volumes:
   mongodb_data:
   neo4j_data:
-  neo4j_logs: 
+  neo4j_logs:
+  postgres_data: 
