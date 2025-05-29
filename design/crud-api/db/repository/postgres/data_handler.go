@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -111,39 +112,32 @@ func logSchemaInfo(schemaInfo *schema.SchemaInfo) {
 	log.Printf("Schema JSON:\n%s", string(prettyJSON))
 }
 
-func HandleAttributes(attributes map[string]*pb.TimeBasedValueList) (map[string]interface{}, error) {
-	log.Printf("--------------Handling Attributes------------------")
+// HandleAttributes processes attributes and stores them as tabular data
+func HandleAttributes(entityID string, attributes map[string]*pb.TimeBasedValueList) (map[string]interface{}, error) {
+	log.Printf("--------------Handling Attributes for Entity %s------------------", entityID)
 	log.Printf("Handling attributes: %v", attributes)
 
 	if attributes == nil {
 		return nil, nil
 	}
 
+	// Create a background context for database operations
+	ctx := context.Background()
+
+	// Store the attributes in PostgreSQL
+	err := HandleEntityAttributes(ctx, entityID, attributes)
+	if err != nil {
+		log.Printf("Error storing attributes in PostgreSQL: %v", err)
+		return nil, err
+	}
+
+	// For backward compatibility, return the attributes as a map
 	result := make(map[string]interface{})
 	for key, value := range attributes {
 		if value != nil {
-			values := value.Values
-			for i, val := range values {
-				log.Printf("Processing value %d: %v", i, val)
-				if val != nil {
-					log.Printf("Value details - StartTime: %s, EndTime: %s, Value: %v",
-						val.GetStartTime(),
-						val.GetEndTime(),
-						val.GetValue())
-
-					// Generate schema
-					schemaInfo, err := generateSchema(val.GetValue())
-					if err != nil {
-						log.Printf("Failed to generate schema: %v", err)
-						continue
-					}
-
-					// Log schema information
-					logSchemaInfo(schemaInfo)
-				}
-			}
-			result[key] = values
+			result[key] = value.Values
 		}
 	}
+
 	return result, nil
 }
