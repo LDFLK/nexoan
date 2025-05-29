@@ -206,17 +206,31 @@ func (repo *Neo4jRepository) HandleGraphEntityCreation(ctx context.Context, enti
 		Minor: entity.Kind.GetMinor(),
 	}
 
-	// Handle Name field safely
 	if entity.Name != nil && entity.Name.GetValue() != nil {
 		// Unpack the Any value to get the actual string
 		var stringValue wrapperspb.StringValue
 		err := entity.Name.GetValue().UnmarshalTo(&stringValue)
 		if err != nil {
-			log.Printf("[neo4j_handler.HandleGraphEntityCreation] Error unpacking Name value for entity %s: %v", entity.Id, err)
-			return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityCreation] error unpacking Name value: %v", err)
+			// If we can't unmarshal to StringValue, try to get the raw value
+			if entity.Name.GetValue().GetTypeUrl() == "type.googleapis.com/google.protobuf.StringValue" {
+				// The value is already a StringValue, try to get the raw bytes
+				rawValue := entity.Name.GetValue().GetValue()
+				if len(rawValue) > 0 {
+					// The first byte is the length, followed by the actual string
+					if len(rawValue) > 1 {
+						entityMap["Name"] = string(rawValue[1:])
+						log.Printf("Using raw value from Any: %s\n", string(rawValue[1:]))
+					}
+				}
+			} else {
+				fmt.Printf("Error unpacking Name value for entity %s: %v\n", entity.Id, err)
+				return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityCreation] error unpacking Name value: %v", err)
+			}
+		} else {
+			// Successfully unpacked to StringValue
+			entityMap["Name"] = stringValue.Value
+			log.Printf("Using unpacked StringValue: %s\n", stringValue.Value)
 		}
-		// Get the actual string value from the StringValue
-		entityMap["Name"] = stringValue.Value
 	}
 
 	// Handle other fields

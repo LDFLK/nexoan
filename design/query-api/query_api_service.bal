@@ -5,6 +5,7 @@ import ballerina/http;
 import ballerina/protobuf.types.'any;
 import ballerina/os;
 import ballerina/lang.'int as langint;
+import ballerina/io;
 
 string crudHostname = os:getEnv("CRUD_SERVICE_HOST");
 string queryHostname = os:getEnv("QUERY_SERVICE_HOST");
@@ -312,11 +313,25 @@ service /v1 on ep0 {
         // Safely extract kind major and minor
         string kindMajor = "";
         string kindMinor = "";
-        if payload.kind is () {
-            // leave as empty
+        if payload.kind is () || (<entitiessearch_kind>payload.kind)?.major is (){
+            return <http:BadRequest> {
+                body: {
+                    "error": "Invalid search criteria",
+                    "details": "Kind.Major is required for filtering entities"
+                }
+            };
         } else {
             kindMajor = (<entitiessearch_kind>payload.kind)?.major ?: "";
             kindMinor = (<entitiessearch_kind>payload.kind)?.minor ?: "";
+            
+            if kindMajor == "" || (<entitiessearch_kind>payload.kind)?.major is () {
+                return <http:BadRequest> {
+                    body: {
+                        "error": "Invalid search criteria",
+                        "details": "Kind.Major is required for filtering entities"
+                    }
+                };
+            }
         }
 
         Entity entityFilter = {
@@ -348,9 +363,12 @@ service /v1 on ep0 {
         // Call the ReadEntities method
         EntityList|error entityList = ep->ReadEntities(request);
         if entityList is error {
+            io:println(string `Error reading entities: ${entityList.message()}`);
+            
             return <http:BadRequest> {
                 body: {
-                    "error": entityList.message()
+                    "error": "Invalid search criteria",
+                    "details": entityList.message()
                 }
             };
         }

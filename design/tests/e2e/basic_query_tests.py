@@ -736,6 +736,8 @@ def test_search_by_name():
     }
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Search failed: {res.text}"
+
+    print(res.text)
     
     body = res.json()
     assert isinstance(body, dict), "Search response should be a dictionary"
@@ -793,7 +795,7 @@ if __name__ == "__main__":
         #test_search_without_major_kind()
         test_search_by_kind_major()
         test_search_by_kind_minor()
-        #test_search_by_name()
+        test_search_by_name()
         test_search_by_created_date()
         
         print("\n🎉 All Query API tests passed!")
