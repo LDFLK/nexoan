@@ -80,10 +80,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Query Test Entity Child 1"
-            }
+            "value": "Query Test Entity Child 1"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-1"},
@@ -119,10 +116,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Query Test Entity Child 2"
-            }
+            "value": "Query Test Entity Child 2"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-2"},
@@ -142,10 +136,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Query Test Entity Child 3"
-            }
+            "value": "Query Test Entity Child 3"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-3"},
@@ -163,10 +154,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Query Test Entity"
-            }
+            "value": "Query Test Entity"
         },
         "metadata": [
             {"key": "source", "value": "unit-test"},
@@ -455,10 +443,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Government of Sri Lanka"
-            }
+            "value": "Government of Sri Lanka"
         },
         "metadata": [],
         "attributes": [],
@@ -495,10 +480,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Ministry of Technology"
-            }
+            "value": "Ministry of Technology"
         },
         "metadata": [],
         "attributes": [],
@@ -535,10 +517,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Ministry of Health"
-            }
+            "value": "Ministry of Health"
         },
         "metadata": [],
         "attributes": [],
@@ -575,10 +554,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "IT Department"
-            }
+            "value": "IT Department"
         },
         "metadata": [],
         "attributes": [],
@@ -593,10 +569,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Digital Services Department"
-            }
+            "value": "Digital Services Department"
         },
         "metadata": [],
         "attributes": [],
@@ -612,10 +585,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Hospitals Department"
-            }
+            "value": "Hospitals Department"
         },
         "metadata": [],
         "attributes": [],
@@ -630,10 +600,7 @@ def create_government_entities():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": {
-                "typeUrl": "type.googleapis.com/google.protobuf.StringValue",
-                "value": "Pharmaceutical Department"
-            }
+            "value": "Pharmaceutical Department"
         },
         "metadata": [],
         "attributes": [],
