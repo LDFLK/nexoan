@@ -813,6 +813,9 @@ func (r *Neo4jRepository) FilterEntities(ctx context.Context, kind *pb.Kind, fil
 		query += `AND e.Terminated = datetime($terminated) `
 		params["terminated"] = terminated
 	}
+
+	log.Printf("[neo4j_client.FilterEntities] filtering by name: %v", filters["name"].(string))
+
 	if name, ok := filters["name"].(string); ok && name != "" {
 		query += `AND e.Name = $name `
 		params["name"] = name

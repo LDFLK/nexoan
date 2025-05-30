@@ -345,10 +345,7 @@ service /v1 on ep0 {
             name: {
                 startTime: "",
                 endTime: "",
-                value: {
-                    typeUrl: "type.googleapis.com/google.protobuf.StringValue",
-                    value: payload.name ?: ""
-                }
+                value: check 'any:pack(payload.name ?: "")
             },
             metadata: [],
             attributes: [],
@@ -379,7 +376,7 @@ service /v1 on ep0 {
             response.push({
                 id: entity.id,
                 kind: {major: entity.kind.major, minor: entity.kind.minor},
-                name: entity.name.value.toString(),
+                name: extractValueAsString(entity.name.value),
                 created: entity.created,
                 terminated: entity.terminated
             });
