@@ -759,7 +759,7 @@ if __name__ == "__main__":
         
         # Run government organization search tests
         create_government_entities()
-        #test_search_without_major_kind()
+        test_search_without_major_kind()
         test_search_by_kind_major()
         test_search_by_kind_minor()
         test_search_by_name()
