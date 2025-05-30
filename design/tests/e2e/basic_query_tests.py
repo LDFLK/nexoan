@@ -744,6 +744,212 @@ def test_search_by_created_date():
     
     print("✅ Search by creation date successful")
 
+def test_search_by_name_and_kind():
+    """Test searching entities by both name and kind."""
+    print("\n🔍 Testing search by name and kind...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",
+            "minor": "Minister"
+        },
+        "name": "Ministry of Technology"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected 1 entity in search response"
+    
+    # Verify the returned entity matches both filters
+    entity = body["body"][0]
+    assert entity["id"] == MINISTER_ID_1, f"Expected minister ID {MINISTER_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Minister", f"Expected minor kind 'Minister', got {entity['kind']['minor']}"
+    
+    print("✅ Search by name and kind successful")
+
+def test_search_by_kind_and_created_date():
+    """Test searching entities by both kind and creation date."""
+    print("\n🔍 Testing search by kind and creation date...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",
+            "minor": "Department"
+        },
+        "created": "2024-01-01T00:00:00Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 4, "Expected 4 departments in search response"
+    
+    # Verify all returned entities match both filters
+    for entity in body["body"]:
+        assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+        assert entity["created"] == "2024-01-01T00:00:00Z", f"Expected creation date '2024-01-01T00:00:00Z', got {entity['created']}"
+    
+    print("✅ Search by kind and creation date successful")
+
+def test_search_by_name_kind_and_created_date():
+    """Test searching entities by name, kind, and creation date."""
+    print("\n🔍 Testing search by name, kind, and creation date...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",
+            "minor": "Department"
+        },
+        "name": "IT Department",
+        "created": "2024-01-01T00:00:00Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected 1 entity in search response"
+    
+    # Verify the returned entity matches all filters
+    entity = body["body"][0]
+    assert entity["id"] == DEPT_ID_1, f"Expected department ID {DEPT_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+    assert entity["created"] == "2024-01-01T00:00:00Z", f"Expected creation date '2024-01-01T00:00:00Z', got {entity['created']}"
+    
+    print("✅ Search by name, kind, and creation date successful")
+
+def test_search_by_name_partial_match():
+    """Test that searching with a partial name match returns no results."""
+    print("\n🔍 Testing search by partial name match...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"
+        },
+        "name": "Ministry"  # Partial name that should not match
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 0, "Expected 0 results for partial name match"
+    
+    print("✅ Search correctly returned no results for partial name match")
+
+def test_search_by_terminated_date():
+    """Test searching entities by termination date."""
+    print("\n🔍 Testing search by termination date...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"
+        },
+        "terminated": "2024-12-31T23:59:59Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 0, "Expected 0 terminated entities in search response"
+    
+    print("✅ Search by termination date successful")
+
+def test_search_by_active_entities():
+    """Test searching for active (non-terminated) entities."""
+    print("\n🔍 Testing search for active entities...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization"
+        },
+        "terminated": ""  # Empty terminated date means active entities
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 7, "Expected 7 active entities in search response"
+    
+    # Verify all returned entities are active
+    for entity in body["body"]:
+        assert entity["terminated"] == "", f"Expected empty terminated date, got {entity['terminated']}"
+    
+    print("✅ Search for active entities successful")
+
+def test_search_by_kind_and_terminated():
+    """Test searching entities by both kind and termination status."""
+    print("\n🔍 Testing search by kind and termination status...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",
+            "minor": "Department"
+        },
+        "terminated": ""  # Active departments
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 4, "Expected 4 active departments in search response"
+    
+    # Verify all returned entities are active departments
+    for entity in body["body"]:
+        assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+        assert entity["terminated"] == "", f"Expected empty terminated date, got {entity['terminated']}"
+    
+    print("✅ Search by kind and termination status successful")
+
+def test_search_by_name_kind_and_terminated():
+    """Test searching entities by name, kind, and termination status."""
+    print("\n🔍 Testing search by name, kind, and termination status...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "kind": {
+            "major": "Organization",
+            "minor": "Minister"
+        },
+        "name": "Ministry of Technology",
+        "terminated": ""  # Active minister
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected 1 active minister in search response"
+    
+    # Verify the returned entity matches all filters
+    entity = body["body"][0]
+    assert entity["id"] == MINISTER_ID_1, f"Expected minister ID {MINISTER_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Minister", f"Expected minor kind 'Minister', got {entity['kind']['minor']}"
+    assert entity["terminated"] == "", f"Expected empty terminated date, got {entity['terminated']}"
+    
+    print("✅ Search by name, kind, and termination status successful")
+
 if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
 
@@ -764,6 +970,18 @@ if __name__ == "__main__":
         test_search_by_kind_minor()
         test_search_by_name()
         test_search_by_created_date()
+        
+        # Run combined filter tests
+        test_search_by_name_and_kind()
+        test_search_by_kind_and_created_date()
+        test_search_by_name_kind_and_created_date()
+        test_search_by_name_partial_match()
+        
+        # Run terminated date filter tests
+        test_search_by_terminated_date()
+        test_search_by_active_entities()
+        test_search_by_kind_and_terminated()
+        test_search_by_name_kind_and_terminated()
         
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:
