@@ -15,6 +15,7 @@ Config.toml
 
 .DS_Store
 design/.DS_Store
+.vscode/
 # Ballerina
 
 target/
