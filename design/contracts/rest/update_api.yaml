@@ -83,9 +83,14 @@ components:
             items:
               $ref: '#/components/schemas/TimeBasedValue'
         relationships:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Relationship'
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                $ref: '#/components/schemas/Relationship'
     Kind:
       type: object
       properties:
@@ -118,3 +123,7 @@ components:
           type: string
           format: date-time
           nullable: true
+        id:
+          type: string
+        name:
+          type: string
