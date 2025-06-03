@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"testing"
 
-	"lk/datafoundation/crud-api/db/config"
-	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
-	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
-)
+// 	"lk/datafoundation/crud-api/db/config"
+// 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
+// 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
+// )
 
 var server *Server
 
@@ -50,7 +49,7 @@ func TestMain(m *testing.M) {
 
 	// Run the tests
 	code := m.Run()
-
+	
 	// Exit with the test result code
 	os.Exit(code)
 }
@@ -154,4 +153,163 @@ func TestCreateEntity(t *testing.T) {
 	// 		}
 	// 	})
 	// }
+}
+
+func TestHandleTabularData(t *testing.T) {
+	tests := []struct {
+		name    string
+		req     *TabularDataRequest
+		want    *TabularValidationResult
+		wantErr bool
+	}{
+		{
+			name: "Valid Employee Data with Validation Rules",
+			req: &TabularDataRequest{
+				Headers: []string{"EmployeeID", "Name", "Salary", "JoinDate"},
+				Data: [][]string{
+					{"EMP001", "John Doe", "75000", "2023-01-15"},
+					{"EMP002", "Jane Smith", "85000", "2023-02-01"},
+				},
+				Validation: &ValidationRules{
+					RequiredFields: []string{"EmployeeID", "Name"},
+					UniqueFields:   []string{"EmployeeID"},
+					PatternRules:   map[string]string{
+						"EmployeeID": "^EMP\\d{3}$",
+					},
+					MinRows: 1,
+					MaxRows: 1000,
+				},
+				Options: &ProcessingOptions{
+					TrimWhitespace:   true,
+					NullValue:        "NULL",
+					DateFormat:       "2006-01-02",
+					SanitizeSpecials: true,
+				},
+			},
+			want: &TabularValidationResult{
+				IsValid: true,
+				ColumnTypes: map[string]string{
+					"EmployeeID": "string",
+					"Name":       "string",
+					"Salary":     "number",
+					"JoinDate":   "date",
+				},
+				EntityType: "Employee",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data with Validation Errors",
+			req: &TabularDataRequest{
+				Headers: []string{"EmployeeID", "Name", "Salary"},
+				Data: [][]string{
+					{"INVALID", "", "75000"},
+					{"EMP002", "", "NOT_NUMBER"},
+				},
+				Validation: &ValidationRules{
+					RequiredFields: []string{"Name"},
+					PatternRules:   map[string]string{
+						"EmployeeID": "^EMP\\d{3}$",
+					},
+				},
+			},
+			want: &TabularValidationResult{
+				IsValid:       false,
+				ErrorMessages: []string{
+					"required field 'Name' is empty in row 1",
+					"required field 'Name' is empty in row 2",
+					"value 'INVALID' in field 'EmployeeID' at row 1 does not match required pattern",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data with Special Characters",
+			req: &TabularDataRequest{
+				Headers: []string{"ID", "Description"},
+				Data: [][]string{
+					{"1", "Test\nwith\nnewlines"},
+					{"2", "Test with \"quotes\""},
+				},
+				Options: &ProcessingOptions{
+					TrimWhitespace:   true,
+					SanitizeSpecials: true,
+				},
+			},
+			want: &TabularValidationResult{
+				IsValid: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Empty Data",
+			req: &TabularDataRequest{
+				Headers: []string{},
+				Data:    [][]string{},
+			},
+			want: &TabularValidationResult{
+				IsValid:       false,
+				ErrorMessages: []string{"no headers provided"},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Server{}
+			got, err := s.HandleTabularData(context.Background(), tt.req)
+			
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HandleTabularData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			
+			if got.IsValid != tt.want.IsValid {
+				t.Errorf("HandleTabularData() IsValid = %v, want %v", got.IsValid, tt.want.IsValid)
+			}
+			
+			// Check error messages if validation failed
+			if !got.IsValid && tt.want.ErrorMessages != nil {
+				if len(got.ErrorMessages) != len(tt.want.ErrorMessages) {
+					t.Errorf("HandleTabularData() ErrorMessages count = %v, want %v", 
+						len(got.ErrorMessages), len(tt.want.ErrorMessages))
+				}
+				for i, wantMsg := range tt.want.ErrorMessages {
+					if i >= len(got.ErrorMessages) || got.ErrorMessages[i] != wantMsg {
+						t.Errorf("HandleTabularData() ErrorMessage[%d] = %v, want %v", 
+							i, got.ErrorMessages[i], wantMsg)
+					}
+				}
+			}
+			
+			// Check statistics for valid cases
+			if got.IsValid && got.Statistics != nil {
+				if got.Statistics.TotalRows != len(tt.req.Data) {
+					t.Errorf("HandleTabularData() Statistics.TotalRows = %v, want %v",
+						got.Statistics.TotalRows, len(tt.req.Data))
+				}
+				
+				if got.Statistics.DataQualityScore < 0 || got.Statistics.DataQualityScore > 1 {
+					t.Errorf("HandleTabularData() Statistics.DataQualityScore = %v, should be between 0 and 1",
+						got.Statistics.DataQualityScore)
+				}
+			}
+			
+			// Check column types for valid cases with specified types
+			if tt.want.ColumnTypes != nil {
+				for header, wantType := range tt.want.ColumnTypes {
+					if gotType := got.ColumnTypes[header]; gotType != wantType {
+						t.Errorf("HandleTabularData() column %s type = %v, want %v", 
+							header, gotType, wantType)
+					}
+				}
+			}
+			
+			if tt.want.EntityType != "" && got.EntityType != tt.want.EntityType {
+				t.Errorf("HandleTabularData() EntityType = %v, want %v", 
+					got.EntityType, tt.want.EntityType)
+			}
+		})
+	}
 }
