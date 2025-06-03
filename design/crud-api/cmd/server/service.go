@@ -6,6 +6,10 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	"lk/datafoundation/crud-api/db/config"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
@@ -287,6 +291,376 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 	return &pb.EntityList{
 		Entities: entities,
 	}, nil
+}
+
+// TabularDataRequest represents incoming tabular data
+type TabularDataRequest struct {
+	Headers     []string            // Column headers
+	Data        [][]string          // Row data
+	Validation  *ValidationRules    
+	Options     *ProcessingOptions  // Optional processing options
+}
+
+// ValidationRules defines validation requirements
+type ValidationRules struct {
+	RequiredFields    []string          // Fields that must have values
+	UniqueFields     []string          // Fields that must be unique
+	PatternRules     map[string]string // Regex patterns for fields
+	MaxRows          int               // Maximum allowed rows
+	MinRows          int               // Minimum required rows
+}
+
+// ProcessingOptions defines data processing options
+type ProcessingOptions struct {
+	TrimWhitespace    bool   // Whether to trim whitespace
+	NullValue         string // String to treat as null
+	DateFormat        string // Expected date format
+	SanitizeSpecials  bool   // Whether to sanitize special characters
+}
+
+// TabularValidationResult represents validation result
+type TabularValidationResult struct {
+	IsValid         bool
+	ErrorMessages   []string
+	ColumnTypes     map[string]string
+	EntityType      string
+	SanitizedData   [][]string           // Cleaned data
+	Statistics      *ValidationStats      // Validation statistics
+	Warnings        []string             // Non-critical issues
+}
+
+// ValidationStats provides statistical information
+type ValidationStats struct {
+	TotalRows        int
+	ValidRows        int
+	InvalidRows      int
+	EmptyFields      map[string]int      // Count of empty fields per column
+	UniqueValues     map[string]int      // Count of unique values per column
+	DataQualityScore float64             // Overall quality score (0-1)
+}
+
+// sanitizeData cleans the input data
+func (s *Server) sanitizeData(req *TabularDataRequest) [][]string {
+	sanitized := make([][]string, len(req.Data))
+	options := req.Options
+	if options == nil {
+		options = &ProcessingOptions{
+			TrimWhitespace: true,
+			NullValue: "NULL",
+			DateFormat: "2006-01-02",
+			SanitizeSpecials: true,
+		}
+	}
+
+	for i, row := range req.Data {
+		sanitized[i] = make([]string, len(row))
+		for j, cell := range row {
+			// Apply sanitization based on options
+			value := cell
+			if options.TrimWhitespace {
+				value = strings.TrimSpace(value)
+			}
+			if options.SanitizeSpecials {
+				value = sanitizeSpecialChars(value)
+			}
+			if value == "" || value == options.NullValue {
+				value = ""
+			}
+			sanitized[i][j] = value
+		}
+	}
+	return sanitized
+}
+
+// sanitizeSpecialChars removes or escapes special characters
+func sanitizeSpecialChars(value string) string {
+	// Remove control characters
+	value = strings.Map(func(r rune) rune {
+		if r < 32 || r == 127 {
+			return -1
+		}
+		return r
+	}, value)
+
+	// Escape special characters
+	value = strings.ReplaceAll(value, "\\'", "'")
+	value = strings.ReplaceAll(value, "\\\"", "\"")
+	
+	return value
+}
+
+// validateDataRules checks data against validation rules
+func (s *Server) validateDataRules(req *TabularDataRequest, sanitizedData [][]string) []string {
+	var errors []string
+	rules := req.Validation
+	if rules == nil {
+		return errors
+	}
+
+	// Check row count limits
+	if rules.MaxRows > 0 && len(sanitizedData) > rules.MaxRows {
+		errors = append(errors, fmt.Sprintf("row count exceeds maximum limit of %d", rules.MaxRows))
+	}
+	if rules.MinRows > 0 && len(sanitizedData) < rules.MinRows {
+		errors = append(errors, fmt.Sprintf("row count below minimum requirement of %d", rules.MinRows))
+	}
+
+	// Create header index map
+	headerIndex := make(map[string]int)
+	for i, header := range req.Headers {
+		headerIndex[header] = i
+	}
+
+	// Check required fields
+	for _, field := range rules.RequiredFields {
+		if idx, exists := headerIndex[field]; exists {
+			for rowIdx, row := range sanitizedData {
+				if row[idx] == "" {
+					errors = append(errors, fmt.Sprintf("required field '%s' is empty in row %d", field, rowIdx+1))
+				}
+			}
+		} else {
+			errors = append(errors, fmt.Sprintf("required field '%s' not found in headers", field))
+		}
+	}
+
+	// Check unique fields
+	for _, field := range rules.UniqueFields {
+		if idx, exists := headerIndex[field]; exists {
+			values := make(map[string]int)
+			for rowIdx, row := range sanitizedData {
+				if row[idx] != "" {
+					if prevRow, isDuplicate := values[row[idx]]; isDuplicate {
+						errors = append(errors, fmt.Sprintf("duplicate value '%s' in field '%s' at rows %d and %d", 
+							row[idx], field, prevRow+1, rowIdx+1))
+					}
+					values[row[idx]] = rowIdx
+				}
+			}
+		}
+	}
+
+	// Check pattern rules
+	for field, pattern := range rules.PatternRules {
+		if idx, exists := headerIndex[field]; exists {
+			regex, err := regexp.Compile(pattern)
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("invalid pattern for field '%s': %v", field, err))
+				continue
+			}
+			for rowIdx, row := range sanitizedData {
+				if row[idx] != "" && !regex.MatchString(row[idx]) {
+					errors = append(errors, fmt.Sprintf("value '%s' in field '%s' at row %d does not match required pattern", 
+						row[idx], field, rowIdx+1))
+				}
+			}
+		}
+	}
+
+	return errors
+}
+
+// calculateStatistics generates validation statistics
+func (s *Server) calculateStatistics(req *TabularDataRequest, sanitizedData [][]string) *ValidationStats {
+	stats := &ValidationStats{
+		TotalRows:    len(sanitizedData),
+		ValidRows:    len(sanitizedData),
+		InvalidRows:  0,
+		EmptyFields:  make(map[string]int),
+		UniqueValues: make(map[string]int),
+	}
+
+	// Calculate empty and unique values per column
+	for colIdx, header := range req.Headers {
+		uniqueValues := make(map[string]bool)
+		emptyCount := 0
+		
+		for _, row := range sanitizedData {
+			if row[colIdx] == "" {
+				emptyCount++
+			} else {
+				uniqueValues[row[colIdx]] = true
+			}
+		}
+		
+		stats.EmptyFields[header] = emptyCount
+		stats.UniqueValues[header] = len(uniqueValues)
+	}
+
+	// Calculate data quality score (0-1)
+	totalFields := len(req.Headers) * len(sanitizedData)
+	emptyFields := 0
+	for _, count := range stats.EmptyFields {
+		emptyFields += count
+	}
+	
+	if totalFields > 0 {
+		stats.DataQualityScore = 1 - (float64(emptyFields) / float64(totalFields))
+	}
+
+	return stats
+}
+
+// Enhance the main HandleTabularData method
+func (s *Server) HandleTabularData(ctx context.Context, req *TabularDataRequest) (*TabularValidationResult, error) {
+	log.Printf("Processing tabular data with %d columns and %d rows", len(req.Headers), len(req.Data))
+	
+	result := &TabularValidationResult{
+		IsValid:       true,
+		ErrorMessages: []string{},
+		ColumnTypes:   make(map[string]string),
+		Warnings:      []string{},
+	}
+
+	// Step 1: Basic structure validation
+	if err := s.validateTabularStructure(req); err != nil {
+		result.IsValid = false
+		result.ErrorMessages = append(result.ErrorMessages, err.Error())
+		return result, nil
+	}
+
+	// Step 2: Data sanitization
+	result.SanitizedData = s.sanitizeData(req)
+
+	// Step 3: Apply validation rules
+	if ruleErrors := s.validateDataRules(req, result.SanitizedData); len(ruleErrors) > 0 {
+		result.IsValid = false
+		result.ErrorMessages = append(result.ErrorMessages, ruleErrors...)
+	}
+
+	// Step 4: Type inference
+	columnTypes, err := s.inferTabularTypes(ctx, req)
+	if err != nil {
+		result.IsValid = false
+		result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("type inference error: %v", err))
+	} else {
+		result.ColumnTypes = columnTypes
+	}
+
+	// Step 5: Entity type detection
+	entityType, err := s.detectEntityType(req.Headers)
+	if err != nil {
+		result.Warnings = append(result.Warnings, fmt.Sprintf("entity detection warning: %v", err))
+	}
+	result.EntityType = entityType
+
+	// Step 6: Calculate statistics
+	result.Statistics = s.calculateStatistics(req, result.SanitizedData)
+
+	return result, nil
+}
+
+// validateTabularStructure validates basic table structure
+func (s *Server) validateTabularStructure(req *TabularDataRequest) error {
+	if len(req.Headers) == 0 {
+		return fmt.Errorf("no headers provided")
+	}
+
+	if len(req.Data) == 0 {
+		return fmt.Errorf("no data rows provided")
+	}
+
+	// Check header uniqueness
+	headerMap := make(map[string]bool)
+	for _, header := range req.Headers {
+		if header == "" {
+			return fmt.Errorf("empty header found")
+		}
+		if headerMap[header] {
+			return fmt.Errorf("duplicate header found: %s", header)
+		}
+		headerMap[header] = true
+	}
+
+	// Check row consistency
+	headerCount := len(req.Headers)
+	for i, row := range req.Data {
+		if len(row) != headerCount {
+			return fmt.Errorf("inconsistent column count in row %d: expected %d, got %d", 
+				i+1, headerCount, len(row))
+		}
+	}
+
+	return nil
+}
+
+// inferTabularTypes infers column types using existing type inference
+func (s *Server) inferTabularTypes(ctx context.Context, req *TabularDataRequest) (map[string]string, error) {
+	columnTypes := make(map[string]string)
+	
+	// Use sample rows for type inference
+	sampleSize := 5
+	if len(req.Data) < sampleSize {
+		sampleSize = len(req.Data)
+	}
+
+	for colIndex, header := range req.Headers {
+		// Get sample values for this column
+		samples := make([]string, sampleSize)
+		for i := 0; i < sampleSize; i++ {
+			samples[i] = req.Data[i][colIndex]
+		}
+		
+		// Infer type for this column
+		colType := inferColumnType(samples)
+		columnTypes[header] = colType
+	}
+
+	return columnTypes, nil
+}
+
+// detectEntityType tries to determine the entity type from headers
+func (s *Server) detectEntityType(headers []string) (string, error) {
+	// Common entity indicators in headers
+	entityIndicators := map[string]string{
+		"employee": "Employee",
+		"user":    "User",
+		"product": "Product",
+		"order":   "Order",
+	}
+
+	// Look for ID patterns
+	for _, header := range headers {
+		headerLower := strings.ToLower(header)
+		for indicator, entityType := range entityIndicators {
+			if strings.Contains(headerLower, indicator) && strings.Contains(headerLower, "id") {
+				return entityType, nil
+			}
+		}
+	}
+
+	return "Unknown", nil
+}
+
+// inferColumnType determines the type of data in a column
+func inferColumnType(samples []string) string {
+	isNumber := true
+	isDate := true
+	
+	for _, sample := range samples {
+		// Skip empty values
+		if sample == "" {
+			continue
+		}
+
+		// Check if number
+		if _, err := strconv.ParseFloat(sample, 64); err != nil {
+			isNumber = false
+		}
+
+		// Check if date (simple check)
+		if _, err := time.Parse("2006-01-02", sample); err != nil {
+			isDate = false
+		}
+	}
+
+	if isDate {
+		return "date"
+	}
+	if isNumber {
+		return "number"
+	}
+	return "string"
 }
 
 // Start the gRPC server
