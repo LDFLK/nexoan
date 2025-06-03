@@ -297,7 +297,7 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 type TabularDataRequest struct {
 	Headers     []string            // Column headers
 	Data        [][]string          // Row data
-	Validation  *ValidationRules    // Optional validation rules
+	Validation  *ValidationRules    
 	Options     *ProcessingOptions  // Optional processing options
 }
 

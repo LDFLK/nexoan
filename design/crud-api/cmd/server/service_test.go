@@ -9,48 +9,49 @@ import (
 // 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
 // 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
 // )
-
+)
 var server *Server
 
 // TestMain sets up the actual MongoDB and Neo4j repositories before running the tests
 func TestMain(m *testing.M) {
-	// Load environment variables for database configurations
-	neo4jConfig := &config.Neo4jConfig{
-		URI:      os.Getenv("NEO4J_URI"),
-		Username: os.Getenv("NEO4J_USER"),
-		Password: os.Getenv("NEO4J_PASSWORD"),
-	}
+	// // Load environment variables for database configurations
+	// neo4jConfig := &config.Neo4jConfig{
+	// 	URI:      os.Getenv("NEO4J_URI"),
+	// 	Username: os.Getenv("NEO4J_USER"),
+	// 	Password: os.Getenv("NEO4J_PASSWORD"),
+	// }
 
-	mongoConfig := &config.MongoConfig{
-		URI:        os.Getenv("MONGO_URI"),
-		DBName:     os.Getenv("MONGO_DB_NAME"),
-		Collection: os.Getenv("MONGO_COLLECTION"),
-	}
+	// mongoConfig := &config.MongoConfig{
+	// 	URI:        os.Getenv("MONGO_URI"),
+	// 	DBName:     os.Getenv("MONGO_DB_NAME"),
+	// 	Collection: os.Getenv("MONGO_COLLECTION"),
+	// }
 
-	// Initialize Neo4j repository
-	ctx := context.Background()
-	neo4jRepo, err := neo4jrepository.NewNeo4jRepository(ctx, neo4jConfig)
-	if err != nil {
-		log.Fatalf("Failed to initialize Neo4j repository: %v", err)
-	}
-	defer neo4jRepo.Close(ctx)
+	// // Initialize Neo4j repository
+	// ctx := context.Background()
+	// neo4jRepo, err := neo4jrepository.NewNeo4jRepository(ctx, neo4jConfig)
+	// if err != nil {
+	// 	log.Fatalf("Failed to initialize Neo4j repository: %v", err)
+	// }
+	// defer neo4jRepo.Close(ctx)
 
-	// Initialize MongoDB repository
-	mongoRepo := mongorepository.NewMongoRepository(ctx, mongoConfig)
-	if mongoRepo == nil {
-		log.Fatalf("Failed to initialize MongoDB repository")
-	}
+	// // Initialize MongoDB repository
+	// mongoRepo := mongorepository.NewMongoRepository(ctx, mongoConfig)
+	// if mongoRepo == nil {
+	// 	log.Fatalf("Failed to initialize MongoDB repository")
+	// }
 
-	// Create the server with the initialized repositories
-	server = &Server{
-		mongoRepo: mongoRepo,
-		neo4jRepo: neo4jRepo,
-	}
-
-	// Run the tests
+	// // Create the server with the initialized repositories
+	// server = &Server{
+	// 	mongoRepo: mongoRepo,
+	// 	neo4jRepo: neo4jRepo,
+	// }
+// Initialize server without database connections for tabular data tests
+server = &Server{}
+	// // Run the tests
 	code := m.Run()
 	
-	// Exit with the test result code
+	// // Exit with the test result code
 	os.Exit(code)
 }
 
