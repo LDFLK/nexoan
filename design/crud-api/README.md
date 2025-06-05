@@ -14,6 +14,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 go get google.golang.org/grpc
 go get go.mongodb.org/mongo-driver/mongo
+go get github.com/lib/pq  # PostgreSQL driver
 ```
 
 ## Development
@@ -27,6 +28,63 @@ cp env.template .env
 source .env
 go test -v ./...
 ./crud-service
+```
+
+## Database Setup
+
+### PostgreSQL Setup
+
+1. **Using Docker**:
+```bash
+# Run PostgreSQL container
+docker run -d \
+  --name postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_USER=postgres \
+  -p 5432:5432 \
+  postgres:16
+```
+
+2. **Create Test Database**:
+```bash
+docker exec postgres psql -U postgres -c "CREATE DATABASE test_db;"
+```
+
+3. **Environment Variables**:
+```bash
+# Add to your .env file
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=test_db
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable"
+```
+
+### Running PostgreSQL Tests
+
+1. **Run All Tests**:
+```bash
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v ./db/repository/postgres/...
+```
+
+2. **Run Specific Tests**:
+```bash
+# Run client tests
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -run TestNewClient ./db/repository/postgres/...
+
+# Run data insertion tests
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -run TestInsertSampleData ./db/repository/postgres/...
+```
+
+3. **Run Tests with Coverage**:
+```bash
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -cover ./db/repository/postgres/...
+```
+
+4. **Run Tests with Race Detection**:
+```bash
+POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -race ./db/repository/postgres/...
 ```
 
 ## Go Module Setup
@@ -86,6 +144,11 @@ docker run -d \
   -e NEO4J_USER=${NEO4J_USER} \
   -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
   -e MONGO_URI=${MONGO_URI} \
+  -e POSTGRES_HOST=${POSTGRES_HOST} \
+  -e POSTGRES_PORT=${POSTGRES_PORT} \
+  -e POSTGRES_USER=${POSTGRES_USER} \
+  -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+  -e POSTGRES_DB=${POSTGRES_DB} \
   crud-service
 ```
 
@@ -109,7 +172,7 @@ grpc.reflection.v1alpha.ServerReflection
 
 ### Run Tests: Mode 1 (Independent Environments and Services)
 
-We assume the Mongodb and Neo4j are provided as services or they exist in the same network. 
+We assume the Mongodb, Neo4j, and PostgreSQL are provided as services or they exist in the same network. 
 
 ```bash
 # Build the test image
@@ -122,12 +185,13 @@ docker run --rm \
   -e NEO4J_USER=${NEO4J_USER} \
   -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
   -e MONGO_URI=${MONGO_URI} \
+  -e POSTGRES_TEST_DB_URI=${POSTGRES_TEST_DB_URI} \
   crud-service-test-v1
 ```
 
 ### Run Tests: Mode 2 (Choreo and CI/CD)
 
-MongoDB and Neo4j are running in the same container. 
+MongoDB, Neo4j, and PostgreSQL are running in the same container. 
 
 ```bash
 docker build -t crud-service-test-standalone -f Dockerfile.test .
