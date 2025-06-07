@@ -256,9 +256,9 @@ func (repo *Neo4jRepository) HandleGraphEntityCreation(ctx context.Context, enti
 // HandleGraphEntityUpdate updates an existing entity in Neo4j
 func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity *pb.Entity) (bool, error) {
 	// Validate required fields for Neo4j entity update
-	if !validateGraphEntityCreation(entity) {
-		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity %s saved in MongoDB only, skipping Neo4j due to missing required fields", entity.Id)
-		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] missing required fields for Neo4j entity update")
+	if entity.Id == "" {
+		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity ID is required for Neo4j entity update")
+		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] entity ID is required")
 	}
 
 	log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Updating existing entity in Neo4j: %s", entity.Id)
@@ -277,8 +277,10 @@ func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity
 			log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Error unpacking Name value for entity %s: %v", entity.Id, err)
 			return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] error unpacking Name value: %v", err)
 		}
-		// Get the actual string value from the StringValue
-		entityMap["Name"] = stringValue.Value
+		// Get the actual string value from the StringValue and check it's not empty
+		if stringValue.Value != "" {
+			entityMap["Name"] = stringValue.Value
+		}
 	}
 
 	// Handle other fields
@@ -292,11 +294,13 @@ func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity
 
 	// Update the entity
 	result, err := repo.UpdateGraphEntity(ctx, entity.Id, entityMap)
+	log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity map for update: %+v", entityMap)
 	if err != nil {
 		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Error updating entity in Neo4j: %v", err)
 		return false, err
 	} else {
 		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Successfully updated entity in Neo4j: %s", entity.Id)
+		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Update result: %+v", result)
 		return result != nil, nil // Success if we got a non-nil result
 	}
 }
