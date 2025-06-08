@@ -615,6 +615,7 @@ func (r *Neo4jRepository) UpdateGraphEntity(ctx context.Context, id string, upda
 }
 
 func (r *Neo4jRepository) UpdateRelationship(ctx context.Context, relationshipID string, updateData map[string]interface{}) (map[string]interface{}, error) {
+	log.Printf("[neo4j_client.UpdateRelationship] Updating relationship %s with data: %+v", relationshipID, updateData)
 
 	if relationshipID == "" {
 		log.Printf("[neo4j_client.UpdateRelationship] relationship Id cannot be empty")

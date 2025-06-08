@@ -178,8 +178,6 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	updateEntityID := req.Id
 	updateEntity := req.Entity
 
-	log.Printf("[server.UpdateEntity] Updating Entity: %s", updateEntityID)
-
 	// Initialize metadata
 	var metadata map[string]*anypb.Any
 

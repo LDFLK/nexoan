@@ -345,6 +345,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsCreate(ctx context.Context,
 
 // HandleGraphRelationshipsUpdate handles updating existing relationships
 func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context, entity *pb.Entity) error {
+	log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Received entity: %+v", entity)
+
 	if len(entity.Relationships) == 0 {
 		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] No relationships to process for entity: %s", entity.Id)
 		return nil
@@ -360,7 +362,27 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 	}
 
 	for _, relationship := range entity.Relationships {
-		if relationship == nil || relationship.RelatedEntityId == "" {
+		if relationship == nil {
+			continue
+		}
+
+		// For updates, we only need the ID
+		if relationship.Id != "" {
+			relationshipData := map[string]interface{}{
+				"Terminated": relationship.EndTime,
+			}
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Update data: %+v", relationshipData)
+			// Try to update if we have an ID
+			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
+			if err == nil {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
+				continue
+			}
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
+		}
+
+		// For creation, we need the related entity ID
+		if relationship.RelatedEntityId == "" {
 			continue
 		}
 
@@ -373,31 +395,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 		}
 		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Child entity %s exists in Neo4j", relationship.RelatedEntityId)
 
-		// Prepare relationship data
-		relationshipData := map[string]interface{}{
-			"relatedEntityId": relationship.RelatedEntityId,
-			"name":            relationship.Name,
-			"startTime":       relationship.StartTime,
-		}
-
-		if relationship.EndTime != "" {
-			relationshipData["endTime"] = relationship.EndTime
-		}
-
-		var createErr error
-		if relationship.Id != "" {
-			// Try to update if we have an ID
-			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
-			if err == nil {
-				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s from %s to %s",
-					relationship.Id, entity.Id, relationship.RelatedEntityId)
-				continue
-			}
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship, attempting to create: %v", err)
-		}
-
 		// Either no ID or update failed, try to create
-		_, createErr = repo.CreateRelationship(ctx, entity.Id, relationship)
+		_, createErr := repo.CreateRelationship(ctx, entity.Id, relationship)
 		if createErr != nil {
 			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Error creating relationship from %s to %s: %v",
 				entity.Id, relationship.RelatedEntityId, createErr)

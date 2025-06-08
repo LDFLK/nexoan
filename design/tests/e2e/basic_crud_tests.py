@@ -352,20 +352,16 @@ class GraphEntityTests(BasicCRUDTests):
             payload = {
                 "id": self.MINISTER_ID,
                 "kind": {},
-                "created": "",
-                "terminated": "",
                 "name": {},
-                "metadata": [],
-                "attributes": [],
                 "relationships": [
                     {
-                        "key": "HAS_DEPARTMENT",
+                        "key": rel_id,
                         "value": {
-                            "relatedEntityId": dept["id"],
-                            "startTime": self.START_DATE,
-                            "endTime": termination_date,  # Add termination date
+                            "endTime": termination_date,
                             "id": rel_id,
-                            "name": "HAS_DEPARTMENT"
+                            "relatedEntityId": "",
+                            "startTime": "",
+                            "name": ""
                         }
                     }
                 ]
