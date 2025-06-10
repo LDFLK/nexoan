@@ -24,11 +24,46 @@ bal grpc --mode client --input ../crud-api/protos/types_v1.proto --output .
 
 ## Development
 
+⚠️ **Warning**  
+All the commands here are for the **LINUX** & **macOS**, but they work on the **Windows** too. but for the commands which does not works on the **Windows** We have given the working command by mentioning that. Please look for that.
+
+For LINUX & macOS
 ```bash
 cd design/query-api
 cp env.template .env
 # update the required fields to set the environment variables
+# (you can find the example env configurations here)
 source .env
 # make sure crud service is running
 bal test
+bal run
 ```
+
+For windows (make sure you open the **Powershell CLI**)
+```bash
+cd design/query-api
+echo .env
+# after updating the required fields to be added to the environment
+# you have to copy and paste the env configurations on the Powershell CLI
+# (you can find the example env configurations here)
+# make sure crud service is running
+bal test
+bal run
+```
+
+Example .env configurations
+```bash
+# For LINUX & macOS
+export CRUD_SERVICE_HOST=localhost
+export CRUD_SERVICE_PORT=50051
+export QUERY_SERVICE_HOST=localhost
+export QUERY_SERVICE_PORT=8081
+
+# For Windows (paste on Powershell CLI)
+$env:CRUD_SERVICE_HOST="localhost"
+$env:CRUD_SERVICE_PORT="50051"
+$env:QUERY_SERVICE_HOST="localhost"
+$env:QUERY_SERVICE_PORT="8081"
+```
+
+
