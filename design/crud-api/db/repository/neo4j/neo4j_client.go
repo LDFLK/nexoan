@@ -783,53 +783,66 @@ func (r *Neo4jRepository) DeleteGraphEntity(ctx context.Context, entityID string
 }
 
 func (r *Neo4jRepository) FilterEntities(ctx context.Context, kind *pb.Kind, filters map[string]interface{}) ([]map[string]interface{}, error) {
-	if kind == nil || kind.Major == "" {
-		return nil, fmt.Errorf("kind.Major is required")
-	}
-
 	// Open a session
 	session := r.getSession(ctx)
 	defer session.Close(ctx)
 
-	// Start building the Cypher query
-	query := `MATCH (e:` + kind.Major + `) WHERE 1=1 ` // Use kind.Major as the label
-	params := map[string]interface{}{}
+	var query string
+	var params map[string]interface{}
 
-	// Add MinorKind filter if provided
-	if kind.Minor != "" {
-		query += `AND e.MinorKind = $minorKind `
-		params["minorKind"] = kind.Minor
-	}
-
-	// Add optional filters
+	// If we have an ID filter, use a simpler query
 	if id, ok := filters["id"].(string); ok && id != "" {
-		query += `AND e.Id = $id `
-		params["id"] = id
-	}
-	if created, ok := filters["created"].(string); ok && created != "" {
-		query += `AND e.Created = datetime($created) `
-		params["created"] = created
-	}
-	if terminated, ok := filters["terminated"].(string); ok && terminated != "" {
-		query += `AND e.Terminated = datetime($terminated) `
-		params["terminated"] = terminated
-	}
+		query = `
+			MATCH (e {Id: $id})
+			RETURN e.Id AS id, labels(e)[0] AS kind, 
+				   toString(e.Created) AS created, 
+				   CASE WHEN e.Terminated IS NOT NULL THEN toString(e.Terminated) ELSE NULL END AS terminated, 
+				   e.Name AS name, 
+				   e.MinorKind AS minorKind
+		`
+		params = map[string]interface{}{
+			"id": id,
+		}
+	} else {
+		// Original query for other filters
+		if kind == nil || kind.Major == "" {
+			return nil, fmt.Errorf("kind.Major is required")
+		}
 
-	log.Printf("[neo4j_client.FilterEntities] filtering by name: %v", filters["name"].(string))
+		// Start building the Cypher query
+		query = `MATCH (e:` + kind.Major + `) WHERE 1=1 ` // Use kind.Major as the label
+		params = map[string]interface{}{}
 
-	if name, ok := filters["name"].(string); ok && name != "" {
-		query += `AND e.Name = $name `
-		params["name"] = name
+		// Add MinorKind filter if provided
+		if kind.Minor != "" {
+			query += `AND e.MinorKind = $minorKind `
+			params["minorKind"] = kind.Minor
+		}
+
+		// Add optional filters
+		if created, ok := filters["created"].(string); ok && created != "" {
+			query += `AND e.Created = datetime($created) `
+			params["created"] = created
+		}
+		if terminated, ok := filters["terminated"].(string); ok && terminated != "" {
+			query += `AND e.Terminated = datetime($terminated) `
+			params["terminated"] = terminated
+		}
+
+		if name, ok := filters["name"].(string); ok && name != "" {
+			query += `AND e.Name = $name `
+			params["name"] = name
+		}
+
+		// Return the matched entities
+		query += `
+			RETURN e.Id AS id, labels(e)[0] AS kind, 
+				   toString(e.Created) AS created, 
+				   CASE WHEN e.Terminated IS NOT NULL THEN toString(e.Terminated) ELSE NULL END AS terminated, 
+				   e.Name AS name, 
+				   e.MinorKind AS minorKind
+		`
 	}
-
-	// Return the matched entities
-	query += `
-        RETURN e.Id AS id, labels(e)[0] AS kind, 
-               toString(e.Created) AS created, 
-               CASE WHEN e.Terminated IS NOT NULL THEN toString(e.Terminated) ELSE NULL END AS terminated, 
-               e.Name AS name, 
-               e.MinorKind AS minorKind
-    `
 
 	// Run the query
 	result, err := session.Run(ctx, query, params)

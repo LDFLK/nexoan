@@ -310,32 +310,27 @@ service /v1 on ep0 {
     #
     # + return - List of matching entities 
     resource function post entities/search(@http:Payload entities_search_body payload) returns InlineResponse2001Ok|http:BadRequest|error {
-        // Safely extract kind major and minor
-        string kindMajor = "";
-        string kindMinor = "";
-        if payload.kind is () || (<entitiessearch_kind>payload.kind)?.major is (){
+        // Check if we have either ID or Kind.Major
+        if payload.id == "" && (payload.kind is () || (<entitiessearch_kind>payload.kind)?.major is () || (<entitiessearch_kind>payload.kind)?.major == "") {
             return <http:BadRequest> {
                 body: {
                     "error": "Invalid search criteria",
-                    "details": "Kind.Major is required for filtering entities"
+                    "details": "Either id or Kind.Major is required for filtering entities"
                 }
             };
-        } else {
-            kindMajor = (<entitiessearch_kind>payload.kind)?.major ?: "";
-            kindMinor = (<entitiessearch_kind>payload.kind)?.minor ?: "";
-            
-            if kindMajor == "" || (<entitiessearch_kind>payload.kind)?.major is () {
-                return <http:BadRequest> {
-                    body: {
-                        "error": "Invalid search criteria",
-                        "details": "Kind.Major is required for filtering entities"
-                    }
-                };
-            }
+        }
+
+        // Extract kind fields if they exist
+        string kindMajor = "";
+        string kindMinor = "";
+        if payload.kind is entitiessearch_kind {
+            entitiessearch_kind kind = <entitiessearch_kind>payload.kind;
+            kindMajor = kind?.major ?: "";
+            kindMinor = kind?.minor ?: "";
         }
 
         Entity entityFilter = {
-            id: "",
+            id: payload.id ?: "",
             kind: {
                 major: kindMajor,
                 minor: kindMinor

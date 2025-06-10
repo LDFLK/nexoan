@@ -418,22 +418,28 @@ func (repo *Neo4jRepository) HandleGraphEntityFilter(ctx context.Context, req *p
 	// Extract filters from the request
 	filters := make(map[string]interface{})
 
-	// Add name if present
-	if req.Entity.Name != nil && req.Entity.Name.Value != nil {
-		var stringValue wrapperspb.StringValue
-		if err := req.Entity.Name.Value.UnmarshalTo(&stringValue); err == nil {
-			filters["name"] = stringValue.Value
+	// If ID is present, only use that filter
+	if req.Entity.Id != "" {
+		filters["id"] = req.Entity.Id
+	} else {
+		// Only add other filters if we're not filtering by ID
+		// Add name if present
+		if req.Entity.Name != nil && req.Entity.Name.Value != nil {
+			var stringValue wrapperspb.StringValue
+			if err := req.Entity.Name.Value.UnmarshalTo(&stringValue); err == nil {
+				filters["name"] = stringValue.Value
+			}
 		}
-	}
 
-	// Add created timestamp if present
-	if req.Entity.Created != "" {
-		filters["created"] = req.Entity.Created
-	}
+		// Add created timestamp if present
+		if req.Entity.Created != "" {
+			filters["created"] = req.Entity.Created
+		}
 
-	// Add terminated timestamp if present
-	if req.Entity.Terminated != "" {
-		filters["terminated"] = req.Entity.Terminated
+		// Add terminated timestamp if present
+		if req.Entity.Terminated != "" {
+			filters["terminated"] = req.Entity.Terminated
+		}
 	}
 
 	// Call FilterEntities with the extracted filters

@@ -241,11 +241,21 @@ func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty,
 
 // ReadEntities retrieves a list of entities filtered by base attributes
 func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*pb.EntityList, error) {
-	if req.Entity == nil || req.Entity.Kind == nil || req.Entity.Kind.Major == "" {
-		return nil, fmt.Errorf("Kind.Major is required for filtering entities")
+	if req.Entity == nil {
+		return nil, fmt.Errorf("entity is required for filtering entities")
 	}
 
-	log.Printf("Filtering entities by Kind.Major: %s", req.Entity.Kind.Major)
+	// Check if we have either an ID or Kind.Major
+	if req.Entity.Id == "" && (req.Entity.Kind == nil || req.Entity.Kind.Major == "") {
+		return nil, fmt.Errorf("either Entity.Id or Entity.Kind.Major is required for filtering entities")
+	}
+
+	// If we have an ID, add it to the filters
+	if req.Entity.Id != "" {
+		log.Printf("Filtering entities by ID: %s", req.Entity.Id)
+	} else {
+		log.Printf("Filtering entities by Kind.Major: %s", req.Entity.Kind.Major)
+	}
 
 	// Use HandleGraphEntityFilter to get filtered entities
 	filteredEntities, err := s.neo4jRepo.HandleGraphEntityFilter(ctx, req)

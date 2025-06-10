@@ -4,6 +4,8 @@
 import ballerina/http;
 
 public type entities_search_body record {
+    # Optional entity ID to search for
+    string id?;
     entitiessearch_kind kind?;
     string name?;
     string created?;
