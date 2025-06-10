@@ -69,7 +69,7 @@ $env:NEO4J_DATABASE="YOUR_DATABASE"
 
 ## Go Module Setup
 
-Initialize a Go module. (For both LINUX & macOS)
+Initialize a Go module. (For LINUX, macOS & Windows)
 
 ```bash
 go mod init github.com/LDFLK/nexoan/design/crud-api
