@@ -969,9 +969,6 @@ def test_search_by_id():
     assert isinstance(body["body"], list), "Search response body should be a list"
     assert len(body["body"]) == 1, "Expected exactly one entity in search response"
     
-    # Debug logging - print the full entity structure
-    print("\nDebug - Full entity structure:", json.dumps(body["body"][0], indent=2))
-    
     # Verify the returned entity matches the ID
     entity = body["body"][0]
     assert entity["id"] == DEPT_ID_1, f"Expected department ID {DEPT_ID_1}, got {entity['id']}"
@@ -981,7 +978,6 @@ def test_search_by_id():
     name_obj = json.loads(entity["name"])
     hex_value = name_obj["value"]
     decoded_name = bytes.fromhex(hex_value).decode('utf-8')
-    print("Debug - Decoded name:", decoded_name)
     
     assert decoded_name == "IT Department", f"Expected name 'IT Department', got {decoded_name}"
     
