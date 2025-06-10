@@ -5,16 +5,16 @@
 
 ## 🚀 Running Services
 
-### 1.Run CRUD API Service
+### 1. Run CRUD API Service
 -Read about running the [CRUD Service](design/crud-api/README.md)
 
-### 2.Run Query API Serivce
+### 2. Run Query API Serivce
 -Read about running the [Query API](design/query-api/README.md)
 
-### 3.Run Update API Service
+### 3. Run Update API Service
 -Read about running the [Update API](design/update-api/README.md)
 
-### 4.Run Swagger-UI  
+### 4. Run Swagger-UI  
 -Read about running the [Swagger UI](design/swagger-ui/README.md)
 
 ---
