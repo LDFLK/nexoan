@@ -275,8 +275,8 @@ func isDateTime(val string) bool {
 		return true
 	}
 	
+	// IMPROVEME: https://github.com/LDFLK/nexoan/issues/159
 	// Try other common formats
-	// IMPROVEME: https://github.com/LDFLK/nexoan/issues/159 - Add function to validate dates with ISO standards
 	formats := []string{
 		"2006-01-02",
 		"2006-01-02 15:04:05",
@@ -636,7 +636,7 @@ func schemaToColumns(schemaInfo *schema.SchemaInfo) []Column {
 }
 
 // sanitizeIdentifier makes a string safe for use as a PostgreSQL identifier
-// IMPROVEME: https://github.com/LDFLK/nexoan/issues/160 - Move sanitizer to a dedicated package for better reusability
+// IMPROVEME: https://github.com/LDFLK/nexoan/issues/160
 func sanitizeIdentifier(s string) string {
 	// Replace invalid characters with underscores
 	safe := strings.Map(func(r rune) rune {
