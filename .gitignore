@@ -35,8 +35,10 @@ docker/neo4j/neo4j/plugins/*
 
 # executables
 design/crud-api/crud-service
+design/crud-api/crud-service.exe
 docker/neo4j/data/*
 docker/neo4j/logs/*
 
 #vscode
 .vscode
+
