@@ -276,6 +276,7 @@ func isDateTime(val string) bool {
 	}
 	
 	// Try other common formats
+	// IMPROVEME: https://github.com/LDFLK/nexoan/issues/159 - Add function to validate dates with ISO standards
 	formats := []string{
 		"2006-01-02",
 		"2006-01-02 15:04:05",
