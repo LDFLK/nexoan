@@ -64,6 +64,21 @@ func (c *Client) DB() *sql.DB {
 }
 
 // InitializeTables creates the necessary tables if they don't exist
+// The entity_attributes table serves as the core mapping between entities and their dynamic attributes.
+// Purpose:
+// 1. Entity-Attribute Relationships: Maps each entity (entity_id) to its attributes (attribute_name)
+// 2. Dynamic Table References: Stores the actual table name (table_name) where the attribute data is stored
+// 3. Schema Versioning: Maintains the current schema version for each attribute
+// 4. Relationship Tracking: Enables efficient querying of which attributes belong to which entities
+//
+// This design allows for:
+// - Dynamic attribute storage with different schemas per attribute
+// - Efficient querying without having to scan all attribute tables
+// - Schema evolution while maintaining backward compatibility
+// - Separation of metadata (in this table) from the actual attribute values (in dynamic tables)
+//
+// Each attribute's actual data is stored in a separate dynamic table (named in table_name)
+// which is created on-demand when new attributes are added to an entity.
 func (c *Client) InitializeTables(ctx context.Context) error {
 	// Create entity_attributes table
 	entityAttributesSQL := `
@@ -78,6 +93,15 @@ func (c *Client) InitializeTables(ctx context.Context) error {
 	);`
 
 	// Create attribute_schemas table
+	// The attribute_schemas table stores the schema definitions for each dynamic attribute table.
+	// Purpose:
+	// 1. Schema Storage: Maintains JSON representation of each attribute's data structure
+	// 2. Version Control: Tracks schema versions to support schema evolution
+	// 3. Documentation: Provides a self-documenting system for attribute data types
+	//
+	// This table works together with entity_attributes to provide a complete
+	// dynamic attribute management system that can handle diverse data types
+	// and evolve over time without breaking existing data.
 	attributeSchemasSQL := `
 	CREATE TABLE IF NOT EXISTS attribute_schemas (
 		id SERIAL PRIMARY KEY,
