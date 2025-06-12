@@ -625,8 +625,8 @@ def create_government_entities():
     assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
     print(f"✅ Created {gov_payload['kind']['minor']} entity: {gov_payload['id']}")
 
-def test_search_without_major_kind():
-    """Test that search fails when major kind is not provided."""
+def test_search_without_major_kind_or_id():
+    """Test that search fails when major kind or id is not provided."""
     print("\n🔍 Testing search without major kind...")
     url = f"{QUERY_API_URL}/search"
     payload = {
@@ -950,6 +950,95 @@ def test_search_by_name_kind_and_terminated():
     
     print("✅ Search by name, kind, and termination status successful")
 
+def test_search_by_id():
+    """Test searching entities by ID."""
+    print("\n🔍 Testing search by ID...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "id": DEPT_ID_1,  # Using the IT Department ID
+        # "kind": {
+        #     "major": ""  # Required field
+        # }
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected exactly one entity in search response"
+    
+    # Verify the returned entity matches the ID
+    entity = body["body"][0]
+    assert entity["id"] == DEPT_ID_1, f"Expected department ID {DEPT_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+        
+    # Parse the name JSON string and decode the hex value directly
+    name_obj = json.loads(entity["name"])
+    hex_value = name_obj["value"]
+    decoded_name = bytes.fromhex(hex_value).decode('utf-8')
+    
+    assert decoded_name == "IT Department", f"Expected name 'IT Department', got {decoded_name}"
+    
+    print("✅ Search by ID successful")
+
+def test_search_by_id_not_found():
+    """Test searching for a non-existent ID."""
+    print("\n🔍 Testing search by non-existent ID...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "id": "non-existent-id",
+        # "kind": {
+        #     "major": ""  # Required field
+        # }
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 0, "Expected empty list for non-existent ID"
+    
+    print("✅ Search by non-existent ID returned empty results as expected")
+
+def test_search_by_id_with_other_filters():
+    """Test that other filters are ignored when searching by ID."""
+    print("\n🔍 Testing search by ID with additional filters...")
+    url = f"{QUERY_API_URL}/search"
+    payload = {
+        "id": DEPT_ID_1,
+        "kind": {
+            "major": "Organization", 
+            "minor": "Minister"  # This should be ignored since we're searching by ID
+        },
+        "name": "Wrong Name",  # This should be ignored
+        "created": "2023-01-01T00:00:00Z"  # This should be ignored
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Search failed: {res.text}"
+    
+    body = res.json()
+    assert isinstance(body, dict), "Search response should be a dictionary"
+    assert "body" in body, "Search response should have a 'body' field"
+    assert isinstance(body["body"], list), "Search response body should be a list"
+    assert len(body["body"]) == 1, "Expected exactly one entity in search response"
+    
+    # Verify the returned entity matches the ID despite other filters
+    entity = body["body"][0]
+    assert entity["id"] == DEPT_ID_1, f"Expected department ID {DEPT_ID_1}, got {entity['id']}"
+    assert entity["kind"]["minor"] == "Department", f"Expected minor kind 'Department', got {entity['kind']['minor']}"
+    
+    # Decode the name value from protobuf Any type
+    name_obj = json.loads(entity["name"])
+    hex_value = name_obj["value"]
+    decoded_name = bytes.fromhex(hex_value).decode('utf-8')
+    assert decoded_name == "IT Department", f"Expected name 'IT Department', got {decoded_name}"
+    
+    print("✅ Search by ID ignored additional filters as expected")
+
 if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
 
@@ -961,15 +1050,19 @@ if __name__ == "__main__":
         test_relationship_query_associated()
         test_relationship_query_linked()
         test_allrelationships_query()
-        # test_entity_search()
         
         # Run government organization search tests
         create_government_entities()
-        test_search_without_major_kind()
+        test_search_without_major_kind_or_id()
         test_search_by_kind_major()
         test_search_by_kind_minor()
         test_search_by_name()
         test_search_by_created_date()
+        
+        # Run ID-based search tests
+        test_search_by_id()
+        test_search_by_id_not_found()
+        test_search_by_id_with_other_filters()
         
         # Run combined filter tests
         test_search_by_name_and_kind()

@@ -256,9 +256,9 @@ func (repo *Neo4jRepository) HandleGraphEntityCreation(ctx context.Context, enti
 // HandleGraphEntityUpdate updates an existing entity in Neo4j
 func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity *pb.Entity) (bool, error) {
 	// Validate required fields for Neo4j entity update
-	if !validateGraphEntityCreation(entity) {
-		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity %s saved in MongoDB only, skipping Neo4j due to missing required fields", entity.Id)
-		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] missing required fields for Neo4j entity update")
+	if entity.Id == "" {
+		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity ID is required for Neo4j entity update")
+		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] entity ID is required")
 	}
 
 	log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Updating existing entity in Neo4j: %s", entity.Id)
@@ -277,8 +277,10 @@ func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity
 			log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Error unpacking Name value for entity %s: %v", entity.Id, err)
 			return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] error unpacking Name value: %v", err)
 		}
-		// Get the actual string value from the StringValue
-		entityMap["Name"] = stringValue.Value
+		// Get the actual string value from the StringValue and check it's not empty
+		if stringValue.Value != "" {
+			entityMap["Name"] = stringValue.Value
+		}
 	}
 
 	// Handle other fields
@@ -292,11 +294,13 @@ func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity
 
 	// Update the entity
 	result, err := repo.UpdateGraphEntity(ctx, entity.Id, entityMap)
+	log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Entity map for update: %+v", entityMap)
 	if err != nil {
 		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Error updating entity in Neo4j: %v", err)
 		return false, err
 	} else {
 		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Successfully updated entity in Neo4j: %s", entity.Id)
+		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Update result: %+v", result)
 		return result != nil, nil // Success if we got a non-nil result
 	}
 }
@@ -341,6 +345,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsCreate(ctx context.Context,
 
 // HandleGraphRelationshipsUpdate handles updating existing relationships
 func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context, entity *pb.Entity) error {
+	log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Received entity: %+v", entity)
+
 	if len(entity.Relationships) == 0 {
 		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] No relationships to process for entity: %s", entity.Id)
 		return nil
@@ -356,7 +362,27 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 	}
 
 	for _, relationship := range entity.Relationships {
-		if relationship == nil || relationship.RelatedEntityId == "" {
+		if relationship == nil {
+			continue
+		}
+
+		// For updates, we only need the ID
+		if relationship.Id != "" {
+			relationshipData := map[string]interface{}{
+				"Terminated": relationship.EndTime,
+			}
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Update data: %+v", relationshipData)
+			// Try to update if we have an ID
+			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
+			if err == nil {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
+				continue
+			}
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
+		}
+
+		// For creation, we need the related entity ID
+		if relationship.RelatedEntityId == "" {
 			continue
 		}
 
@@ -369,31 +395,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 		}
 		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Child entity %s exists in Neo4j", relationship.RelatedEntityId)
 
-		// Prepare relationship data
-		relationshipData := map[string]interface{}{
-			"relatedEntityId": relationship.RelatedEntityId,
-			"name":            relationship.Name,
-			"startTime":       relationship.StartTime,
-		}
-
-		if relationship.EndTime != "" {
-			relationshipData["endTime"] = relationship.EndTime
-		}
-
-		var createErr error
-		if relationship.Id != "" {
-			// Try to update if we have an ID
-			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
-			if err == nil {
-				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s from %s to %s",
-					relationship.Id, entity.Id, relationship.RelatedEntityId)
-				continue
-			}
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship, attempting to create: %v", err)
-		}
-
 		// Either no ID or update failed, try to create
-		_, createErr = repo.CreateRelationship(ctx, entity.Id, relationship)
+		_, createErr := repo.CreateRelationship(ctx, entity.Id, relationship)
 		if createErr != nil {
 			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Error creating relationship from %s to %s: %v",
 				entity.Id, relationship.RelatedEntityId, createErr)
@@ -415,22 +418,28 @@ func (repo *Neo4jRepository) HandleGraphEntityFilter(ctx context.Context, req *p
 	// Extract filters from the request
 	filters := make(map[string]interface{})
 
-	// Add name if present
-	if req.Entity.Name != nil && req.Entity.Name.Value != nil {
-		var stringValue wrapperspb.StringValue
-		if err := req.Entity.Name.Value.UnmarshalTo(&stringValue); err == nil {
-			filters["name"] = stringValue.Value
+	// If ID is present, only use that filter
+	if req.Entity.Id != "" {
+		filters["id"] = req.Entity.Id
+	} else {
+		// Only add other filters if we're not filtering by ID
+		// Add name if present
+		if req.Entity.Name != nil && req.Entity.Name.Value != nil {
+			var stringValue wrapperspb.StringValue
+			if err := req.Entity.Name.Value.UnmarshalTo(&stringValue); err == nil {
+				filters["name"] = stringValue.Value
+			}
 		}
-	}
 
-	// Add created timestamp if present
-	if req.Entity.Created != "" {
-		filters["created"] = req.Entity.Created
-	}
+		// Add created timestamp if present
+		if req.Entity.Created != "" {
+			filters["created"] = req.Entity.Created
+		}
 
-	// Add terminated timestamp if present
-	if req.Entity.Terminated != "" {
-		filters["terminated"] = req.Entity.Terminated
+		// Add terminated timestamp if present
+		if req.Entity.Terminated != "" {
+			filters["terminated"] = req.Entity.Terminated
+		}
 	}
 
 	// Call FilterEntities with the extracted filters

@@ -38,6 +38,9 @@ paths:
             schema:
               type: object
               properties:
+                id:
+                  type: string
+                  description: Optional entity ID to search for
                 kind:
                   type: object
                   properties:

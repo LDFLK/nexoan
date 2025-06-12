@@ -19,37 +19,24 @@ go get github.com/lib/pq  # PostgreSQL driver
 
 ## Development
 
-For detailed development guidelines and environment setup, please refer to the [DEVELOPMENT.md](DEVELOPMENT.md) file.
+
 
 ### Generate Go Code (Developer)
 
+For LINUX & macOS
 ```bash
 cd crud-api
 cp env.template .env
 # after updating the required fields to be added to the environment
+# (you can find the example env configurations here)
 source .env
 go test -v ./...
 ./crud-service
-```
 
-## Database Setup
-
-For detailed instructions on setting up PostgreSQL and other databases, please see the [DEVELOPMENT.md](DEVELOPMENT.md) file.
-
-### PostgreSQL Support
-
-This service uses PostgreSQL for storing tabular data attributes. The DEVELOPMENT.md file includes comprehensive instructions for:
-- Setting up PostgreSQL for development
-- Running tests with PostgreSQL
-- Test coverage reporting
-- Connection configuration
-- Best practices
-
-Please refer to [DEVELOPMENT.md](DEVELOPMENT.md) for all database-related setup and testing instructions.
 
 ## Go Module Setup
 
-Initialize a Go module. 
+Initialize a Go module. (For LINUX, macOS & Windows)
 
 ```bash
 go mod init github.com/LDFLK/nexoan/design/crud-api
@@ -65,17 +52,30 @@ protoc --go_out=. --go-grpc_out=. --proto_path=protos protos/types_v1.proto
 
 ### Build
 
+For LINUX & macOS
 ```bash
 go build ./...
 go build -o crud-service cmd/server/service.go cmd/server/utils.go
+```
+
+For windows (make sure you open the **Powershell CLI**)
+```bash
+go build ./...
+go build -o crud-service.exe cmd/server/service.go cmd/server/utils.go
 ```
 
 ## Usage
 
 ### Run Service
 
+For LINUX & macOS
 ```bash
 ./crud-service
+```
+
+For windows (make sure you open the **Powershell CLI**)
+```bash
+./crud-service.exe
 ```
 
 The service will be running in port `50051` and it is hard coded. This needs to be configurable. 
@@ -163,3 +163,4 @@ docker build -t crud-service-test-standalone -f Dockerfile.test .
 
 docker run --rm crud-service-test-standalone
 ```
+

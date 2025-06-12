@@ -340,6 +340,56 @@ class GraphEntityTests(BasicCRUDTests):
                 print(f"❌ Failed to create relationship for {dept['name']}: {res.status_code} - {res.text}")
                 sys.exit(1)
 
+    def update_relationships(self):
+        """Update HAS_DEPARTMENT relationships to add termination dates."""
+        print("\n🔗 Updating relationships...")
+        
+        # Set a termination date for all relationships
+        termination_date = "2024-12-31T00:00:00Z"
+        
+        for dept in self.DEPARTMENTS:
+            rel_id = f"rel_{dept['id']}"
+            payload = {
+                "id": self.MINISTER_ID,
+                "kind": {},
+                "name": {},
+                "relationships": [
+                    {
+                        "key": rel_id,
+                        "value": {
+                            "endTime": termination_date,
+                            "id": rel_id,
+                            "relatedEntityId": "",
+                            "startTime": "",
+                            "name": ""
+                        }
+                    }
+                ]
+            }
+            
+            url = f"{self.base_url}/{self.MINISTER_ID}"
+            res = requests.put(url, json=payload)
+
+            if res.status_code in [200]:
+                print(f"✅ Updated relationship between Minister and {dept['name']} with termination date {termination_date}.")
+            else:
+                print(f"❌ Failed to update relationship for {dept['name']}: {res.status_code} - {res.text}")
+                sys.exit(1)
+
+        # Verify the updates
+        print("\n🔍 Verifying relationship updates...")
+        res = requests.get(f"{self.base_url}/{self.MINISTER_ID}")
+        if res.status_code == 200:
+            data = res.json()
+            relationships = data.get("relationships", [])
+            for rel in relationships:
+                if rel.get("name") == "HAS_DEPARTMENT":
+                    assert rel.get("endTime") == termination_date, f"Expected termination date {termination_date}, got {rel.get('endTime')}"
+            print("✅ Successfully verified relationship updates.")
+        else:
+            print(f"❌ Failed to verify relationship updates: {res.status_code} - {res.text}")
+            sys.exit(1)
+
 
 def get_base_url():
     update_host = os.getenv('UPDATE_SERVICE_HOST', 'localhost')
@@ -360,15 +410,15 @@ if __name__ == "__main__":
         metadata_validation_tests.verify_deletion()
         print("\n🟢 Running Metadata Validation Tests... Done")
 
-        # Commenting out Graph Entity Tests to make tests independent
-        # print("\n🟢 Running Graph Entity Tests...")
-        # graph_entity_tests = GraphEntityTests()
-        # graph_entity_tests.create_minister()
-        # graph_entity_tests.read_minister()
-        # graph_entity_tests.create_departments()
-        # graph_entity_tests.read_departments()
-        # graph_entity_tests.create_relationships()
-        # print("\n🟢 Running Graph Entity Tests... Done")
+        print("\n🟢 Running Graph Entity Tests...")
+        graph_entity_tests = GraphEntityTests()
+        graph_entity_tests.create_minister()
+        graph_entity_tests.read_minister()
+        graph_entity_tests.create_departments()
+        graph_entity_tests.read_departments()
+        graph_entity_tests.create_relationships()
+        graph_entity_tests.update_relationships()
+        print("\n🟢 Running Graph Entity Tests... Done")
 
         print("\n🎉 All tests passed successfully!")
     
