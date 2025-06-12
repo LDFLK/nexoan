@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 
 	"lk/datafoundation/crud-api/db/config"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
@@ -22,8 +23,9 @@ import (
 // Server implements the CrudService
 type Server struct {
 	pb.UnimplementedCrudServiceServer
-	mongoRepo *mongorepository.MongoRepository
-	neo4jRepo *neo4jrepository.Neo4jRepository
+	mongoRepo      *mongorepository.MongoRepository
+	neo4jRepo      *neo4jrepository.Neo4jRepository
+	postgresClient *postgres.Client
 }
 
 // CreateEntity handles entity creation with metadata
@@ -60,7 +62,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 	}
 
 	// Handle attributes
-	_, err = postgres.HandleAttributes(req.Attributes)
+	err = postgres.HandleAttributes(ctx, s.postgresClient, req.Id, req.Attributes)
 	if err != nil {
 		log.Printf("[server.CreateEntity] Error handling attributes: %v", err)
 		return nil, err
@@ -313,6 +315,21 @@ func main() {
 		Password: os.Getenv("NEO4J_PASSWORD"),
 	}
 
+	// Initialize PostgreSQL config
+	pgPort, _ := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	if pgPort == 0 {
+		pgPort = 5432 // Default PostgreSQL port
+	}
+	
+	postgresConfig := &postgres.Config{
+		Host:     os.Getenv("POSTGRES_HOST"),
+		Port:     pgPort,
+		User:     os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		DBName:   os.Getenv("POSTGRES_DB"),
+		SSLMode:  "disable",
+	}
+
 	// Get host and port from environment variables with defaults
 	host := os.Getenv("CRUD_SERVICE_HOST")
 	if host == "" {
@@ -334,6 +351,13 @@ func main() {
 	}
 	defer neo4jRepo.Close(ctx)
 
+	// Create PostgreSQL client
+	postgresClient, err := postgres.NewClient(*postgresConfig)
+	if err != nil {
+		log.Fatalf("[service.main] Failed to create PostgreSQL client: %v", err)
+	}
+	defer postgresClient.Close()
+
 	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
 		log.Fatalf("[service.main] Failed to listen: %v", err)
@@ -341,8 +365,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	server := &Server{
-		mongoRepo: mongoRepo,
-		neo4jRepo: neo4jRepo,
+		mongoRepo:      mongoRepo,
+		neo4jRepo:      neo4jRepo,
+		postgresClient: postgresClient,
 	}
 
 	pb.RegisterCrudServiceServer(grpcServer, server)
