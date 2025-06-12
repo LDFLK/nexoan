@@ -19,6 +19,8 @@ go get github.com/lib/pq  # PostgreSQL driver
 
 ## Development
 
+For detailed development guidelines and environment setup, please refer to the [DEVELOPMENT.md](DEVELOPMENT.md) file.
+
 ### Generate Go Code (Developer)
 
 ```bash
@@ -32,60 +34,18 @@ go test -v ./...
 
 ## Database Setup
 
-### PostgreSQL Setup
+For detailed instructions on setting up PostgreSQL and other databases, please see the [DEVELOPMENT.md](DEVELOPMENT.md) file.
 
-1. **Using Docker**:
-```bash
-# Run PostgreSQL container
-docker run -d \
-  --name postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_USER=postgres \
-  -p 5432:5432 \
-  postgres:16
-```
+### PostgreSQL Support
 
-2. **Create Test Database**:
-```bash
-docker exec postgres psql -U postgres -c "CREATE DATABASE test_db;"
-```
+This service uses PostgreSQL for storing tabular data attributes. The DEVELOPMENT.md file includes comprehensive instructions for:
+- Setting up PostgreSQL for development
+- Running tests with PostgreSQL
+- Test coverage reporting
+- Connection configuration
+- Best practices
 
-3. **Environment Variables**:
-```bash
-# Add to your .env file
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=test_db
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable"
-```
-
-### Running PostgreSQL Tests
-
-1. **Run All Tests**:
-```bash
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v ./db/repository/postgres/...
-```
-
-2. **Run Specific Tests**:
-```bash
-# Run client tests
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -run TestNewClient ./db/repository/postgres/...
-
-# Run data insertion tests
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -run TestInsertSampleData ./db/repository/postgres/...
-```
-
-3. **Run Tests with Coverage**:
-```bash
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -cover ./db/repository/postgres/...
-```
-
-4. **Run Tests with Race Detection**:
-```bash
-POSTGRES_TEST_DB_URI="postgresql://postgres:postgres@localhost:5432/test_db?sslmode=disable" go test -v -race ./db/repository/postgres/...
-```
+Please refer to [DEVELOPMENT.md](DEVELOPMENT.md) for all database-related setup and testing instructions.
 
 ## Go Module Setup
 
@@ -173,6 +133,8 @@ grpc.reflection.v1alpha.ServerReflection
 ### Run Tests: Mode 1 (Independent Environments and Services)
 
 We assume the Mongodb, Neo4j, and PostgreSQL are provided as services or they exist in the same network. 
+
+> **Note**: For detailed PostgreSQL testing instructions including coverage reports and specific test selection, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ```bash
 # Build the test image
