@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 
 	"lk/datafoundation/crud-api/db/config"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
@@ -15,6 +16,7 @@ import (
 	postgres "lk/datafoundation/crud-api/db/repository/postgres"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -339,7 +341,21 @@ func main() {
 		log.Fatalf("[service.main] Failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	// Get SSL certificate paths from environment variable with default
+	certPath := os.Getenv("NEXOAN_SSL_CERT_PATH")
+	if certPath == "" {
+		certPath = "../../choreo/certs/"
+	}
+
+	cert, err := credentials.NewServerTLSFromFile(
+		filepath.Join(certPath, "server.crt"),
+		filepath.Join(certPath, "server.key"),
+	)
+	if err != nil {
+		log.Fatalf("failed to load TLS keys: %v", err)
+	}
+
+	grpcServer := grpc.NewServer(grpc.Creds(cert))
 	server := &Server{
 		mongoRepo: mongoRepo,
 		neo4jRepo: neo4jRepo,
