@@ -339,6 +339,7 @@ func main() {
 		log.Fatalf("[service.main] Failed to listen: %v", err)
 	}
 
+	// Initialize gRPC server without TLS
 	grpcServer := grpc.NewServer()
 	server := &Server{
 		mongoRepo: mongoRepo,
