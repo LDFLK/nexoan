@@ -10,8 +10,11 @@ string testCrudPort = os:getEnv("CRUD_SERVICE_PORT");
 string testUpdateHostname = os:getEnv("UPDATE_SERVICE_HOST");
 string testUpdatePort = os:getEnv("UPDATE_SERVICE_PORT");
 
+// Try to get complete CRUD service URL from environment variable first
+string? crudServiceUrlEnv = os:getEnv("CRUD_SERVICE_URL");
+string testCrudServiceUrl = crudServiceUrlEnv ?: "http://" + testCrudHostname + ":" + testCrudPort;
+
 // Construct URLs using string concatenation
-string testCrudServiceUrl = "http://" + testCrudHostname + ":" + testCrudPort;
 string testUpdateServiceUrl = "http://" + testUpdateHostname + ":" + testUpdatePort;
 
 // Before Suite Function
