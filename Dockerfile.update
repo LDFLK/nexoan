@@ -55,5 +55,3 @@ exec bal run design/update-api\n' > /app/start.sh && \
     dos2unix /app/start.sh
 
 CMD ["/app/start.sh"]
-
-#  CMD ["tail", "-f", "/dev/null"]
