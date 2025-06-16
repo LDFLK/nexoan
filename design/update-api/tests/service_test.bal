@@ -980,7 +980,6 @@ function testEntityWithSimpleGraphAttributes() returns error? {
     test:assertEquals(readEntityResponse.id, testId, "Entity ID should match");
     
     // Clean up
-
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test entity with graph attributes deleted");
     
