@@ -10,13 +10,15 @@ WORKDIR /app
 # Copy the source code
 COPY . .
 
-## Create a new user with UID 10014 and set up directories
-RUN apk add --no-cache shadow && \
+# Install required packages and create user
+RUN apt-get update && \
+    apt-get install -y shadow && \
     groupadd -g 10014 choreo && \
     useradd -u 10014 -g choreo -s /bin/bash -m choreouser && \
     mkdir -p /home/choreouser/.cache/go-build && \
     chown -R choreouser:choreo /home/choreouser && \
-    chmod -R 755 /home/choreouser
+    chmod -R 755 /home/choreouser && \
+    rm -rf /var/lib/apt/lists/*
 
 # Build the application
 RUN bal build design/update-api
@@ -25,8 +27,9 @@ RUN bal build design/update-api
 FROM --platform=${TARGETPLATFORM:-linux/amd64} ballerina/ballerina:2201.11.0
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
-    rm -rf /var/cache/apk/*
+RUN apt-get update && \
+    apt-get install -y ca-certificates netcat-traditional dos2unix shadow && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from builder stage
 COPY --from=builder /app/design/update-api/target/bin/update-service.jar /app/design/update-api/
