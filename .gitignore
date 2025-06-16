@@ -39,6 +39,9 @@ design/crud-api/crud-service.exe
 docker/neo4j/data/*
 docker/neo4j/logs/*
 
+
+design/crud-api/.env.choreo
+
 #vscode
 .vscode
 
