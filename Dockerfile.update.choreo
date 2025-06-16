@@ -10,15 +10,13 @@ WORKDIR /app
 # Copy the source code
 COPY . .
 
-# Install required packages and create user
-RUN apt-get update && \
-    apt-get install -y shadow && \
+# Install shadow package and create user/group
+RUN apk add --no-cache shadow && \
     groupadd -g 10014 choreo && \
     useradd -u 10014 -g choreo -s /bin/bash -m choreouser && \
     mkdir -p /home/choreouser/.cache/go-build && \
     chown -R choreouser:choreo /home/choreouser && \
-    chmod -R 755 /home/choreouser && \
-    rm -rf /var/lib/apt/lists/*
+    chmod -R 755 /home/choreouser
 
 # Build the application
 RUN bal build design/update-api
@@ -27,9 +25,7 @@ RUN bal build design/update-api
 FROM --platform=${TARGETPLATFORM:-linux/amd64} ballerina/ballerina:2201.11.0
 
 # Install runtime dependencies
-RUN apt-get update && \
-    apt-get install -y ca-certificates netcat-traditional dos2unix shadow && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
 
 # Copy the built binary from builder stage
 COPY --from=builder /app/design/update-api/target/bin/update-service.jar /app/design/update-api/
@@ -37,9 +33,28 @@ COPY --from=builder /app/design/update-api /app/design/update-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
-# Add log configuration
-ENV LOG_LEVEL=debug
-ENV LOG_FORMAT=text
+# Create startup script
+RUN echo '#!/bin/sh\n\
+# Wait for CRUD service to be ready\n\
+if [ -n "$CRUD_SERVICE_URL" ]; then\n\
+    # Extract host and port from CRUD_SERVICE_URL\n\
+    HOST=$(echo $CRUD_SERVICE_URL | sed -E "s|^https?://([^:]+)(:[0-9]+)?.*|\1|")\n\
+    PORT=$(echo $CRUD_SERVICE_URL | sed -E "s|^https?://[^:]+:([0-9]+).*|\1|")\n\
+    if [ "$PORT" = "$CRUD_SERVICE_URL" ]; then\n\
+        PORT=443\n\
+    fi\n\
+    echo "Waiting for CRUD service at $HOST:$PORT..."\n\
+    while ! nc -z $HOST $PORT; do\n\
+        sleep 1\n\
+    done\n\
+    echo "CRUD service is ready!"\n\
+fi\n\
+\n\
+# Start the service\n\
+bal run /app/update-service.balx\n\
+' > /app/start.sh && \
+    chmod +x /app/start.sh && \
+    dos2unix /app/start.sh
 
 # Create necessary directories and set permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
@@ -53,34 +68,5 @@ USER 10014
 # Expose ports
 EXPOSE 8080
 
-# Create a startup script that checks connectivity before running the service
-RUN printf '#!/bin/sh\n\
-echo "Checking CRUD service configuration..."\n\
-if [ -n "$CRUD_SERVICE_URL" ]; then\n\
-    # Extract host and port from CRUD_SERVICE_URL\n\
-    CRUD_SERVICE_HOST=$(echo $CRUD_SERVICE_URL | sed -E "s|^https?://([^:]+)(:[0-9]+)?.*|\1|")\n\
-    CRUD_SERVICE_PORT=$(echo $CRUD_SERVICE_URL | sed -E "s|^https?://[^:]+:([0-9]+).*|\1|")\n\
-    if [ -z "$CRUD_SERVICE_PORT" ]; then\n\
-        CRUD_SERVICE_PORT=443\n\
-    fi\n\
-    echo "Using CRUD_SERVICE_URL: $CRUD_SERVICE_URL"\n\
-    echo "Extracted host: $CRUD_SERVICE_HOST, port: $CRUD_SERVICE_PORT"\n\
-fi\n\
-\n\
-echo "Waiting for CRUD service to be ready..."\n\
-until nc -z -w 5 ${CRUD_SERVICE_HOST} ${CRUD_SERVICE_PORT}; do\n\
-    echo "Waiting for CRUD service at ${CRUD_SERVICE_HOST}:${CRUD_SERVICE_PORT}..."\n\
-    sleep 2\n\
-done\n\
-echo "CRUD service is ready!"\n\
-\n\
-echo "Run ballerina test..."\n\
-bal test design/update-api\n\
-\n\
-echo "Starting Update service..."\n\
-exec bal run design/update-api\n' > /app/start.sh && \
-    chmod +x /app/start.sh && \
-    dos2unix /app/start.sh
-
-# Set the entrypoint to run the service
+# Set the entrypoint
 ENTRYPOINT ["/app/start.sh"]
