@@ -29,6 +29,8 @@ export CRUD_SERVICE_HOST="0.0.0.0"
 export CRUD_SERVICE_PORT="50051"
 export UPDATE_SERVICE_HOST="0.0.0.0"
 export UPDATE_SERVICE_PORT="8080"
+export QUERY_SERVICE_HOST="0.0.0.0"
+export QUERY_SERVICE_PORT="8081"
 ```
 
 ### Running Services Locally
@@ -72,6 +74,20 @@ docker run -p 8080:8080 \
   ldf-choreo-update-service
 ```
 
+3. Start the Query Service:
+```bash
+# Build the update service image
+docker build -t ldf-choreo-query-service -f Dockerfile.query.choreo .
+
+# Run the update service using environment variables
+docker run -p 8081:8081 \
+  --name ldf-choreo-query-service \
+  -e CRUD_SERVICE_URL="http://host.docker.internal:$CRUD_SERVICE_PORT" \
+  -e QUERY_SERVICE_HOST="$QUERY_SERVICE_HOST" \
+  -e QUERY_SERVICE_PORT="$QUERY_SERVICE_PORT" \
+  ldf-choreo-query-service
+```
+
 ### Required Environment Variables
 
 #### CRUD Service
@@ -106,6 +122,9 @@ curl -X POST http://localhost:$UPDATE_SERVICE_PORT/entities \
   -H "Content-Type: application/json" \
   -d '{"id":"123","kind":{"major":"example","minor":"test"}}'
 ```
+
+3. Test Query Service:
+
 
 ### Troubleshooting
 
@@ -154,11 +173,11 @@ git checkout -b vibhatha-choreo-rc-0.1.0
 
 ## Deployment
 
-## CRUD Service
+### CRUD Service
 
-## Ingestion Service
+### Ingestion Service
 
-## Query Service
+### Query Service
 
 ## References
 

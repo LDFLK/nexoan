@@ -7,14 +7,13 @@ import ballerina/os;
 import ballerina/lang.'int as langint;
 import ballerina/io;
 
-string crudHostname = os:getEnv("CRUD_SERVICE_HOST");
+
 string queryHostname = os:getEnv("QUERY_SERVICE_HOST");
-string crudPort = os:getEnv("CRUD_SERVICE_PORT");
 string queryPort = os:getEnv("QUERY_SERVICE_PORT");
+string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
 
 listener http:Listener ep0 = new (check langint:fromString(queryPort), config = {host: queryHostname});
 
-string crudServiceUrl = "http://" + crudHostname + ":" + crudPort;
 CrudServiceClient ep = check new (crudServiceUrl);
 
 // Helper function to extract string representation based on typeUrl
