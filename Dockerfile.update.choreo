@@ -181,6 +181,9 @@ echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and UPDAT
 # Set Ballerina home to a writable directory\n\
 export BALLERINA_HOME=/tmp/ballerina\n\
 \n\
+# Create necessary Ballerina directories\n\
+mkdir -p "$BALLERINA_HOME/.config"\n\
+\n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/update-api\n' > /app/start.sh && \
     chmod +x /app/start.sh && \

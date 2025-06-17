@@ -66,7 +66,7 @@ docker run -d \
 docker build -t ldf-choreo-update-service -f Dockerfile.update.choreo .
 
 # Run the update service using environment variables
-docker run -p 8080:8080 \
+docker run -d -p 8080:8080 \
   --name ldf-choreo-update-service \
   -e CRUD_SERVICE_URL="http://host.docker.internal:$CRUD_SERVICE_PORT" \
   -e UPDATE_SERVICE_HOST="$UPDATE_SERVICE_HOST" \
@@ -80,7 +80,7 @@ docker run -p 8080:8080 \
 docker build -t ldf-choreo-query-service -f Dockerfile.query.choreo .
 
 # Run the update service using environment variables
-docker run -p 8081:8081 \
+docker run -d -p 8081:8081 \
   --name ldf-choreo-query-service \
   -e CRUD_SERVICE_URL="http://host.docker.internal:$CRUD_SERVICE_PORT" \
   -e QUERY_SERVICE_HOST="$QUERY_SERVICE_HOST" \

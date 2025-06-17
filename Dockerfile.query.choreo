@@ -149,7 +149,6 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
 # Create necessary directories with proper permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /home/choreouser/.ballerina && \
-    mkdir -p /home/choreouser/.ballerina/.config && \
     mkdir -p /tmp/ballerina && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
@@ -181,6 +180,9 @@ echo "Starting query service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and QUERY_
 \n\
 # Set Ballerina home to a writable directory\n\
 export BALLERINA_HOME=/tmp/ballerina\n\
+\n\
+# Create necessary Ballerina directories\n\
+mkdir -p "$BALLERINA_HOME/.config"\n\
 \n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/query-api\n' > /app/start.sh && \
