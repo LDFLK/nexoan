@@ -150,10 +150,17 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
 RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /home/choreouser/.ballerina && \
     mkdir -p /tmp/ballerina && \
+    mkdir -p /tmp/ballerina/.config && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
     chown -R choreouser:choreo /tmp/ballerina && \
     chmod -R 755 /tmp/ballerina
+
+# Create a pre-configured bal-tools.toml
+RUN printf '[tool]\n\
+version = "2201.11.0"\n' > /tmp/ballerina/.config/bal-tools.toml && \
+    chown choreouser:choreo /tmp/ballerina/.config/bal-tools.toml && \
+    chmod 644 /tmp/ballerina/.config/bal-tools.toml
 
 # Copy the source code and build artifacts
 COPY --from=builder /app/design/update-api /app/design/update-api
@@ -181,8 +188,14 @@ echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and UPDAT
 # Set Ballerina home to a writable directory\n\
 export BALLERINA_HOME=/tmp/ballerina\n\
 \n\
-# Create necessary Ballerina directories\n\
+# Ensure the config directory exists and has the right permissions\n\
 mkdir -p "$BALLERINA_HOME/.config"\n\
+chmod 755 "$BALLERINA_HOME/.config"\n\
+\n\
+# Copy bal-tools.toml if it doesn'\''t exist\n\
+if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then\n\
+    cp /tmp/ballerina/.config/bal-tools.toml "$BALLERINA_HOME/.config/"\n\
+fi\n\
 \n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/update-api\n' > /app/start.sh && \
