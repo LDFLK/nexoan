@@ -202,11 +202,19 @@ FROM --platform=linux/amd64 ballerina/ballerina:2201.11.0
 # Switch to root for package installation
 USER root
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
+# Install runtime dependencies and create user
+RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
+    groupadd -g 10014 choreo && \
+    useradd -u 10014 -g choreo -s /bin/bash -m choreouser
 
-# Create necessary directories
-RUN mkdir -p /home/choreouser/.cache/go-build
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/choreouser/.cache/go-build && \
+    mkdir -p /home/choreouser/.ballerina && \
+    mkdir -p /tmp/ballerina && \
+    chown -R choreouser:choreo /home/choreouser && \
+    chmod -R 755 /home/choreouser && \
+    chown -R choreouser:choreo /tmp/ballerina && \
+    chmod -R 755 /tmp/ballerina
 
 # Copy the source code and build artifacts
 # Create necessary directories
@@ -230,8 +238,20 @@ if [ -z "$CRUD_SERVICE_URL" ]; then\n\
     echo "Error: CRUD_SERVICE_URL environment variable is not set"\n\
     exit 1\n\
 fi\n\
+if [ -z "$UPDATE_SERVICE_HOST" ]; then\n\
+    echo "Error: UPDATE_SERVICE_HOST environment variable is not set"\n\
+    exit 1\n\
+fi\n\
+if [ -z "$UPDATE_SERVICE_PORT" ]; then\n\
+    echo "Error: UPDATE_SERVICE_PORT environment variable is not set"\n\
+    exit 1\n\
+fi\n\
 \n\
-echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL"\n\
+\n\
+echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and UPDATE_SERVICE_HOST: $UPDATE_SERVICE_HOST and UPDATE_SERVICE_PORT: $UPDATE_SERVICE_PORT"\n\
+\n\
+# Set Ballerina home to a writable directory\n\
+export BALLERINA_HOME=/tmp/ballerina\n\
 \n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/update-api\n' > /app/start.sh && \

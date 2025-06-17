@@ -8,12 +8,11 @@ import ballerina/os;
 import ballerina/lang.'int as langint;
 
 string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
+string updateServiceHost = os:getEnv("UPDATE_SERVICE_HOST");
+string updateServicePort = os:getEnv("UPDATE_SERVICE_PORT");
 
-string finalCrudUrl = crudServiceUrl != "" ? crudServiceUrl : "http://" + "localhost" + ":" + "50051";
-
-listener http:Listener ep0 = new (check langint:fromString("8080"), config = {host: "localhost"});
-
-CrudServiceClient ep = check new (finalCrudUrl);
+listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {host: updateServiceHost});
+CrudServiceClient ep = check new (crudServiceUrl);
 
 service / on ep0 {
     # Delete an entity
@@ -31,6 +30,7 @@ service / on ep0 {
     #
     # + return - Entity created 
     resource function post entities(@http:Payload json jsonPayload) returns Entity|error {
+        io:println("[post:entities]Using CRUD service URL: " + crudServiceUrl);
         // Convert JSON to Entity with custom mapping
         Entity payload = check convertJsonToEntity(jsonPayload);
         
@@ -46,7 +46,7 @@ service / on ep0 {
     #
     # + return - Entity updated 
     resource function put entities/[string id](@http:Payload json jsonPayload) returns Entity|error {
-        io:println("[put:entities/]Using CRUD service URL: " + finalCrudUrl);
+        io:println("[put:entities/]Using CRUD service URL: " + crudServiceUrl);
         // Convert JSON to Entity with custom mapping
         Entity payload = check convertJsonToEntity(jsonPayload);
 

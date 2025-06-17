@@ -65,9 +65,10 @@ class CrudTestUtils:
 
 class TestCRUDAPI(unittest.TestCase):
     def setUp(self):
-        update_host = os.getenv('UPDATE_SERVICE_HOST', 'localhost')
-        update_port = os.getenv('UPDATE_SERVICE_PORT', '8080')
-        self.base_url = f"http://{update_host}:{update_port}/entities"
+        print("🟢 Setting up test environment...")
+        update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
+        print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
+        self.base_url = f"{update_service_url}/entities"
         
 
 class BasicCRUDTests:
@@ -392,9 +393,10 @@ class GraphEntityTests(BasicCRUDTests):
 
 
 def get_base_url():
-    update_host = os.getenv('UPDATE_SERVICE_HOST', 'localhost')
-    update_port = os.getenv('UPDATE_SERVICE_PORT', '8080')
-    return f"http://{update_host}:{update_port}/entities"
+    print("🟢 Setting up test environment...")
+    update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
+    print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
+    return f"{update_service_url}/entities"
 
 if __name__ == "__main__":
     print("🚀 Running End-to-End API Test Suite...")
