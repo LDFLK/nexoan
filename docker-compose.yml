@@ -44,6 +44,26 @@ services:
       timeout: 10s
       retries: 3
 
+  postgres:
+    platform: linux/amd64
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ldf-network
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nexoan
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   crud:
     platform: linux/amd64
     build:
@@ -63,12 +83,20 @@ services:
       - MONGO_COLLECTION=metadata
       - MONGO_ADMIN_USER=admin
       - MONGO_ADMIN_PASSWORD=admin123
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nexoan
+      - POSTGRES_SSL_MODE=disable
       - CRUD_SERVICE_HOST=0.0.0.0
       - CRUD_SERVICE_PORT=50051
     depends_on:
       mongodb:
         condition: service_healthy
       neo4j:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - ldf-network
@@ -96,6 +124,12 @@ services:
     depends_on:
       crud:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   query:
     platform: linux/amd64
@@ -115,7 +149,12 @@ services:
     depends_on:
       crud:
         condition: service_healthy
-    # TODO: Add healthcheck for query service
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   e2e:
     platform: linux/amd64
@@ -133,14 +172,17 @@ services:
       - QUERY_SERVICE_HOST=query
       - QUERY_SERVICE_PORT=8081
     depends_on:
-      # TODO: Add depends on once healthcheck is added for query/update service
-      - crud
-      - query
-      - update
+      update:
+        condition: service_healthy
+      query:
+        condition: service_healthy
     command: >
-      sh -c "pip install requests &&
-             python3 basic_crud_tests.py &&
-             python3 basic_query_tests.py"
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        pip install requests &&
+        python3 basic_crud_tests.py &&
+        python3 basic_query_tests.py"
 
 networks:
   ldf-network:
@@ -149,4 +191,6 @@ networks:
 volumes:
   mongodb_data:
   neo4j_data:
-  neo4j_logs: 
+  neo4j_logs:
+  postgres_data: 
+
