@@ -122,7 +122,7 @@ RUN apk add --no-cache shadow && \
 RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
 
 # Create and set permissions for build directories
-RUN mkdir -p /app/design/update-api/target && \
+RUN mkdir -p /app/design/query-api/target && \
     chown -R choreouser:choreo /app && \
     chmod -R 755 /app
 
@@ -149,6 +149,7 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
 # Create necessary directories with proper permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /home/choreouser/.ballerina && \
+    mkdir -p /home/choreouser/.ballerina/.config && \
     mkdir -p /tmp/ballerina && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
