@@ -234,7 +234,6 @@ fi\n\
 echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL"\n\
 \n\
 # Start the service with explicit platform settings\n\
-# export JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"\n\
 exec bal run /app/design/update-api\n' > /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh && \
