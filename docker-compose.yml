@@ -107,8 +107,7 @@ services:
     networks:
       - ldf-network
     environment:
-      - CRUD_SERVICE_HOST=crud
-      - CRUD_SERVICE_PORT=50051
+      - CRUD_SERVICE_URL=http://crud:50051
       - QUERY_SERVICE_HOST=0.0.0.0
       - QUERY_SERVICE_PORT=8081
     depends_on:
@@ -128,9 +127,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - UPDATE_SERVICE_URL=http://update:8080
-      # TODO: Add query service URL instead of host and port
-      - QUERY_SERVICE_HOST=query
-      - QUERY_SERVICE_PORT=8081
+      - QUERY_SERVICE_URL=http://query:8081
     depends_on:
       # TODO: Add depends on once healthcheck is added for query/update service
       - crud
