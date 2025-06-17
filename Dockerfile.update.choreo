@@ -5,45 +5,73 @@
 # Building the Image:
 # -----------------
 # To build the image, run the following command from the directory containing this Dockerfile:
-#   docker build -t update-service -f Dockerfile.update.choreo .
+#   docker build -t ldf-choreo-update-service -f Dockerfile.update.choreo .
 #
 # Running the Container:
 # ---------------------
 # Basic run command:
-#   docker run -p 8080:8080 -e CRUD_SERVICE_URL=http://host.docker.internal:8081 update-service
+#   docker run -p 8080:8080 \
+#     -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#     -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#     -e UPDATE_SERVICE_PORT="8080" \
+#     ldf-choreo-update-service
 #
 # Options:
 #   -p 8080:8080                    : Maps container port 8080 to host port 8080
-#   -e CRUD_SERVICE_URL=<url>       : URL of the CRUD service to connect to
+#   -e CRUD_SERVICE_URL=<url>       : URL of the CRUD service to connect to (required)
+#   -e UPDATE_SERVICE_HOST=<host>   : Host address to bind the service (default: 0.0.0.0)
+#   -e UPDATE_SERVICE_PORT=<port>   : Port to expose the service (default: 8080)
 #   -d                              : Run in detached mode (background)
-#   --name update-service-container : Assign a name to the container
+#   --name <container-name>         : Assign a name to the container
 #
 # Examples:
 # 1. Run in detached mode:
-#    docker run -d -p 8080:8080 -e CRUD_SERVICE_URL=http://host.docker.internal:8081 update-service
+#    docker run -d \
+#      --name ldf-choreo-update-service \
+#      -p 8080:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
 #
 # 2. Run with custom port mapping:
-#    docker run -p 9090:8080 -e CRUD_SERVICE_URL=http://host.docker.internal:8081 update-service
+#    docker run -p 9090:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
 #
 # 3. Run with additional JVM options:
 #    docker run -p 8080:8080 \
-#      -e CRUD_SERVICE_URL=http://host.docker.internal:8081 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
 #      -e JAVA_OPTS="-Xmx512m" \
-#      update-service
+#      ldf-choreo-update-service
 #
 # 4. Run with container name and restart policy:
 #    docker run -d \
-#      --name update-service-container \
+#      --name ldf-choreo-update-service \
 #      --restart unless-stopped \
 #      -p 8080:8080 \
-#      -e CRUD_SERVICE_URL=http://host.docker.internal:8081 \
-#      update-service
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
 #
 # Environment Variables:
 # ---------------------
 # CRUD_SERVICE_URL: URL of the CRUD service (required)
 #   Format: http://<host>:<port>
-#   Example: http://host.docker.internal:8081
+#   Example: http://host.docker.internal:50051
+#
+# UPDATE_SERVICE_HOST: Host address to bind the service
+#   Default: 0.0.0.0
+#   Example: 0.0.0.0
+#
+# UPDATE_SERVICE_PORT: Port to expose the service
+#   Default: 8080
+#   Example: 8080
 #
 # JAVA_OPTS: JVM options (optional)
 #   Example: -Xmx512m -XX:+UseContainerSupport
@@ -54,6 +82,7 @@
 # - The container uses a non-root user (choreouser) for security
 # - The service waits for the CRUD service to be available before starting
 # - Use host.docker.internal to connect to services running on the host machine
+# - For macOS, ensure host.docker.internal is properly configured
 #
 # Troubleshooting:
 # ---------------
@@ -61,11 +90,13 @@
 #    - Verify the CRUD_SERVICE_URL is correct
 #    - Check if the CRUD service is running and accessible
 #    - Ensure the port mapping is correct
+#    - On macOS, verify host.docker.internal resolution
 #
 # 2. If the service fails to start:
 #    - Check the container logs: docker logs <container-id>
 #    - Verify all required environment variables are set
 #    - Ensure the ports are not already in use
+#    - Check file permissions in the container
 
 # Build stage for Update service
 FROM --platform=linux/amd64 ballerina/ballerina:2201.11.0 AS builder
