@@ -89,8 +89,7 @@ services:
     networks:
       - ldf-network
     environment:
-      - CRUD_SERVICE_HOST=crud
-      - CRUD_SERVICE_PORT=50051
+      - CRUD_SERVICE_URL=http://crud:50051
       - UPDATE_SERVICE_HOST=0.0.0.0
       - UPDATE_SERVICE_PORT=8080
     depends_on:
@@ -128,8 +127,8 @@ services:
       - ldf-network
     environment:
       - PYTHONUNBUFFERED=1
-      - UPDATE_SERVICE_HOST=update
-      - UPDATE_SERVICE_PORT=8080
+      - UPDATE_SERVICE_URL=http://update:8080
+      # TODO: Add query service URL instead of host and port
       - QUERY_SERVICE_HOST=query
       - QUERY_SERVICE_PORT=8081
     depends_on:
@@ -137,10 +136,13 @@ services:
       - crud
       - query
       - update
+      # TODO: Running the tests in the other order will fail because of test dependencies
+      # fix this issue.
+      # FIXME: https://github.com/LDFLK/nexoan/issues/183
     command: >
       sh -c "pip install requests &&
-             python3 basic_crud_tests.py &&
-             python3 basic_query_tests.py"
+             python3 basic_query_tests.py &&
+             python3 basic_crud_tests.py"
 
 networks:
   ldf-network:
