@@ -149,12 +149,14 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
 # Create necessary directories with proper permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /home/choreouser/.ballerina && \
+    mkdir -p /home/choreouser/.ballerina/.config && \
+    mkdir -p /home/choreouser/.ballerina/repositories && \
+    mkdir -p /home/choreouser/.ballerina/repositories/central.ballerina.io && \
     mkdir -p /tmp/ballerina && \
     mkdir -p /tmp/ballerina/.config && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
     chmod -R 777 /home/choreouser/.ballerina && \
-    mkdir -p /home/choreouser/.ballerina/.config && \
     chown -R choreouser:choreo /home/choreouser/.ballerina/.config && \
     chmod -R 755 /home/choreouser/.ballerina/.config && \
     chown -R choreouser:choreo /tmp/ballerina && \
@@ -204,8 +206,13 @@ chmod 755 "$BALLERINA_HOME/.config"\n\
 \n\
 # Ensure .ballerina directory has proper permissions\n\
 mkdir -p /home/choreouser/.ballerina\n\
+mkdir -p /home/choreouser/.ballerina/.config\n\
+mkdir -p /home/choreouser/.ballerina/repositories\n\
+mkdir -p /home/choreouser/.ballerina/repositories/central.ballerina.io\n\
 chmod -R 777 /home/choreouser/.ballerina\n\
 chmod -R 777 /home/choreouser/.ballerina/.config\n\
+chmod -R 777 /home/choreouser/.ballerina/repositories\n\
+chmod -R 777 /home/choreouser/.ballerina/repositories/central.ballerina.io\n\
 \n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/query-api\n' > /app/start.sh && \
@@ -226,3 +233,4 @@ EXPOSE 8081
 
 # Set the entrypoint
 ENTRYPOINT ["/app/start.sh"]
+
