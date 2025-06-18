@@ -154,6 +154,9 @@ RUN mkdir -p /home/choreouser/.cache/go-build && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
     chmod -R 777 /home/choreouser/.ballerina && \
+    mkdir -p /home/choreouser/.ballerina/.config && \
+    chown -R choreouser:choreo /home/choreouser/.ballerina/.config && \
+    chmod -R 755 /home/choreouser/.ballerina/.config && \
     chown -R choreouser:choreo /tmp/ballerina && \
     chmod -R 755 /tmp/ballerina
 
@@ -162,6 +165,12 @@ RUN printf '[tool]\n\
 version = "2201.11.0"\n' > /tmp/ballerina/.config/bal-tools.toml && \
     chown choreouser:choreo /tmp/ballerina/.config/bal-tools.toml && \
     chmod 644 /tmp/ballerina/.config/bal-tools.toml
+
+# Create a pre-configured bal-tools.toml
+RUN printf '[tool]\n\
+version = "2201.11.0"\n' > /home/choreouser/.ballerina/.config/bal-tools.toml && \
+    chown choreouser:choreo /home/choreouser/.ballerina/.config/bal-tools.toml && \
+    chmod 644 /home/choreouser/.ballerina/.config/bal-tools.toml
 
 # Copy the source code and build artifacts
 COPY --from=builder /app/design/query-api /app/design/query-api
@@ -196,11 +205,7 @@ chmod 755 "$BALLERINA_HOME/.config"\n\
 # Ensure .ballerina directory has proper permissions\n\
 mkdir -p /home/choreouser/.ballerina\n\
 chmod -R 777 /home/choreouser/.ballerina\n\
-\n\
-# Copy bal-tools.toml if it doesn'\''t exist\n\
-if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then\n\
-    cp /tmp/ballerina/.config/bal-tools.toml "$BALLERINA_HOME/.config/"\n\
-fi\n\
+chmod -R 777 /home/choreouser/.ballerina/.config\n\
 \n\
 # Start the service with explicit platform settings\n\
 exec bal run /app/design/query-api\n' > /app/start.sh && \
