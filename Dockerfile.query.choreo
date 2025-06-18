@@ -123,8 +123,23 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
 
 # Create and set permissions for build directories
 RUN mkdir -p /app/design/query-api/target && \
+    mkdir -p /tmp/ballerina && \
+    mkdir -p /tmp/ballerina/.config && \
+    mkdir -p /tmp/ballerina/repositories && \
+    mkdir -p /tmp/ballerina/repositories/central.ballerina.io && \
+    mkdir -p /home/choreouser/.ballerina && \
+    mkdir -p /home/choreouser/.ballerina/.config && \
+    mkdir -p /home/choreouser/.ballerina/repositories && \
+    mkdir -p /home/choreouser/.ballerina/repositories/central.ballerina.io && \
     chown -R choreouser:choreo /app && \
-    chmod -R 755 /app
+    chmod -R 755 /app && \
+    chown -R choreouser:choreo /tmp/ballerina && \
+    chmod -R 755 /tmp/ballerina && \
+    chown -R choreouser:choreo /home/choreouser/.ballerina && \
+    chmod -R 777 /home/choreouser/.ballerina
+
+# Set Ballerina home for build stage
+ENV BALLERINA_HOME=/tmp/ballerina
 
 # Switch to non-root user for building
 USER 10014
@@ -167,43 +182,38 @@ COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
 # Create startup script with proper line endings
-RUN printf '#!/bin/sh\n\
-# Verify required environment variables\n\
-if [ -z "$CRUD_SERVICE_URL" ]; then\n\
-    echo "Error: CRUD_SERVICE_URL environment variable is not set"\n\
-    exit 1\n\
-fi\n\
-if [ -z "$QUERY_SERVICE_HOST" ]; then\n\
-    echo "Error: QUERY_SERVICE_HOST environment variable is not set"\n\
-    exit 1\n\
-fi\n\
-if [ -z "$QUERY_SERVICE_PORT" ]; then\n\
-    echo "Error: QUERY_SERVICE_PORT environment variable is not set"\n\
-    exit 1\n\
-fi\n\
-\n\
-echo "Starting query service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and QUERY_SERVICE_HOST: $QUERY_SERVICE_HOST and QUERY_SERVICE_PORT: $QUERY_SERVICE_PORT"\n\
-\n\
-# Set Ballerina home to a writable directory\n\
-export BALLERINA_HOME=/tmp/ballerina\n\
-\n\
-# Create all necessary Ballerina directories in /tmp\n\
-mkdir -p "$BALLERINA_HOME/.config"\n\
-mkdir -p "$BALLERINA_HOME/repositories"\n\
-mkdir -p "$BALLERINA_HOME/repositories/central.ballerina.io"\n\
-\n\
-# Set proper permissions for all directories\n\
-chmod -R 755 "$BALLERINA_HOME"\n\
-\n\
-# Create bal-tools.toml if it doesn'\''t exist\n\
-if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then\n\
-    printf "[tool]\nversion = \"2201.11.0\"\n" > "$BALLERINA_HOME/.config/bal-tools.toml"\n\
-fi\n\
-\n\
-# Start the service with explicit platform settings\n\
-exec bal run /app/design/query-api\n' > /app/start.sh && \
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'if [ -z "$CRUD_SERVICE_URL" ]; then' >> /app/start.sh && \
+    echo '    echo "Error: CRUD_SERVICE_URL environment variable is not set"' >> /app/start.sh && \
+    echo '    exit 1' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo 'if [ -z "$QUERY_SERVICE_HOST" ]; then' >> /app/start.sh && \
+    echo '    echo "Error: QUERY_SERVICE_HOST environment variable is not set"' >> /app/start.sh && \
+    echo '    exit 1' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo 'if [ -z "$QUERY_SERVICE_PORT" ]; then' >> /app/start.sh && \
+    echo '    echo "Error: QUERY_SERVICE_PORT environment variable is not set"' >> /app/start.sh && \
+    echo '    exit 1' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'echo "Starting query service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and QUERY_SERVICE_HOST: $QUERY_SERVICE_HOST and QUERY_SERVICE_PORT: $QUERY_SERVICE_PORT"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'export BALLERINA_HOME=/tmp/ballerina' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'mkdir -p "$BALLERINA_HOME/.config"' >> /app/start.sh && \
+    echo 'mkdir -p "$BALLERINA_HOME/repositories"' >> /app/start.sh && \
+    echo 'mkdir -p "$BALLERINA_HOME/repositories/central.ballerina.io"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'chmod -R 755 "$BALLERINA_HOME"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then' >> /app/start.sh && \
+    echo '    echo "[tool]" > "$BALLERINA_HOME/.config/bal-tools.toml"' >> /app/start.sh && \
+    echo '    echo "version = \"2201.11.0\"" >> "$BALLERINA_HOME/.config/bal-tools.toml"' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'exec bal run /app/design/query-api' >> /app/start.sh && \
     chmod +x /app/start.sh && \
-    dos2unix /app/start.sh'
+    dos2unix /app/start.sh
 
 # Set permissions
 RUN chown -R choreouser:choreo /home/choreouser && \
