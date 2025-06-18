@@ -121,25 +121,22 @@ RUN apk add --no-cache shadow && \
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
 
-# Create and set permissions for build directories
-RUN mkdir -p /app/design/update-api/target && \
-    mkdir -p /tmp/ballerina && \
+# Set environment variables early
+ENV BALLERINA_HOME=/tmp/ballerina
+ENV HOME=/tmp
+ENV BALLERINA_REPOSITORY=/tmp/ballerina/repositories
+
+RUN mkdir -p /tmp/ballerina && \
     mkdir -p /tmp/ballerina/.config && \
     mkdir -p /tmp/ballerina/repositories && \
     mkdir -p /tmp/ballerina/repositories/central.ballerina.io && \
-    mkdir -p /home/choreouser/.ballerina && \
-    mkdir -p /home/choreouser/.ballerina/.config && \
-    mkdir -p /home/choreouser/.ballerina/repositories && \
-    mkdir -p /home/choreouser/.ballerina/repositories/central.ballerina.io && \
-    chown -R choreouser:choreo /app && \
-    chmod -R 755 /app && \
     chown -R choreouser:choreo /tmp/ballerina && \
-    chmod -R 755 /tmp/ballerina && \
-    chown -R choreouser:choreo /home/choreouser/.ballerina && \
-    chmod -R 777 /home/choreouser/.ballerina
+    chmod -R 755 /tmp/ballerina
 
-# Set Ballerina home for build stage
-ENV BALLERINA_HOME=/tmp/ballerina
+# Create and set permissions for build directories
+RUN mkdir -p /app/design/update-api/target && \
+    chown -R choreouser:choreo /app && \
+    chmod -R 755 /app
 
 # Switch to non-root user for building
 USER 10014
@@ -181,6 +178,11 @@ COPY --from=builder /app/design/update-api /app/design/update-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
+# Set environment variables for runtime
+ENV BALLERINA_HOME=/tmp/ballerina
+ENV HOME=/tmp
+ENV BALLERINA_REPOSITORY=/tmp/ballerina/repositories
+
 # Create startup script with proper line endings
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'if [ -z "$CRUD_SERVICE_URL" ]; then' >> /app/start.sh && \
@@ -211,16 +213,13 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo '    echo "version = \"2201.11.0\"" >> "$BALLERINA_HOME/.config/bal-tools.toml"' >> /app/start.sh && \
     echo 'fi' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
-    echo 'mkdir -p /home/choreouser/.ballerina/.config' >> /app/start.sh && \
-    echo 'mkdir -p /home/choreouser/.ballerina/repositories' >> /app/start.sh && \
-    echo 'mkdir -p /home/choreouser/.ballerina/repositories/central.ballerina.io' >> /app/start.sh && \
-    echo 'chmod -R 777 /home/choreouser/.ballerina' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
     echo 'exec bal run /app/design/update-api' >> /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh
 
 # Set permissions
+USER root
+
 RUN chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
     chown -R choreouser:choreo /app && \
