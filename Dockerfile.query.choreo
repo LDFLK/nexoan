@@ -197,8 +197,7 @@ chmod -R 755 "$BALLERINA_HOME"\n\
 \n\
 # Create bal-tools.toml if it doesn'\''t exist\n\
 if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then\n\
-    printf '\''[tool]\n\
-version = "2201.11.0"\n'\'' > "$BALLERINA_HOME/.config/bal-tools.toml"\n\
+    printf "[tool]\nversion = \"2201.11.0\"\n" > "$BALLERINA_HOME/.config/bal-tools.toml"\n\
 fi\n\
 \n\
 # Start the service with explicit platform settings\n\
