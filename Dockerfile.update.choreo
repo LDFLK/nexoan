@@ -153,6 +153,7 @@ RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /tmp/ballerina/.config && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
+    chmod -R 777 /home/choreouser/.ballerina && \
     chown -R choreouser:choreo /tmp/ballerina && \
     chmod -R 755 /tmp/ballerina
 
@@ -191,6 +192,10 @@ export BALLERINA_HOME=/tmp/ballerina\n\
 # Ensure the config directory exists and has the right permissions\n\
 mkdir -p "$BALLERINA_HOME/.config"\n\
 chmod 755 "$BALLERINA_HOME/.config"\n\
+\n\
+# Ensure .ballerina directory has proper permissions\n\
+mkdir -p /home/choreouser/.ballerina\n\
+chmod -R 777 /home/choreouser/.ballerina\n\
 \n\
 # Copy bal-tools.toml if it doesn'\''t exist\n\
 if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then\n\
