@@ -13,7 +13,7 @@ import (
 // Config holds the database configuration
 type Config struct {
 	Host     string
-	Port     int
+	Port     string
 	User     string
 	Password string
 	DBName   string
@@ -27,7 +27,7 @@ type Client struct {
 
 // NewClient creates a new PostgreSQL client
 func NewClient(cfg Config) (*Client, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 
 	return NewClientFromDSN(dsn)

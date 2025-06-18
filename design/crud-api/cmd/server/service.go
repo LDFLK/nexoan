@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 
 	"lk/datafoundation/crud-api/db/config"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
@@ -316,18 +315,13 @@ func main() {
 	}
 
 	// Initialize PostgreSQL config
-	pgPort, _ := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
-	if pgPort == 0 {
-		pgPort = 5432 // Default PostgreSQL port
-	}
-	
 	postgresConfig := &postgres.Config{
 		Host:     os.Getenv("POSTGRES_HOST"),
-		Port:     pgPort,
+		Port:     os.Getenv("POSTGRES_PORT"),
 		User:     os.Getenv("POSTGRES_USER"),
 		Password: os.Getenv("POSTGRES_PASSWORD"),
 		DBName:   os.Getenv("POSTGRES_DB"),
-		SSLMode:  "disable",
+		SSLMode:  os.Getenv("POSTGRES_SSL_MODE"),
 	}
 
 	// Get host and port from environment variables with defaults
