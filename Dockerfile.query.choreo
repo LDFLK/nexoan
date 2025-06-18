@@ -146,6 +146,9 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
     groupadd -g 10014 choreo && \
     useradd -u 10014 -g choreo -s /bin/bash -m choreouser
 
+# Switch to non-root user for building
+USER 10014
+
 # Create necessary directories with proper permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
     mkdir -p /home/choreouser/.ballerina && \
