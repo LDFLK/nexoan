@@ -3,16 +3,17 @@
 
 import ballerina/http;
 import ballerina/protobuf.types.'any;
-import ballerina/os;
 import ballerina/lang.'int as langint;
 import ballerina/io;
 
+configurable string queryHostname = "0.0.0.0";
+configurable string queryPort = "8081";
+configurable string crudServiceUrl = "0.0.0.0:50051";
 
-string queryHostname = os:getEnv("QUERY_SERVICE_HOST");
-string queryPort = os:getEnv("QUERY_SERVICE_PORT");
-string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
-
-listener http:Listener ep0 = new (check langint:fromString(queryPort), config = {host: queryHostname});
+listener http:Listener ep0 = new (check langint:fromString(queryPort), config = {
+    host: queryHostname,
+    httpVersion: http:HTTP_2_0
+});
 
 CrudServiceClient ep = check new (crudServiceUrl);
 
