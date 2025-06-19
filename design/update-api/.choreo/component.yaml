@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: update-ep
+    displayName: Ballerina Update API
+    service:
+      basePath: /
+      port: 8080
+    type: REST
+    networkVisibilities: 
+      - Public
