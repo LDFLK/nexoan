@@ -7,7 +7,7 @@ import ballerina/io;
 import ballerina/os;
 import ballerina/lang.'int as langint;
 
-string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
+string crudServiceUrl = os:getEnv("CHOREO_INGESTION_TO_CRUD_SERVICEURL");
 string updateServiceHost = os:getEnv("UPDATE_SERVICE_HOST");
 string updateServicePort = os:getEnv("UPDATE_SERVICE_PORT");
 
