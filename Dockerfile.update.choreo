@@ -179,17 +179,21 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 
 # Set permissions
 RUN chown -R choreouser:choreo /app && \
-    chmod -R 755 /app
+    chmod -R 777 /app
 
 # Ensure target directory has proper write permissions
 RUN mkdir -p /app/design/update-api/target && \
     chown -R choreouser:choreo /app/design/update-api/target && \
     chmod -R 777 /app/design/update-api/target
 
+# Ensure the entire update-api project directory has write permissions
+RUN chown -R choreouser:choreo /app/design/update-api && \
+    chmod -R 777 /app/design/update-api
+
 # Create necessary directories and set permissions before switching user
 RUN mkdir -p /home/choreouser/.ballerina && \
     chown -R choreouser:choreo /home/choreouser && \
-    chmod -R 755 /home/choreouser
+    chmod -R 777 /home/choreouser
 
 # Switch to non-root user for running the service
 USER 10014
