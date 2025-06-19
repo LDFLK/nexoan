@@ -5,6 +5,7 @@ import ballerina/http;
 import ballerina/protobuf.types.'any as pbAny;
 import ballerina/io;
 import ballerina/lang.'int as langint;
+import ballerina/grpc;
 
 configurable string crudServiceUrl = "0.0.0.0:50051";
 configurable string updateServiceHost = "0.0.0.0";
@@ -14,7 +15,13 @@ listener http:Listener ep0 = new (check langint:fromString(updateServicePort), c
     host: updateServiceHost,
     httpVersion: http:HTTP_2_0
 });
-CrudServiceClient ep = check new (crudServiceUrl);
+
+// Create gRPC client with proper configuration for HTTP/2
+grpc:ClientConfiguration grpcConfig = {
+    timeout: 300000 // 5 minutes timeout
+};
+
+CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
 
 service / on ep0 {
     # Delete an entity
