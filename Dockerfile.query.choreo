@@ -181,14 +181,14 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 RUN chown -R choreouser:choreo /app && \
     chmod -R 777 /app
 
+# Ensure the entire query-api project directory has write permissions
+RUN chown -R choreouser:choreo /app/design/query-api && \
+    chmod -R 777 /app/design/query-api
+
 # Ensure target directory has proper write permissions
 RUN mkdir -p /app/design/query-api/target && \
     chown -R choreouser:choreo /app/design/query-api/target && \
     chmod -R 777 /app/design/query-api/target
-
-# Ensure the entire query-api project directory has write permissions
-RUN chown -R choreouser:choreo /app/design/query-api && \
-    chmod -R 777 /app/design/query-api
 
 # Create necessary directories and set permissions before switching user
 RUN mkdir -p /home/choreouser/.ballerina && \
