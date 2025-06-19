@@ -4,12 +4,11 @@
 import ballerina/http;
 import ballerina/protobuf.types.'any as pbAny;
 import ballerina/io;
-import ballerina/os;
 import ballerina/lang.'int as langint;
 
-string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
-string updateServiceHost = os:getEnv("UPDATE_SERVICE_HOST");
-string updateServicePort = os:getEnv("UPDATE_SERVICE_PORT");
+configurable string crudServiceUrl = "localhost:50051";
+configurable string updateServiceHost = "0.0.0.0";
+configurable string updateServicePort = "8080";
 
 listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {host: updateServiceHost});
 CrudServiceClient ep = check new (crudServiceUrl);
