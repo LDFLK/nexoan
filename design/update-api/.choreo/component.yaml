@@ -5,6 +5,6 @@ endpoints:
     service:
       basePath: /
       port: 8080
-    type: REST
+    type: GRPC
     networkVisibilities: 
       - Public
