@@ -114,24 +114,12 @@ USER root
 RUN apk add --no-cache shadow && \
     groupadd -g 10014 choreo && \
     useradd -u 10014 -g choreo -s /bin/bash -m choreouser && \
-    mkdir -p /home/choreouser/.cache/go-build && \
+    mkdir -p /home/choreouser/.ballerina && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser
-
+    
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
-
-# Set environment variables early
-ENV BALLERINA_HOME=/tmp/ballerina
-ENV HOME=/tmp
-ENV BALLERINA_REPOSITORY=/tmp/ballerina/repositories
-
-RUN mkdir -p /tmp/ballerina && \
-    mkdir -p /tmp/ballerina/.config && \
-    mkdir -p /tmp/ballerina/repositories && \
-    mkdir -p /tmp/ballerina/repositories/central.ballerina.io && \
-    chown -R choreouser:choreo /tmp/ballerina && \
-    chmod -R 755 /tmp/ballerina
 
 # Create and set permissions for build directories
 RUN mkdir -p /app/design/query-api/target && \
@@ -159,29 +147,14 @@ RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
     useradd -u 10014 -g choreo -s /bin/bash -m choreouser
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /home/choreouser/.cache/go-build && \
-    mkdir -p /tmp/ballerina && \
-    mkdir -p /tmp/ballerina/.config && \
+RUN mkdir -p /home/choreouser/.ballerina && \
     chown -R choreouser:choreo /home/choreouser && \
-    chmod -R 755 /home/choreouser && \
-    chown -R choreouser:choreo /tmp/ballerina && \
-    chmod -R 755 /tmp/ballerina
-
-# Create a pre-configured bal-tools.toml
-RUN printf '[tool]\n\
-version = "2201.11.0"\n' > /tmp/ballerina/.config/bal-tools.toml && \
-    chown choreouser:choreo /tmp/ballerina/.config/bal-tools.toml && \
-    chmod 644 /tmp/ballerina/.config/bal-tools.toml
+    chmod -R 755 /home/choreouser
 
 # Copy the source code and build artifacts
 COPY --from=builder /app/design/query-api /app/design/query-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
-
-# Set environment variables for runtime
-ENV BALLERINA_HOME=/tmp/ballerina
-ENV HOME=/tmp
-ENV BALLERINA_REPOSITORY=/tmp/ballerina/repositories
 
 # Create startup script with proper line endings
 RUN echo '#!/bin/sh' > /app/start.sh && \
@@ -200,30 +173,18 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo 'echo "Starting query service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and QUERY_SERVICE_HOST: $QUERY_SERVICE_HOST and QUERY_SERVICE_PORT: $QUERY_SERVICE_PORT"' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
-    echo 'export BALLERINA_HOME=/tmp/ballerina' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'mkdir -p "$BALLERINA_HOME/.config"' >> /app/start.sh && \
-    echo 'mkdir -p "$BALLERINA_HOME/repositories"' >> /app/start.sh && \
-    echo 'mkdir -p "$BALLERINA_HOME/repositories/central.ballerina.io"' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'chmod -R 755 "$BALLERINA_HOME"' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'if [ ! -f "$BALLERINA_HOME/.config/bal-tools.toml" ]; then' >> /app/start.sh && \
-    echo '    echo "[tool]" > "$BALLERINA_HOME/.config/bal-tools.toml"' >> /app/start.sh && \
-    echo '    echo "version = \"2201.11.0\"" >> "$BALLERINA_HOME/.config/bal-tools.toml"' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
     echo 'exec bal run /app/design/query-api' >> /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh
 
 # Set permissions
-USER root
-
-RUN chown -R choreouser:choreo /home/choreouser && \
-    chmod -R 755 /home/choreouser && \
-    chown -R choreouser:choreo /app && \
+RUN chown -R choreouser:choreo /app && \
     chmod -R 755 /app
+
+# Create necessary directories and set permissions before switching user
+RUN mkdir -p /home/choreouser/.ballerina && \
+    chown -R choreouser:choreo /home/choreouser && \
+    chmod -R 755 /home/choreouser
 
 # Switch to non-root user for running the service
 USER 10014
