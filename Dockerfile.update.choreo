@@ -184,7 +184,7 @@ RUN chown -R choreouser:choreo /app && \
 # Ensure target directory has proper write permissions
 RUN mkdir -p /app/design/update-api/target && \
     chown -R choreouser:choreo /app/design/update-api/target && \
-    chmod -R 755 /app/design/update-api/target
+    chmod -R 777 /app/design/update-api/target
 
 # Create necessary directories and set permissions before switching user
 RUN mkdir -p /home/choreouser/.ballerina && \
