@@ -412,23 +412,23 @@ func validateDataAgainstSchema(data *structpb.Struct, schemaInfo *schema.SchemaI
 }
 
 // compareSchemas compares two schemas and returns true if they are compatible
-func compareSchemas(existing, new *schema.SchemaInfo) (bool, error) {
-	if existing.StorageType != new.StorageType {
-		return false, fmt.Errorf("storage type mismatch: existing=%s, new=%s", 
-			existing.StorageType, new.StorageType)
+func compareSchemas(existing, newSchema *schema.SchemaInfo) (bool, error) {
+	if existing.StorageType != newSchema.StorageType {
+		return false, fmt.Errorf("storage type mismatch: existing=%s, newSchema=%s", 
+			existing.StorageType, newSchema.StorageType)
 	}
 
-	// Check all existing columns are present in new schema
+	// Check all existing columns are present in newSchema
 	for fieldName, existingField := range existing.Fields {
-		newField, exists := new.Fields[fieldName]
+		newField, exists := newSchema.Fields[fieldName]
 		if !exists {
-			// Missing column in new schema
-			return false, fmt.Errorf("column %s missing in new schema", fieldName)
+			// Missing column in newSchema
+			return false, fmt.Errorf("column %s missing in newSchema", fieldName)
 		}
 
 		// Check type compatibility
 		if !isTypeCompatible(existingField.TypeInfo.Type, newField.TypeInfo.Type) {
-			return false, fmt.Errorf("incompatible type for column %s: existing=%s, new=%s",
+			return false, fmt.Errorf("incompatible type for column %s: existing=%s, newSchema=%s",
 				fieldName, existingField.TypeInfo.Type, newField.TypeInfo.Type)
 		}
 
