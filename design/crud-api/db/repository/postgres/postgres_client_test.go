@@ -16,11 +16,15 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	// Get database URI from environment variable
-	dbURI := os.Getenv("POSTGRES_TEST_DB_URI")
-	if dbURI == "" {
-		t.Skip("Skipping test: POSTGRES_TEST_DB_URI environment variable not set")
-	}
+	// Build database URI from main PostgreSQL configuration
+	dbURI := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		os.Getenv("POSTGRES_SSL_MODE"))
+	t.Logf("dbURI: %s", dbURI)
 
 	// Create new client using connection string
 	client, err := NewClientFromDSN(dbURI)
@@ -346,13 +350,16 @@ func TestIsDateTime(t *testing.T) {
 
 // TestInsertSampleData tests inserting various types of sample data
 func TestInsertSampleData(t *testing.T) {
-	// Get database URI from environment variable
-	dbURI := os.Getenv("POSTGRES_TEST_DB_URI")
-	if dbURI == "" {
-		t.Skip("Skipping test: POSTGRES_TEST_DB_URI environment variable not set")
-	}
+	// Build database URI from main PostgreSQL configuration
+	dbURI := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		os.Getenv("POSTGRES_SSL_MODE"))
 
-	// Create new client
+	// Create new client using connection string
 	client, err := NewClientFromDSN(dbURI)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
@@ -458,13 +465,16 @@ func TestInsertSampleData(t *testing.T) {
 
 // TestQuerySampleData tests querying the inserted sample data
 func TestQuerySampleData(t *testing.T) {
-	// Get database URI from environment variable
-	dbURI := os.Getenv("POSTGRES_TEST_DB_URI")
-	if dbURI == "" {
-		t.Skip("Skipping test: POSTGRES_TEST_DB_URI environment variable not set")
-	}
+	// Build database URI from main PostgreSQL configuration
+	dbURI := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		os.Getenv("POSTGRES_SSL_MODE"))
 
-	// Create new client
+	// Create new client using connection string
 	client, err := NewClientFromDSN(dbURI)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)

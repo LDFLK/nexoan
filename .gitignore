@@ -20,7 +20,7 @@ design/.DS_Store
 
 target/
 
-# artifacts and env configs not to be committed
+artifacts and env configs not to be committed
 design/crud-api/.env
 .env
 design/crud-api/crud-service
