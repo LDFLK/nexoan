@@ -20,21 +20,21 @@ type Config struct {
 	SSLMode  string
 }
 
-// Client represents a PostgreSQL database client
-type Client struct {
+// PostgresRepository represents a PostgreSQL database repository
+type PostgresRepository struct {
 	db *sql.DB
 }
 
-// NewClient creates a new PostgreSQL client
-func NewClient(cfg Config) (*Client, error) {
+// NewPostgresRepository creates a new PostgreSQL repository
+func NewPostgresRepository(cfg Config) (*PostgresRepository, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 
-	return NewClientFromDSN(dsn)
+	return NewPostgresRepositoryFromDSN(dsn)
 }
 
-// NewClientFromDSN creates a new PostgreSQL client from a connection string
-func NewClientFromDSN(dsn string) (*Client, error) {
+// NewPostgresRepositoryFromDSN creates a new PostgreSQL repository from a connection string
+func NewPostgresRepositoryFromDSN(dsn string) (*PostgresRepository, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %v", err)
@@ -50,17 +50,17 @@ func NewClientFromDSN(dsn string) (*Client, error) {
 		return nil, fmt.Errorf("error connecting to the database: %v", err)
 	}
 
-	return &Client{db: db}, nil
+	return &PostgresRepository{db: db}, nil
 }
 
 // Close closes the database connection
-func (c *Client) Close() error {
-	return c.db.Close()
+func (r *PostgresRepository) Close() error {
+	return r.db.Close()
 }
 
 // DB returns the underlying *sql.DB instance
-func (c *Client) DB() *sql.DB {
-	return c.db
+func (r *PostgresRepository) DB() *sql.DB {
+	return r.db
 }
 
 // InitializeTables creates the necessary tables if they don't exist
@@ -79,7 +79,7 @@ func (c *Client) DB() *sql.DB {
 //
 // Each attribute's actual data is stored in a separate dynamic table (named in table_name)
 // which is created on-demand when new attributes are added to an entity.
-func (c *Client) InitializeTables(ctx context.Context) error {
+func (r *PostgresRepository) InitializeTables(ctx context.Context) error {
 	// Create entity_attributes table
 	entityAttributesSQL := `
 	CREATE TABLE IF NOT EXISTS entity_attributes (
@@ -113,11 +113,11 @@ func (c *Client) InitializeTables(ctx context.Context) error {
 	);`
 
 	// Execute the creation queries
-	if _, err := c.db.ExecContext(ctx, entityAttributesSQL); err != nil {
+	if _, err := r.db.ExecContext(ctx, entityAttributesSQL); err != nil {
 		return fmt.Errorf("error creating entity_attributes table: %v", err)
 	}
 
-	if _, err := c.db.ExecContext(ctx, attributeSchemasSQL); err != nil {
+	if _, err := r.db.ExecContext(ctx, attributeSchemasSQL); err != nil {
 		return fmt.Errorf("error creating attribute_schemas table: %v", err)
 	}
 
@@ -125,7 +125,7 @@ func (c *Client) InitializeTables(ctx context.Context) error {
 }
 
 // TableExists checks if a table exists in the database
-func (c *Client) TableExists(ctx context.Context, tableName string) (bool, error) {
+func (r *PostgresRepository) TableExists(ctx context.Context, tableName string) (bool, error) {
 	query := `
 	SELECT EXISTS (
 		SELECT FROM pg_tables
@@ -134,7 +134,7 @@ func (c *Client) TableExists(ctx context.Context, tableName string) (bool, error
 	);`
 
 	var exists bool
-	err := c.db.QueryRowContext(ctx, query, tableName).Scan(&exists)
+	err := r.db.QueryRowContext(ctx, query, tableName).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("error checking table existence: %v", err)
 	}
@@ -143,7 +143,7 @@ func (c *Client) TableExists(ctx context.Context, tableName string) (bool, error
 }
 
 // CreateDynamicTable creates a new table for storing attribute data
-func (c *Client) CreateDynamicTable(ctx context.Context, tableName string, columns []Column) error {
+func (r *PostgresRepository) CreateDynamicTable(ctx context.Context, tableName string, columns []Column) error {
 	// Build column definitions
 	var columnDefs []string
 	
@@ -166,7 +166,7 @@ func (c *Client) CreateDynamicTable(ctx context.Context, tableName string, colum
 	);`, tableName, strings.Join(columnDefs, ",\n"))
 
 	// Execute the creation query
-	if _, err := c.db.ExecContext(ctx, createTableSQL); err != nil {
+	if _, err := r.db.ExecContext(ctx, createTableSQL); err != nil {
 		return fmt.Errorf("error creating dynamic table: %v", err)
 	}
 
@@ -174,7 +174,7 @@ func (c *Client) CreateDynamicTable(ctx context.Context, tableName string, colum
 }
 
 // InsertTabularData inserts rows into a dynamic table
-func (c *Client) InsertTabularData(ctx context.Context, tableName string, entityAttributeID int, columns []string, rows [][]interface{}) error {
+func (r *PostgresRepository) InsertTabularData(ctx context.Context, tableName string, entityAttributeID int, columns []string, rows [][]interface{}) error {
 	// Build the INSERT query
 	columnNames := append([]string{"entity_attribute_id"}, columns...)
 	placeholders := make([]string, len(rows))
@@ -203,7 +203,7 @@ func (c *Client) InsertTabularData(ctx context.Context, tableName string, entity
 	}
 
 	// Execute the query
-	_, err := c.db.ExecContext(ctx, query, values...)
+	_, err := r.db.ExecContext(ctx, query, values...)
 	if err != nil {
 		return fmt.Errorf("error inserting data: %v", err)
 	}

@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestNewClient(t *testing.T) {
+func TestNewPostgresRepository(t *testing.T) {
 	// Build database URI from main PostgreSQL configuration
 	dbURI := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		os.Getenv("POSTGRES_USER"),
@@ -26,15 +26,15 @@ func TestNewClient(t *testing.T) {
 		os.Getenv("POSTGRES_SSL_MODE"))
 	t.Logf("dbURI: %s", dbURI)
 
-	// Create new client using connection string
-	client, err := NewClientFromDSN(dbURI)
+	// Create new repository using connection string
+	repo, err := NewPostgresRepositoryFromDSN(dbURI)
 	if err != nil {
-		t.Fatalf("Failed to create client: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer client.Close()
+	defer repo.Close()
 
 	// Test basic query
-	rows, err := client.DB().Query("SELECT NOW()")
+	rows, err := repo.DB().Query("SELECT NOW()")
 	if err != nil {
 		t.Fatalf("Failed to execute query: %v", err)
 	}
@@ -359,17 +359,17 @@ func TestInsertSampleData(t *testing.T) {
 		os.Getenv("POSTGRES_DB"),
 		os.Getenv("POSTGRES_SSL_MODE"))
 
-	// Create new client using connection string
-	client, err := NewClientFromDSN(dbURI)
+	// Create new repository using connection string
+	repo, err := NewPostgresRepositoryFromDSN(dbURI)
 	if err != nil {
-		t.Fatalf("Failed to create client: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer client.Close()
+	defer repo.Close()
 
 	ctx := context.Background()
 
 	// Initialize tables
-	err = client.InitializeTables(ctx)
+	err = repo.InitializeTables(ctx)
 	assert.NoError(t, err, "Failed to initialize tables")
 
 	// Test cases with different types of data
@@ -435,28 +435,28 @@ func TestInsertSampleData(t *testing.T) {
 			}
 
 			// Handle attributes (this will create table and insert data)
-			err = HandleAttributes(ctx, client, tt.entityID, attributes)
+			err = HandleAttributes(ctx, repo, tt.entityID, attributes)
 			assert.NoError(t, err, "Failed to handle attributes")
 
 			// Verify table exists
 			tableName := fmt.Sprintf("attr_%s_%s", 
 				sanitizeIdentifier(tt.entityID), 
 				sanitizeIdentifier(tt.attrName))
-			exists, err := client.TableExists(ctx, tableName)
+			exists, err := repo.TableExists(ctx, tableName)
 			assert.NoError(t, err, "Failed to check table existence")
 			assert.True(t, exists, "Table should exist")
 
 			// Query the data to verify insertion
 			query := fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)
 			var count int
-			err = client.DB().QueryRowContext(ctx, query).Scan(&count)
+			err = repo.DB().QueryRowContext(ctx, query).Scan(&count)
 			assert.NoError(t, err, "Failed to query data")
 			assert.Equal(t, len(tt.sampleData), count, "Row count should match")
 
 			// Query and verify a sample value
 			query = fmt.Sprintf("SELECT %s FROM %s LIMIT 1", tt.columns[1], tableName)
 			var sampleValue string
-			err = client.DB().QueryRowContext(ctx, query).Scan(&sampleValue)
+			err = repo.DB().QueryRowContext(ctx, query).Scan(&sampleValue)
 			assert.NoError(t, err, "Failed to query sample value")
 			assert.NotEmpty(t, sampleValue, "Sample value should not be empty")
 		})
@@ -474,12 +474,12 @@ func TestQuerySampleData(t *testing.T) {
 		os.Getenv("POSTGRES_DB"),
 		os.Getenv("POSTGRES_SSL_MODE"))
 
-	// Create new client using connection string
-	client, err := NewClientFromDSN(dbURI)
+	// Create new repository using connection string
+	repo, err := NewPostgresRepositoryFromDSN(dbURI)
 	if err != nil {
-		t.Fatalf("Failed to create client: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer client.Close()
+	defer repo.Close()
 
 	ctx := context.Background()
 
@@ -519,14 +519,14 @@ func TestQuerySampleData(t *testing.T) {
 	for _, tt := range queries {
 		t.Run(tt.name, func(t *testing.T) {
 			// Check if table exists
-			exists, err := client.TableExists(ctx, tt.tableName)
+			exists, err := repo.TableExists(ctx, tt.tableName)
 			if !exists {
 				t.Skipf("Skipping test: table %s does not exist", tt.tableName)
 			}
 			assert.NoError(t, err, "Failed to check table existence")
 
 			// Execute query
-			rows, err := client.DB().QueryContext(ctx, tt.query)
+			rows, err := repo.DB().QueryContext(ctx, tt.query)
 			assert.NoError(t, err, "Failed to execute query")
 			defer rows.Close()
 

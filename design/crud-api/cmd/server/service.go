@@ -22,9 +22,9 @@ import (
 // Server implements the CrudService
 type Server struct {
 	pb.UnimplementedCrudServiceServer
-	mongoRepo      *mongorepository.MongoRepository
-	neo4jRepo      *neo4jrepository.Neo4jRepository
-	postgresClient *postgres.Client
+	mongoRepo    *mongorepository.MongoRepository
+	neo4jRepo    *neo4jrepository.Neo4jRepository
+	postgresRepo *postgres.PostgresRepository
 }
 
 // CreateEntity handles entity creation with metadata
@@ -61,7 +61,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 	}
 
 	// Handle attributes
-	err = postgres.HandleAttributes(ctx, s.postgresClient, req.Id, req.Attributes)
+	err = postgres.HandleAttributes(ctx, s.postgresRepo, req.Id, req.Attributes)
 	if err != nil {
 		log.Printf("[server.CreateEntity] Error handling attributes: %v", err)
 		return nil, err
@@ -345,12 +345,12 @@ func main() {
 	}
 	defer neo4jRepo.Close(ctx)
 
-	// Create PostgreSQL client
-	postgresClient, err := postgres.NewClient(*postgresConfig)
+	// Create PostgreSQL repository
+	postgresRepo, err := postgres.NewPostgresRepository(*postgresConfig)
 	if err != nil {
-		log.Fatalf("[service.main] Failed to create PostgreSQL client: %v", err)
+		log.Fatalf("[service.main] Failed to create PostgreSQL repository: %v", err)
 	}
-	defer postgresClient.Close()
+	defer postgresRepo.Close()
 
 	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
@@ -359,9 +359,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	server := &Server{
-		mongoRepo:      mongoRepo,
-		neo4jRepo:      neo4jRepo,
-		postgresClient: postgresClient,
+		mongoRepo:    mongoRepo,
+		neo4jRepo:    neo4jRepo,
+		postgresRepo: postgresRepo,
 	}
 
 	pb.RegisterCrudServiceServer(grpcServer, server)

@@ -294,66 +294,36 @@ func isDateTime(val string) bool {
 	return false
 }
 
-// HandleAttributes processes entity attributes and stores them in PostgreSQL
-func HandleAttributes(ctx context.Context, client *Client, entityID string, attributes map[string]*pb.TimeBasedValueList) error {
-	log.Printf("--------------Handling Attributes------------------")
-	log.Printf("Handling attributes for entity: %s", entityID)
-
+// HandleAttributes handles the attributes for an entity
+func HandleAttributes(ctx context.Context, repo *PostgresRepository, entityID string, attributes map[string]*pb.TimeBasedValueList) error {
 	if attributes == nil {
 		return nil
 	}
 
-	// Initialize tables if not already done
-	if err := client.InitializeTables(ctx); err != nil {
-		return fmt.Errorf("failed to initialize tables: %v", err)
-	}
-
-	for attrName, value := range attributes {
-		if value == nil || len(value.Values) == 0 {
+	// Process each attribute
+	for attrName, timeBasedValueList := range attributes {
+		if timeBasedValueList == nil {
 			continue
 		}
 
 		// Process each time-based value
-		for _, val := range value.Values {
-			if val == nil || val.Value == nil {
+		for _, value := range timeBasedValueList.Values {
+			if value == nil || value.Value == nil {
 				continue
 			}
 
-			log.Printf("Processing value for attribute %s: StartTime=%s, EndTime=%s",
-				attrName, val.GetStartTime(), val.GetEndTime())
-
-			// Check if it's tabular data
-			isTabular, dataStruct, err := isTabularData(val.Value)
+			// Generate schema for the value
+			schemaInfo, err := generateSchema(value.Value)
 			if err != nil {
-				log.Printf("Error checking tabular data: %v", err)
-				continue
+				return fmt.Errorf("error generating schema for attribute %s: %v", attrName, err)
 			}
 
-			if isTabular {
-				// Validate data types
-				columnTypes, err := validateAndReturnTabularDataTypes(dataStruct)
-					if err != nil {
-					log.Printf("Error validating tabular data types: %v", err)
-						continue
-					}
+			// Log schema information for debugging
+			logSchemaInfo(schemaInfo)
 
-				// Create schema info
-				schemaInfo := &schema.SchemaInfo{
-					StorageType: "tabular",
-					Fields:      make(map[string]*schema.SchemaInfo),
-				}
-
-				for colName, typeInfo := range columnTypes {
-					schemaInfo.Fields[colName] = &schema.SchemaInfo{
-						TypeInfo: &typeInfo,
-					}
-				}
-
-				// Handle tabular data
-				if err := handleTabularData(ctx, client, entityID, attrName, val, schemaInfo); err != nil {
-					log.Printf("Error handling tabular data: %v", err)
-					continue
-				}
+			// Handle tabular data
+			if err := handleTabularData(ctx, repo, entityID, attrName, value, schemaInfo); err != nil {
+				return fmt.Errorf("error handling tabular data for attribute %s: %v", attrName, err)
 			}
 		}
 	}
@@ -464,8 +434,8 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 	return false
 }
 
-// handleTabularData processes and stores tabular data
-func handleTabularData(ctx context.Context, client *Client, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
+// handleTabularData processes tabular data attributes
+func handleTabularData(ctx context.Context, repo *PostgresRepository, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
 	// Generate table name
 	tableName := fmt.Sprintf("attr_%s_%s", sanitizeIdentifier(entityID), sanitizeIdentifier(attrName))
 
@@ -473,7 +443,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 	columns := schemaToColumns(schemaInfo)
 
 	// Check if table exists
-	exists, err := client.TableExists(ctx, tableName)
+	exists, err := repo.TableExists(ctx, tableName)
 	if err != nil {
 		return fmt.Errorf("error checking table existence: %v", err)
 	}
@@ -481,7 +451,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 	if exists {
 		// Get existing schema
 		var schemaJSON []byte
-		err = client.DB().QueryRowContext(ctx,
+		err = repo.DB().QueryRowContext(ctx,
 			`SELECT schema_definition FROM attribute_schemas WHERE table_name = $1 ORDER BY schema_version DESC LIMIT 1`,
 			tableName).Scan(&schemaJSON)
 		if err != nil {
@@ -514,7 +484,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 		}
 	} else {
 		// Create new table
-		if err := client.CreateDynamicTable(ctx, tableName, columns); err != nil {
+		if err := repo.CreateDynamicTable(ctx, tableName, columns); err != nil {
 			return fmt.Errorf("error creating table: %v", err)
 		}
 
@@ -525,7 +495,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 		}
 
 		// Insert schema record
-		_, err = client.DB().ExecContext(ctx,
+		_, err = repo.DB().ExecContext(ctx,
 			`INSERT INTO attribute_schemas (table_name, schema_version, schema_definition)
 			VALUES ($1, $2, $3)`,
 			tableName, 1, schemaJSON)
@@ -536,7 +506,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 
 	// Create entity attribute record if it doesn't exist
 	var attributeID int
-	err = client.DB().QueryRowContext(ctx,
+	err = repo.DB().QueryRowContext(ctx,
 		`INSERT INTO entity_attributes (entity_id, attribute_name, table_name)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (entity_id, attribute_name) DO UPDATE
@@ -591,7 +561,7 @@ func handleTabularData(ctx context.Context, client *Client, entityID, attrName s
 	}
 
 	// Insert the data
-	if err := client.InsertTabularData(ctx, tableName, attributeID, columnNames, rows); err != nil {
+	if err := repo.InsertTabularData(ctx, tableName, attributeID, columnNames, rows); err != nil {
 		return fmt.Errorf("error inserting tabular data: %v", err)
 	}
 
