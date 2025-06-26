@@ -164,8 +164,9 @@ func isTabularData(value *anypb.Any) (bool, *structpb.Struct, error) {
 	return true, &dataStruct, nil
 }
 
-// validateTabularDataTypes validates that all values in each column have consistent types
-func validateTabularDataTypes(data *structpb.Struct) (map[string]typeinference.TypeInfo, error) {
+// validateAndReturnTabularDataTypes validates that all values in each column have consistent types
+// and returns a map of column names to their inferred TypeInfo
+func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typeinference.TypeInfo, error) {
 	columnsList := data.Fields["columns"].GetListValue()
 	rowsList := data.Fields["rows"].GetListValue()
 
@@ -330,7 +331,7 @@ func HandleAttributes(ctx context.Context, client *Client, entityID string, attr
 
 			if isTabular {
 				// Validate data types
-				columnTypes, err := validateTabularDataTypes(dataStruct)
+				columnTypes, err := validateAndReturnTabularDataTypes(dataStruct)
 					if err != nil {
 					log.Printf("Error validating tabular data types: %v", err)
 						continue

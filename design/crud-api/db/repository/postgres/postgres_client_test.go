@@ -107,7 +107,7 @@ func createTabularDataStruct(columns []string, rows [][]interface{}) (*anypb.Any
 	return anypb.New(tabularStruct)
 }
 
-func TestValidateTabularDataTypes(t *testing.T) {
+func TestValidateAndReturnTabularDataTypes(t *testing.T) {
 	tests := []struct {
 		name           string
 		columns        []string
@@ -223,8 +223,8 @@ func TestValidateTabularDataTypes(t *testing.T) {
 			err = tabularData.UnmarshalTo(&dataStruct)
 			assert.NoError(t, err, "Failed to unmarshal tabular data")
 
-			// Call validateTabularDataTypes
-			columnTypes, err := validateTabularDataTypes(&dataStruct)
+			// Call validateAndReturnTabularDataTypes
+			columnTypes, err := validateAndReturnTabularDataTypes(&dataStruct)
 
 			if tt.expectError {
 				assert.Error(t, err)
