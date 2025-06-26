@@ -1,146 +1,173 @@
-## WORK IN PROGRESS
-## TODO: Please complete the Dockerfile file
-## Please refer to the Dockerfile.all file for the final image
+# Dockerfile.crud
+#
+# Purpose:
+# This Dockerfile builds and runs the CRUD API service, which provides a gRPC interface
+# for creating, reading, updating, and deleting entities in the system. The service
+# connects to both Neo4j (for graph relationships), MongoDB (for metadata storage),
+# and PostgreSQL (for tabular data).
+#
+# Usage:
+# 1. Build the image:
+#    docker build -t crud-service -f Dockerfile.crud .
+#
+# 2. Run the container:
+#    docker run -d \
+#      --name crud-service \
+#      --network crud-network \
+#      -p 50051:50051 \
+#      -e NEO4J_URI=bolt://neo4j-local:7687 \
+#      -e NEO4J_USER=${NEO4J_USER} \
+#      -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
+#      -e MONGO_URI=${MONGO_URI} \
+#      crud-service
+#
+# Environment Variables:
+# - NEO4J_URI: Connection URI for Neo4j database (default: bolt://neo4j:7687)
+# - NEO4J_USER: Username for Neo4j authentication (default: neo4j)
+# - NEO4J_PASSWORD: Password for Neo4j authentication (default: neo4j123)
+# - MONGO_URI: Connection URI for MongoDB (default: mongodb://mongo:27017)
+# - MONGO_DB_NAME: MongoDB database name (default: testdb)
+# - MONGO_COLLECTION: MongoDB collection name (default: metadata)
+# - MONGO_ADMIN_USER: MongoDB admin username (default: admin)
+# - MONGO_ADMIN_PASSWORD: MongoDB admin password (default: test123456)
+# - CRUD_SERVICE_HOST: Host address to bind the service (default: 0.0.0.0)
+# - CRUD_SERVICE_PORT: Port to expose the gRPC service (default: 50051)
+#
+# Note: This service should be run on the same Docker network as Neo4j and MongoDB
+# services for proper connectivity. Use the 'crud-network' created with:
+# docker network create crud-network
 
-# -------------------
-# Stage 1: Build Go binaries
-# -------------------
-  FROM golang:1.24 AS builder
+# Build stage for CRUD service
+FROM --platform=linux/amd64 golang:1.23 AS builder
 
-  WORKDIR /app
-  COPY . .
-  
-  RUN cd design/crud-api && go mod download
-  RUN cd design/crud-api && go build ./...
-  RUN cd design/crud-api && go build -o crud-service cmd/server/service.go cmd/server/utils.go
-  
-  RUN mkdir -p /app/testbin
-  RUN cd design/crud-api/cmd/server && go test -c -o /app/testbin/crud-test .
-  RUN cd design/crud-api/db/repository/mongo && go test -c -o /app/testbin/mongo-test .
-  RUN cd design/crud-api/db/repository/neo4j && go test -c -o /app/testbin/neo4j-test .
-  
-  # -------------------
-  # Stage 2: Final Image
-  # -------------------
-  FROM ubuntu:22.04
-  
-  # Install system packages
-  RUN apt-get update && apt-get install -y \
-      curl gnupg lsb-release wget net-tools nano \
-      apt-transport-https software-properties-common unzip \
-      openjdk-17-jdk openjdk-17-jre \
-      && rm -rf /var/lib/apt/lists/*
-  
-  # Install MongoDB 6.0
-  RUN curl -fsSL https://pgp.mongodb.com/server-6.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-6.0.gpg \
-      && echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list \
-      && apt-get update \
-      && apt-get install -y mongodb-org \
-      && rm -rf /var/lib/apt/lists/*
-  
-  # Install Eclipse Temurin JDK 21
-  RUN wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - \
-      && echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
-      && apt-get update \
-      && apt-get install -y temurin-21-jdk \
-      && rm -rf /var/lib/apt/lists/*
-  
-  # Set Java environment
-  ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-  ENV PATH=$JAVA_HOME/bin:$PATH
-  
-  # Verify Java installation
-  RUN java -version \
-      && javac -version \
-      && echo "JAVA_HOME: $JAVA_HOME" \
-      && ls -la /usr/lib/jvm/ \
-      && test -f $JAVA_HOME/bin/java \
-      && test -f $JAVA_HOME/bin/javac
-  
-  # Install Ballerina 2201.8.0 (compatible with Java 17)
-  RUN wget https://dist.ballerina.io/downloads/2201.8.0/ballerina-2201.8.0-swan-lake.zip \
-      && unzip ballerina-2201.8.0-swan-lake.zip \
-      && mv ballerina-2201.8.0-swan-lake /usr/lib/ballerina \
-      && ln -s /usr/lib/ballerina/bin/bal /usr/bin/bal \
-      && rm ballerina-2201.8.0-swan-lake.zip
-  
-  # Install Neo4j 5.13
-  RUN wget -O - https://debian.neo4j.com/neotechnology.gpg.key | gpg --dearmor -o /usr/share/keyrings/neo4j.gpg \
-      && echo "deb [signed-by=/usr/share/keyrings/neo4j.gpg] https://debian.neo4j.com stable 5" | tee /etc/apt/sources.list.d/neo4j.list \
-      && apt-get update \
-      && apt-get install -y neo4j=1:5.13.0 cypher-shell \
-      && mkdir -p /var/lib/neo4j/data /var/log/neo4j
-  
-  # Neo4j configuration
-  RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_address=0.0.0.0/' /etc/neo4j/neo4j.conf \
-      && sed -i 's/#server.bolt.enabled=true/server.bolt.enabled=true/' /etc/neo4j/neo4j.conf \
-      && sed -i 's/#server.bolt.address=0.0.0.0:7687/server.bolt.address=0.0.0.0:7687/' /etc/neo4j/neo4j.conf \
-      && sed -i 's/#server.http.enabled=true/server.http.enabled=true/' /etc/neo4j/neo4j.conf \
-      && sed -i 's/#server.http.address=0.0.0.0:7474/server.http.address=0.0.0.0:7474/' /etc/neo4j/neo4j.conf \
-      && sed -i 's/#dbms.security.auth_enabled=true/dbms.security.auth_enabled=true/' /etc/neo4j/neo4j.conf \
-      && echo "dbms.security.procedures.unrestricted=apoc.*" >> /etc/neo4j/neo4j.conf
-  
-  # Copy compiled binaries and source code
-  COPY --from=builder /app/design/crud-api/crud-service /usr/local/bin/
-  COPY --from=builder /app/testbin/* /usr/local/bin/
-  COPY --from=builder /app/design/crud-api /app/design/crud-api
-  COPY --from=builder /app/design/update-api /app/design/update-api
-  
-  WORKDIR /app
-  
-  # Environment variables
-  ENV NEO4J_URI=bolt://localhost:7687
-  ENV NEO4J_USER=neo4j
-  ENV NEO4J_PASSWORD=neo4j123
-  ENV MONGO_URI=mongodb://localhost:27017
-  ENV MONGO_DB_NAME=testdb
-  ENV MONGO_COLLECTION=metadata
-  
-  # Expose ports
-  EXPOSE 7474 7687 27017
-  
-  # Add entrypoint script
-  RUN echo '#!/bin/bash\n\
-  set -e\n\
-  \n\
-  NEO4J_PASSWORD=neo4j123\n\
-  \n\
-  echo "Starting MongoDB..."\n\
-  mongod --fork --logpath /var/log/mongodb/mongod.log\n\
-  \n\
-  echo "Starting Neo4j..."\n\
-  neo4j start\n\
-  \n\
-  until curl -s http://localhost:7474 > /dev/null; do\n\
-      echo "Waiting for Neo4j..."\n\
-      sleep 2\n\
-  done\n\
-  \n\
-  echo "Setting Neo4j password..."\n\
-  echo "ALTER CURRENT USER SET PASSWORD FROM '\''neo4j'\'' TO '\''$NEO4J_PASSWORD'\'';" | cypher-shell -u neo4j -p '\''neo4j'\'' -d system\n\
-  \n\
-  until mongosh --eval "db.version()" > /dev/null 2>&1; do\n\
-      echo "Waiting for MongoDB..."\n\
-      sleep 2\n\
-  done\n\
-  \n\
-  echo "Running CRUD service tests..."\n\
-  cd /app/design/crud-api\n\
-  crud-test -test.v && mongo-test -test.v && neo4j-test -test.v\n\
-  \n\
-  echo "Starting CRUD server..."\n\
-  ./crud-service &\n\
-  CRUD_PID=$!\n\
-  sleep 5\n\
-  \n\
-  echo "Running update-api tests..."\n\
-  cd /app/design/update-api\n\
-  bal test\n\
-  \n\
-  echo "Stopping CRUD server..."\n\
-  kill $CRUD_PID\n\
-  \n\
-  tail -f /dev/null' > /start.sh && chmod +x /start.sh
-  
-  CMD ["/start.sh"]
-      
+# Set working directory
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Download dependencies
+RUN cd design/crud-api && \
+    go mod download
+
+# Build the application
+RUN cd design/crud-api && \
+    go build -o crud-service cmd/server/service.go cmd/server/utils.go
+
+## Create a new user with UID 10014
+# RUN addgroup -g 10014 choreo && \
+#     adduser  --disabled-password  --no-create-home --uid 10014 --ingroup choreo choreouser
+
+# Final stage
+FROM --platform=linux/amd64 golang:1.24
+
+# Install runtime dependencies and qemu for emulation
+RUN apt-get update && \
+    apt-get install -y ca-certificates qemu-user-static gnupg curl wget unzip openjdk-17-jdk postgresql-client && \
+    # Add MongoDB repository
+    curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
+    gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor && \
+    echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | \
+    tee /etc/apt/sources.list.d/mongodb-org-6.0.list && \
+    apt-get update && \
+    apt-get install -y mongodb-mongosh && \
+    # Download and install Cypher Shell
+    wget https://dist.neo4j.org/cypher-shell/cypher-shell-5.26.5.zip && \
+    unzip cypher-shell-5.26.5.zip && \
+    mkdir -p /usr/local/lib/cypher-shell && \
+    mv cypher-shell-5.26.5/lib/* /usr/local/lib/cypher-shell/ && \
+    # Create a wrapper script with proper classpath
+    echo '#!/bin/sh\n\
+    CLASSPATH=$(find /usr/local/lib/cypher-shell -name "*.jar" | tr "\\n" ":")\n\
+    exec java -cp "$CLASSPATH" org.neo4j.shell.Main "$@"\n\
+    ' > /usr/local/bin/cypher-shell && \
+    chmod +x /usr/local/bin/cypher-shell && \
+    rm -rf cypher-shell-5.26.5.zip cypher-shell-5.26.5 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Java environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Copy the built binary from builder stage
+COPY --from=builder /app/design/crud-api/crud-service /usr/local/bin/
+COPY --from=builder /app/design/crud-api /app/design/crud-api
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+# Set environment variables with defaults for Neo4j connection
+ENV NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+ENV NEO4J_USER=${NEO4J_USER:-neo4j}
+ENV NEO4J_PASSWORD=${NEO4J_PASSWORD:-neo4j123}
+
+# Set MongoDB environment variables with defaults
+ENV MONGO_URI=${MONGO_URI:-mongodb://admin:admin123@mongodb:27017/admin?authSource=admin}
+ENV MONGO_DB_NAME=${MONGO_DB_NAME:-testdb}
+ENV MONGO_COLLECTION=${MONGO_COLLECTION:-metadata}
+ENV MONGO_ADMIN_USER=${MONGO_ADMIN_USER:-admin}
+ENV MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD:-admin123}
+
+# Set PostgreSQL environment variables with defaults
+ENV POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+ENV POSTGRES_PORT=${POSTGRES_PORT:-5432}
+ENV POSTGRES_USER=${POSTGRES_USER:-postgres}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+ENV POSTGRES_DB=${POSTGRES_DB:-nexoan}
+
+# Set CRUD service environment variables
+ENV CRUD_SERVICE_HOST=${CRUD_SERVICE_HOST:-0.0.0.0}
+ENV CRUD_SERVICE_PORT=${CRUD_SERVICE_PORT:-50051}
+
+# Add log configuration
+ENV LOG_LEVEL=debug
+ENV LOG_FORMAT=text
+
+# USER 10014
+
+# Expose ports
+EXPOSE 50051
+
+# Create a script to run tests and start the service
+RUN echo '#!/bin/sh\n\
+echo "Running tests with environment:"\n\
+echo "NEO4J_URI: $NEO4J_URI"\n\
+echo "MONGO_URI: $MONGO_URI"\n\
+echo "POSTGRES_HOST: $POSTGRES_HOST"\n\
+\n\
+# Test MongoDB connection\n\
+echo "Testing MongoDB connection..."\n\
+until mongosh --eval "db.adminCommand(\"ping\")" mongodb://admin:admin123@mongodb:27017/admin; do\n\
+  echo "Waiting for MongoDB to be ready..."\n\
+  sleep 2\n\
+done\n\
+echo "MongoDB connection successful!"\n\
+\n\
+# Test Neo4j connection\n\
+echo "Testing Neo4j connection..."\n\
+until cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "CALL dbms.components()"; do\n\
+  echo "Waiting for Neo4j to be ready..."\n\
+  sleep 2\n\
+done\n\
+echo "Neo4j connection successful!"\n\
+\n\
+# Test PostgreSQL connection\n\
+echo "Testing PostgreSQL connection..."\n\
+until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT 1;" > /dev/null 2>&1; do\n\
+  echo "Waiting for PostgreSQL to be ready..."\n\
+  sleep 2\n\
+done\n\
+echo "PostgreSQL connection successful!"\n\
+\n\
+# Run Go tests\n\
+cd /app/design/crud-api\n\
+if ! go test -v ./...; then\n\
+  echo "Tests failed!"\n\
+  exit 1\n\
+fi\n\
+\n\
+echo "Starting CRUD service..."\n\
+exec crud-service 2>&1 | tee /app/crud-service.log\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Display environment variables and start the service
+CMD ["/app/start.sh"]
