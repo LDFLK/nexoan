@@ -36,35 +36,66 @@ jobs:
         echo "Waiting for MongoDB and Neo4j to be healthy..."
         docker compose ps
         
-        # Start CRUD service in detached mode
+        # Wait for dependencies to be ready (with timeout)
+        timeout 120 bash -c 'until docker compose ps | grep -q "healthy"; do echo "Waiting for services to be healthy..."; sleep 5; done'
+
+        # Start CRUD service and capture logs
         echo "Starting CRUD service and running tests..."
-        docker compose up -d crud
+        docker compose up crud > crud.log 2>&1 &
+        CRUD_PID=$!
+
+        # Wait for the service to start and tests to begin
+        echo "Waiting for CRUD service to start..."
+        timeout 60 bash -c 'until grep -q "Running tests with environment" crud.log; do echo "Waiting for tests to start..."; sleep 2; done'
         
-        # Wait for tests to complete
+        # Wait for tests to complete (look for test completion indicators)
         echo "Waiting for tests to complete..."
-        sleep 30
+        timeout 300 bash -c '
+          while true; do
+            if grep -q "❌ Tests failed!" crud.log; then
+              echo "Tests failed detected in logs"
+              break
+            elif grep -q "✅ All tests passed!" crud.log; then
+              echo "Tests completed successfully"
+              break
+            elif grep -q "=== Starting CRUD Service ===" crud.log; then
+              echo "Tests completed successfully, service starting"
+              break
+            elif grep -q "exit status 1" crud.log; then
+              echo "Test exit with error detected"
+              break
+            fi
+            echo "Tests still running... checking logs"
+            sleep 10
+          done
+        '
+
+        # Kill the background process and get final logs
+        kill $CRUD_PID 2>/dev/null || true
+        wait $CRUD_PID 2>/dev/null || true
+
+        # Show all logs
+        echo "=== Full CRUD Service Logs ==="
+        cat crud.log
+
+        # Also show container logs for additional debugging
+        echo "=== Container Logs ==="
+        docker compose logs crud || true
         
-        # Check the logs for test results
-        if docker compose logs crud | grep -q "^crud  | FAIL$"; then
-          echo "CRUD API tests failed!"
-          echo "Container logs:"
-          docker compose logs crud
+        # Check test results
+        if grep -q "❌ Tests failed!" crud.log; then
+          echo "❌ CRUD API tests failed!"
           docker compose down
           exit 1
-        elif docker compose logs crud | grep -q "^crud  | PASS$"; then
-          echo "CRUD API tests passed!"
-          echo "Container logs:"
-          docker compose logs crud
+        elif grep -q "✅ All tests passed!" crud.log || grep -q "=== Starting CRUD Service ===" crud.log; then
+          echo "✅ CRUD API tests passed!"
         else
-          echo "Test results not found in logs. Checking for service startup..."
-          if docker compose logs crud | grep -q "Starting CRUD service"; then
-            echo "CRUD API tests passed (service started successfully)!"
-            echo "Container logs:"
-            docker compose logs crud
+          echo "❓ Could not determine test status from logs"
+          echo "Checking if service started successfully..."
+          if grep -q "Starting CRUD service" crud.log; then
+            echo "✅ CRUD API tests passed (service started successfully)!"
           else
-            echo "Could not determine test status from logs"
-            echo "Container logs:"
-            docker compose logs crud
+            echo "❌ Test results unclear - failing build"
             docker compose down
             exit 1
           fi

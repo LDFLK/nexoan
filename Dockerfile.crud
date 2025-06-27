@@ -121,6 +121,9 @@ EXPOSE 50051
 
 # Create a script to run tests and start the service
 RUN echo '#!/bin/sh\n\
+set -e\n\
+\n\
+echo "=== CRUD Service Startup ==="\n\
 echo "Running tests with environment:"\n\
 echo "NEO4J_URI: $NEO4J_URI"\n\
 echo "MONGO_URI: $MONGO_URI"\n\
@@ -142,13 +145,15 @@ done\n\
 echo "Neo4j connection successful!"\n\
 \n\
 # Run Go tests\n\
+echo "=== Running Go Tests ==="\n\
 cd /app/design/crud-api\n\
 if ! go test -v ./...; then\n\
-  echo "Tests failed!"\n\
+  echo "❌ Tests failed!"\n\
   exit 1\n\
 fi\n\
+echo "✅ All tests passed!"\n\
 \n\
-echo "Starting CRUD service..."\n\
+echo "=== Starting CRUD Service ==="\n\
 exec crud-service 2>&1 | tee /app/crud-service.log\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
