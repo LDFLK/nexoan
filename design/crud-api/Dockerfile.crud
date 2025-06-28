@@ -3,7 +3,8 @@
 # Purpose:
 # This Dockerfile builds and runs the CRUD API service, which provides a gRPC interface
 # for creating, reading, updating, and deleting entities in the system. The service
-# connects to both Neo4j (for graph relationships) and MongoDB (for metadata storage).
+# connects to PostgreSQL (for tabular data), Neo4j (for graph relationships) and 
+# MongoDB (for metadata storage).
 #
 # Usage:
 # 1. Build the image:
@@ -18,6 +19,11 @@
 #      -e NEO4J_USER=${NEO4J_USER} \
 #      -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
 #      -e MONGO_URI=${MONGO_URI} \
+#      -e POSTGRES_HOST=${POSTGRES_HOST} \
+#      -e POSTGRES_PORT=${POSTGRES_PORT} \
+#      -e POSTGRES_USER=${POSTGRES_USER} \
+#      -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+#      -e POSTGRES_DB=${POSTGRES_DB} \
 #      crud-service
 #
 # Environment Variables:
@@ -29,11 +35,16 @@
 # - MONGO_COLLECTION: MongoDB collection name (default: metadata)
 # - MONGO_ADMIN_USER: MongoDB admin username (default: admin)
 # - MONGO_ADMIN_PASSWORD: MongoDB admin password (default: test123456)
+# - POSTGRES_HOST: PostgreSQL host (default: postgres)
+# - POSTGRES_PORT: PostgreSQL port (default: 5432)
+# - POSTGRES_USER: PostgreSQL username (default: postgres)
+# - POSTGRES_PASSWORD: PostgreSQL password (default: postgres)
+# - POSTGRES_DB: PostgreSQL database name (default: nexoan)
 # - CRUD_SERVICE_HOST: Host address to bind the service (default: 0.0.0.0)
 # - CRUD_SERVICE_PORT: Port to expose the gRPC service (default: 50051)
 #
-# Note: This service should be run on the same Docker network as Neo4j and MongoDB
-# services for proper connectivity. Use the 'crud-network' created with:
+# Note: This service should be run on the same Docker network as PostgreSQL, Neo4j 
+# and MongoDB services for proper connectivity. Use the 'crud-network' created with:
 # docker network create crud-network
 
 
@@ -56,17 +67,18 @@ RUN addgroup -g 10014 choreo && \
 # Copy the source code
 COPY . .
 
-# Build the application
+# Build the application and tests
 RUN go build -o crud-service cmd/server/service.go cmd/server/utils.go
+RUN cd db/repository/postgres && go test -c -o /app/postgres-test
 
 # Final stage
 FROM golang:1.24
 
-# Copy the built binary from builder stage
+# Copy the built binary and tests from builder stage
 COPY --from=builder /app/crud-service /usr/local/bin/
+COPY --from=builder /app/postgres-test /usr/local/bin/
 
 # Set environment variables with defaults for Neo4j connection
-# Note: When running in Docker, use the service name 'neo4j' if both services are in the same network
 ENV NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
 ENV NEO4J_USER=${NEO4J_USER:-neo4j}
 ENV NEO4J_PASSWORD=${NEO4J_PASSWORD:-neo4j123}
@@ -78,6 +90,13 @@ ENV MONGO_COLLECTION=${MONGO_COLLECTION:-metadata}
 ENV MONGO_ADMIN_USER=${MONGO_ADMIN_USER:-admin}
 ENV MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD:-test123456}
 
+# Set PostgreSQL environment variables with defaults
+ENV POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+ENV POSTGRES_PORT=${POSTGRES_PORT:-5432}
+ENV POSTGRES_USER=${POSTGRES_USER:-postgres}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+ENV POSTGRES_DB=${POSTGRES_DB:-nexoan}
+
 # Set CRUD service environment variables
 ENV CRUD_SERVICE_HOST=${CRUD_SERVICE_HOST:-0.0.0.0}
 ENV CRUD_SERVICE_PORT=${CRUD_SERVICE_PORT:-50051}
@@ -87,7 +106,7 @@ USER 10014
 # Expose ports
 EXPOSE 50051
 
-# Display environment variables and start the service
+# Display environment variables, run tests, and start the service
 CMD echo "Environment Variables:" && \
     echo "NEO4J_URI: $NEO4J_URI" && \
     echo "NEO4J_USER: $NEO4J_USER" && \
@@ -97,7 +116,14 @@ CMD echo "Environment Variables:" && \
     echo "MONGO_COLLECTION: $MONGO_COLLECTION" && \
     echo "MONGO_ADMIN_USER: $MONGO_ADMIN_USER" && \
     echo "MONGO_ADMIN_PASSWORD: ********" && \
+    echo "POSTGRES_HOST: $POSTGRES_HOST" && \
+    echo "POSTGRES_PORT: $POSTGRES_PORT" && \
+    echo "POSTGRES_USER: $POSTGRES_USER" && \
+    echo "POSTGRES_PASSWORD: ********" && \
+    echo "POSTGRES_DB: $POSTGRES_DB" && \
     echo "CRUD_SERVICE_HOST: $CRUD_SERVICE_HOST" && \
     echo "CRUD_SERVICE_PORT: $CRUD_SERVICE_PORT" && \
+    echo "Running PostgreSQL tests..." && \
+    postgres-test -test.v && \
     echo "Starting CRUD service..." && \
     exec crud-service

@@ -14,6 +14,26 @@ import (
 
 var repository *Neo4jRepository
 
+// cleanupDatabase deletes all nodes and relationships in the database
+func cleanupDatabase(ctx context.Context, repo *Neo4jRepository) error {
+	session := repo.getSession(ctx)
+	defer session.Close(ctx)
+
+	// Delete all relationships first
+	_, err := session.Run(ctx, "MATCH ()-[r]-() DELETE r", nil)
+	if err != nil {
+		return err
+	}
+
+	// Then delete all nodes
+	_, err = session.Run(ctx, "MATCH (n) DELETE n", nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // TestMain initializes the Neo4jRepository before running the tests and closes it afterward.
 func TestMain(m *testing.M) {
 	// Setup: Initialize the Neo4j repository with the config
@@ -28,6 +48,11 @@ func TestMain(m *testing.M) {
 	repository, err = NewNeo4jRepository(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Failed to create Neo4j repository: %v", err)
+	}
+
+	// Clean up the database before running tests
+	if err := cleanupDatabase(ctx, repository); err != nil {
+		log.Printf("Warning: Failed to clean up database before tests: %v", err)
 	}
 
 	// Run the tests

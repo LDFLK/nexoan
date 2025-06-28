@@ -9,11 +9,12 @@ import (
 	"lk/datafoundation/crud-api/db/config"
 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
+	postgres "lk/datafoundation/crud-api/db/repository/postgres"
 )
 
 var server *Server
 
-// TestMain sets up the actual MongoDB and Neo4j repositories before running the tests
+// TestMain sets up the actual MongoDB, Neo4j, and PostgreSQL repositories before running the tests
 func TestMain(m *testing.M) {
 	// Load environment variables for database configurations
 	neo4jConfig := &config.Neo4jConfig{
@@ -26,6 +27,15 @@ func TestMain(m *testing.M) {
 		URI:        os.Getenv("MONGO_URI"),
 		DBName:     os.Getenv("MONGO_DB_NAME"),
 		Collection: os.Getenv("MONGO_COLLECTION"),
+	}
+
+	postgresConfig := &postgres.Config{
+		Host:     os.Getenv("POSTGRES_HOST"),
+		Port:     os.Getenv("POSTGRES_PORT"),
+		User:     os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		DBName:   os.Getenv("POSTGRES_DB"),
+		SSLMode:  os.Getenv("POSTGRES_SSL_MODE"),
 	}
 
 	// Initialize Neo4j repository
@@ -42,10 +52,18 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Failed to initialize MongoDB repository")
 	}
 
+	// Initialize PostgreSQL repository
+	postgresRepo, err := postgres.NewPostgresRepository(*postgresConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize PostgreSQL repository: %v", err)
+	}
+	defer postgresRepo.Close()
+
 	// Create the server with the initialized repositories
 	server = &Server{
-		mongoRepo: mongoRepo,
-		neo4jRepo: neo4jRepo,
+		mongoRepo:    mongoRepo,
+		neo4jRepo:    neo4jRepo,
+		postgresRepo: postgresRepo,
 	}
 
 	// Run the tests
