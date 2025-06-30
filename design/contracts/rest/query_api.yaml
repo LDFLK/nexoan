@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Query API
   version: 1.0.0
@@ -181,30 +181,44 @@ paths:
           schema:
             type: string
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
-              required:
-                - relatedEntityId
-                - startTime
-                - endTime
-                - id
-                - name
               properties:
+                id:
+                  type: string
                 relatedEntityId:
                   type: string
+                name:
+                  type: string
+                activeAt:
+                  type: string
+                  format: date-time
                 startTime:
                   type: string
                   format: date-time
                 endTime:
                   type: string
                   format: date-time
-                id:
-                  type: string
-                name:
-                  type: string
+              oneOf:
+                - required: [activeAt]
+                  not:
+                    anyOf:
+                      - required: [startTime]
+                      - required: [endTime]
+                - required: [startTime]
+                  not:
+                    required: [activeAt]
+                - required: [endTime]
+                  not:
+                    required: [activeAt]
+                - not:
+                    anyOf:
+                      - required: [activeAt]
+                      - required: [startTime]
+                      - required: [endTime]
       responses:
         200:
           description: List of related entities
@@ -215,6 +229,8 @@ paths:
                 items:
                   type: object
                   properties:
+                    id:
+                      type: string
                     relatedEntityId:
                       type: string
                     startTime:
@@ -223,8 +239,6 @@ paths:
                     endTime:
                       type: string
                       format: date-time
-                    id:
-                      type: string
                     name:
                       type: string
 
