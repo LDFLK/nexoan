@@ -264,11 +264,6 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 	return columnTypes, nil
 }
 
-// isInteger checks if a float64 is actually an integer
-func isInteger(val float64) bool {
-	return val == float64(int64(val))
-}
-
 // isDateTime checks if a string is a valid datetime
 func isDateTime(val string) bool {
 	_, err := time.Parse(time.RFC3339, val)
