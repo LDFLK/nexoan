@@ -136,11 +136,12 @@ func (x *TimeBasedValue) GetValue() *anypb.Any {
 
 type Relationship struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	RelatedEntityId string                 `protobuf:"bytes,1,opt,name=relatedEntityId,proto3" json:"relatedEntityId,omitempty"`
-	StartTime       string                 `protobuf:"bytes,2,opt,name=startTime,proto3" json:"startTime,omitempty"`
-	EndTime         string                 `protobuf:"bytes,3,opt,name=endTime,proto3" json:"endTime,omitempty"`
-	Id              string                 `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RelatedEntityId string                 `protobuf:"bytes,2,opt,name=relatedEntityId,proto3" json:"relatedEntityId,omitempty"`
+	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	StartTime       string                 `protobuf:"bytes,4,opt,name=startTime,proto3" json:"startTime,omitempty"`
+	EndTime         string                 `protobuf:"bytes,5,opt,name=endTime,proto3" json:"endTime,omitempty"`
+	Direction       string                 `protobuf:"bytes,6,opt,name=direction,proto3" json:"direction,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -175,9 +176,23 @@ func (*Relationship) Descriptor() ([]byte, []int) {
 	return file_types_v1_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *Relationship) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 func (x *Relationship) GetRelatedEntityId() string {
 	if x != nil {
 		return x.RelatedEntityId
+	}
+	return ""
+}
+
+func (x *Relationship) GetName() string {
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
@@ -196,16 +211,9 @@ func (x *Relationship) GetEndTime() string {
 	return ""
 }
 
-func (x *Relationship) GetId() string {
+func (x *Relationship) GetDirection() string {
 	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Relationship) GetName() string {
-	if x != nil {
-		return x.Name
+		return x.Direction
 	}
 	return ""
 }
@@ -358,9 +366,9 @@ func (x *TimeBasedValueList) GetValues() []*TimeBasedValue {
 // Request message for reading an entity
 type ReadEntityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Entity        *Entity                `protobuf:"bytes,2,opt,name=entity,proto3" json:"entity,omitempty"`
-	Output        []string               `protobuf:"bytes,3,rep,name=output,proto3" json:"output,omitempty"`
+	Entity        *Entity                `protobuf:"bytes,1,opt,name=entity,proto3" json:"entity,omitempty"`
+	Output        []string               `protobuf:"bytes,2,rep,name=output,proto3" json:"output,omitempty"`
+	ActiveAt      string                 `protobuf:"bytes,3,opt,name=activeAt,proto3" json:"activeAt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -395,13 +403,6 @@ func (*ReadEntityRequest) Descriptor() ([]byte, []int) {
 	return file_types_v1_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ReadEntityRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
 func (x *ReadEntityRequest) GetEntity() *Entity {
 	if x != nil {
 		return x.Entity
@@ -414,6 +415,13 @@ func (x *ReadEntityRequest) GetOutput() []string {
 		return x.Output
 	}
 	return nil
+}
+
+func (x *ReadEntityRequest) GetActiveAt() string {
+	if x != nil {
+		return x.ActiveAt
+	}
+	return ""
 }
 
 // Request message for deleting an entity by ID
@@ -607,13 +615,14 @@ const file_types_v1_proto_rawDesc = "" +
 	"\x0eTimeBasedValue\x12\x1c\n" +
 	"\tstartTime\x18\x01 \x01(\tR\tstartTime\x12\x18\n" +
 	"\aendTime\x18\x02 \x01(\tR\aendTime\x12*\n" +
-	"\x05value\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05value\"\x94\x01\n" +
-	"\fRelationship\x12(\n" +
-	"\x0frelatedEntityId\x18\x01 \x01(\tR\x0frelatedEntityId\x12\x1c\n" +
-	"\tstartTime\x18\x02 \x01(\tR\tstartTime\x12\x18\n" +
-	"\aendTime\x18\x03 \x01(\tR\aendTime\x12\x0e\n" +
-	"\x02id\x18\x04 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x05 \x01(\tR\x04name\"\xdb\x04\n" +
+	"\x05value\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x05value\"\xb2\x01\n" +
+	"\fRelationship\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
+	"\x0frelatedEntityId\x18\x02 \x01(\tR\x0frelatedEntityId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1c\n" +
+	"\tstartTime\x18\x04 \x01(\tR\tstartTime\x12\x18\n" +
+	"\aendTime\x18\x05 \x01(\tR\aendTime\x12\x1c\n" +
+	"\tdirection\x18\x06 \x01(\tR\tdirection\"\xdb\x04\n" +
 	"\x06Entity\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1e\n" +
 	"\x04kind\x18\x02 \x01(\v2\n" +
@@ -638,11 +647,11 @@ const file_types_v1_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12(\n" +
 	"\x05value\x18\x02 \x01(\v2\x12.crud.RelationshipR\x05value:\x028\x01\"B\n" +
 	"\x12TimeBasedValueList\x12,\n" +
-	"\x06values\x18\x01 \x03(\v2\x14.crud.TimeBasedValueR\x06values\"a\n" +
-	"\x11ReadEntityRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
-	"\x06entity\x18\x02 \x01(\v2\f.crud.EntityR\x06entity\x12\x16\n" +
-	"\x06output\x18\x03 \x03(\tR\x06output\"\x1a\n" +
+	"\x06values\x18\x01 \x03(\v2\x14.crud.TimeBasedValueR\x06values\"m\n" +
+	"\x11ReadEntityRequest\x12$\n" +
+	"\x06entity\x18\x01 \x01(\v2\f.crud.EntityR\x06entity\x12\x16\n" +
+	"\x06output\x18\x02 \x03(\tR\x06output\x12\x1a\n" +
+	"\bactiveAt\x18\x03 \x01(\tR\bactiveAt\"\x1a\n" +
 	"\bEntityId\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
 	"\x13UpdateEntityRequest\x12\x0e\n" +

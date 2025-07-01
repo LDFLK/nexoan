@@ -48,7 +48,6 @@ paths:
                       type: string
                     minor:
                       type: string
-                      nullable: true
                 name:
                   type: string
                 created:
@@ -79,7 +78,6 @@ paths:
                               type: string
                             minor:
                               type: string
-                              nullable: true
                         name:
                           type: string
                         created:
@@ -168,8 +166,7 @@ paths:
                           nullable: true
                         value:
                           type: string
-                  - type: string
-                    enum: [null]
+                  - type: "null"
 
   /entities/{entityId}/relations:
     post:
@@ -189,36 +186,31 @@ paths:
               properties:
                 id:
                   type: string
+                  description: Optional relation ID filter
                 relatedEntityId:
                   type: string
+                  description: Optional related entity ID filter
                 name:
                   type: string
+                  description: Optional relation name filter
                 activeAt:
                   type: string
                   format: date-time
+                  description: Filter relations active at this specific time
                 startTime:
                   type: string
                   format: date-time
+                  description: Filter relations with start time
                 endTime:
                   type: string
                   format: date-time
-              oneOf:
-                - required: [activeAt]
-                  not:
-                    anyOf:
-                      - required: [startTime]
-                      - required: [endTime]
-                - required: [startTime]
-                  not:
-                    required: [activeAt]
-                - required: [endTime]
-                  not:
-                    required: [activeAt]
-                - not:
-                    anyOf:
-                      - required: [activeAt]
-                      - required: [startTime]
-                      - required: [endTime]
+                  description: Filter relations with end time
+                direction:
+                  type: string
+                  description: Filter by relation direction
+              description: >
+                Filter criteria for relations. Use either activeAt OR startTime/endTime, but not both.
+                If no time filters are provided, all relations will be returned.
       responses:
         200:
           description: List of related entities
@@ -233,14 +225,17 @@ paths:
                       type: string
                     relatedEntityId:
                       type: string
+                    name:
+                      type: string
                     startTime:
                       type: string
                       format: date-time
                     endTime:
                       type: string
                       format: date-time
-                    name:
+                    direction:
                       type: string
+                    
 
   /entities/{entityId}/allrelations:
     post:

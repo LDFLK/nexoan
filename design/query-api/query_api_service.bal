@@ -42,7 +42,7 @@ service /v1 on ep0 {
     # Get entity attribute
     #
     # + return - Attribute value(s) 
-    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime) returns inline_response_200_2|http:NotFound|error {
+    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime) returns record {string 'start?; string end?; string value?;}|record {string 'start?; string end?; string value?;}[]|http:NotFound|error {
         // Create entity filter with specific attribute and time range
         Entity entityFilter = {
             id: entityId,
@@ -102,7 +102,7 @@ service /v1 on ep0 {
                 } else if (tbvList.values.length() == 1) {
                     // Return single value
                     TimeBasedValue tbv = tbvList.values[0];
-                    record {string 'start; string? end; string value;} response = {
+                    record {string 'start?; string end?; string value?;} response = {
                         'start: tbv.startTime,
                         end: tbv.endTime,
                         value: extractValueAsString(tbv.value)
@@ -110,7 +110,7 @@ service /v1 on ep0 {
                     return response;
                 } else {
                     // Return multiple values
-                    record {string 'start; string? end; string value;}[] response = [];
+                    record {string 'start?; string end?; string value?;}[] response = [];
                     foreach var tbv in tbvList.values {
                         response.push({
                             'start: tbv.startTime,
@@ -190,7 +190,7 @@ service /v1 on ep0 {
     # Get all related entity IDs
     #
     # + return - List of all related entities 
-    resource function post entities/[string entityId]/allrelations() returns InlineResponse2003ArrayOk|error {
+    resource function post entities/[string entityId]/allrelations() returns RecordStringrelatedEntityIdStringstartTimeStringendTimeStringidStringnameArrayOk|error {
         // Create entity filter without any relationship filtering criteria
         Entity entityFilter = {
             id: entityId,
@@ -223,18 +223,19 @@ service /v1 on ep0 {
         Entity entity = check ep->ReadEntity(request);
 
         // Process the relationships returned by the backend
-        inline_response_200_3[] relationships = [];
+        record {string id?; string relatedEntityId?; string name?; string startTime?; string endTime?; string direction?;}[] relationships = [];
 
         foreach var relEntry in entity.relationships {
             Relationship rel = relEntry.value;
 
             // Add to our result list
             relationships.push({
+                id: rel.id,
                 relatedEntityId: rel.relatedEntityId,
+                name: rel.name,
                 startTime: rel.startTime,
                 endTime: rel.endTime,
-                id: rel.id,
-                name: rel.name
+                direction: rel.direction
             });
         }
 
@@ -244,7 +245,7 @@ service /v1 on ep0 {
     # Get related entity IDs
     #
     # + return - List of related entities 
-    resource function post entities/[string entityId]/relations(@http:Payload entityId_relations_body payload) returns InlineResponse2003ArrayOk|error {
+    resource function post entities/[string entityId]/relations(@http:Payload entityId_relations_body payload) returns RecordStringidStringrelatedEntityIdStringnameStringstartTimeStringendTimeStringdirectionArrayOk|error {
         // Create entity filter with embedded relationship criteria
         Entity entityFilter = {
             id: entityId,
@@ -266,13 +267,13 @@ service /v1 on ep0 {
             attributes: [],
             relationships: [
                 {
-                    key: payload.id,  // Using id as the key
+                    key: payload.id ?: "",  // Using id as the key
                     value: {
-                        relatedEntityId: payload.relatedEntityId,
-                        startTime: payload.startTime,
-                        endTime: payload.endTime,
-                        id: payload.id,
-                        name: payload.name
+                        relatedEntityId: payload.relatedEntityId ?: "",
+                        startTime: payload.startTime ?: "",
+                        endTime: payload.endTime ?: "",
+                        id: payload.id ?: "",
+                        name: payload.name ?: ""
                     }
                 }
             ]
@@ -281,25 +282,27 @@ service /v1 on ep0 {
         // Create ReadEntityRequest with output field set to relationships only
         ReadEntityRequest request = {
             entity: entityFilter,
-            output: ["relationships"]  // Only request relationships field
+            output: ["relationships"],  // Only request relationships field
+            activeAt: payload.activeAt ?: ""
         };
         
         // Read the entity using the crud service
         Entity entity = check ep->ReadEntity(request);
         
         // Process the relationships returned by the backend
-        inline_response_200_3[] relationships = [];
+        record {string id?; string relatedEntityId?; string name?; string startTime?; string endTime?; string direction?;}[] relationships = [];
         
         foreach var relEntry in entity.relationships {
             Relationship rel = relEntry.value;
             
             // Add to our result list
             relationships.push({
+                id: rel.id,
                 relatedEntityId: rel.relatedEntityId,
+                name: rel.name,
                 startTime: rel.startTime,
                 endTime: rel.endTime,
-                id: rel.id,
-                name: rel.name
+                direction: rel.direction
             });
         }
         
@@ -366,7 +369,7 @@ service /v1 on ep0 {
         }
 
         // Map the result to the expected response format
-        record {string id?; record {string major?; string? minor?;} kind?; string name?; string created?; string? terminated?;}[] response = [];
+        record {string id?; record {string major?; string minor?;} kind?; string name?; string created?; string terminated?;}[] response = [];
         foreach var entity in entityList.entities {
             response.push({
                 id: entity.id,
