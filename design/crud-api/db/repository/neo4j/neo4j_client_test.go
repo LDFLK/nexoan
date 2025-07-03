@@ -656,7 +656,7 @@ func TestReadFilteredRelationships(t *testing.T) {
 	assert.Equal(t, 1, len(rels), "Expected 1 relationship with endTime 2025-05-01T00:00:00Z")
 	assert.Equal(t, "2025-05-01T00:00:00Z", rels[0]["endTime"])
 
-	// // 8. Filter by activeAt (should match rel1 and rel2 if activeAt is between their start/end)
+	// 	// 8. Filter by activeAt (should match rel1 and rel2 if activeAt is between their start/end)
 	activeAt := "2025-05-03T00:00:00Z"
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, activeAt)
 	log.Printf("ReadFilteredRelationships response (only activeAt): %+v", rels)
@@ -672,4 +672,124 @@ func TestReadFilteredRelationships(t *testing.T) {
 	}
 	assert.True(t, foundRel1, "Expected rel1 to be active at 2025-05-03T00:00:00Z")
 	assert.True(t, foundRel3, "Expected rel3 to be active at 2025-05-03T00:00:00Z")
+
+	// 9. Filter by multiple criteria: name AND relatedEntityId
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name":            "FRIEND",
+		"relatedEntityId": "B",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (name AND relatedEntityId): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name AND relatedEntityId")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with name FRIEND and relatedEntityId B")
+	assert.Equal(t, "FRIEND", rels[0]["name"])
+	assert.Equal(t, "B", rels[0]["relatedEntityId"])
+
+	// 10. Filter by name AND direction
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name":      "COLLEAGUE",
+		"direction": "OUTGOING",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (name AND direction): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name AND direction")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with name COLLEAGUE and direction OUTGOING")
+	assert.Equal(t, "COLLEAGUE", rels[0]["name"])
+	assert.Equal(t, "OUTGOING", rels[0]["direction"])
+
+	// 11. Filter by startTime AND endTime (should match rel2)
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"startTime": "2025-04-02T00:00:00Z",
+		"endTime":   "2025-05-01T00:00:00Z",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (startTime AND endTime): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by startTime AND endTime")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with specific startTime and endTime")
+	assert.Equal(t, "rel2", rels[0]["id"])
+
+	// 12. Filter by name AND startTime
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name":      "FRIEND",
+		"startTime": "2025-04-01T00:00:00Z",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (name AND startTime): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name AND startTime")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with name FRIEND and startTime 2025-04-01T00:00:00Z")
+	assert.Equal(t, "rel1", rels[0]["id"])
+
+	// 13. Filter by direction AND activeAt
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"direction": "OUTGOING",
+	}, "2025-04-15T00:00:00Z")
+	log.Printf("ReadFilteredRelationships response (direction AND activeAt): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by direction AND activeAt")
+	for _, r := range rels {
+		assert.Equal(t, "OUTGOING", r["direction"])
+		// Verify that the relationship is active at the specified time
+		startTime := r["startTime"].(string)
+		endTimeVal, hasEndTime := r["endTime"]
+		endTime, isString := endTimeVal.(string)
+		if hasEndTime && isString && endTime != "" {
+			assert.True(t, startTime <= "2025-04-15T00:00:00Z" && "2025-04-15T00:00:00Z" <= endTime,
+				"Relationship should be active at 2025-04-15T00:00:00Z")
+		} else {
+			assert.True(t, startTime <= "2025-04-15T00:00:00Z",
+				"Relationship without endTime should be active if startTime <= activeAt")
+		}
+	}
+
+	// 14. Filter by name AND relatedEntityId AND direction
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name":            "FRIEND",
+		"relatedEntityId": "B",
+		"direction":       "OUTGOING",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (name AND relatedEntityId AND direction): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name AND relatedEntityId AND direction")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with all three filters")
+	assert.Equal(t, "rel1", rels[0]["id"])
+
+	// 15. Test with non-existent filters (should return empty)
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name": "NONEXISTENT",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (non-existent name): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by non-existent name")
+	assert.Equal(t, 0, len(rels), "Expected 0 relationships with non-existent name")
+
+	// 16. Test with non-existent relatedEntityId
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"relatedEntityId": "NONEXISTENT",
+	}, "")
+	log.Printf("ReadFilteredRelationships response (non-existent relatedEntityId): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by non-existent relatedEntityId")
+	assert.Equal(t, 0, len(rels), "Expected 0 relationships with non-existent relatedEntityId")
+
+	// 17. Test activeAt with a time when no relationships are active
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, "2025-06-01T00:00:00Z")
+	log.Printf("ReadFilteredRelationships response (activeAt future): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by activeAt in future")
+	// Should only return relationships without endTime or with endTime > 2025-06-01T00:00:00Z
+	for _, r := range rels {
+		endTimeVal, hasEndTime := r["endTime"]
+		endTime, isString := endTimeVal.(string)
+		if hasEndTime && isString && endTime != "" {
+			assert.True(t, endTime > "2025-06-01T00:00:00Z",
+				"Relationship should be active if endTime is in the future")
+		}
+	}
+
+	// 18. Test activeAt with a time before all relationships started
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, "2025-03-01T00:00:00Z")
+	log.Printf("ReadFilteredRelationships response (activeAt past): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by activeAt in past")
+	assert.Equal(t, 0, len(rels), "Expected 0 relationships active before any started")
+
+	// 19. Test combination of filters with activeAt
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{
+		"name":      "FRIEND",
+		"direction": "OUTGOING",
+	}, "2025-04-15T00:00:00Z")
+	log.Printf("ReadFilteredRelationships response (name AND direction AND activeAt): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name AND direction AND activeAt")
+	assert.Equal(t, 1, len(rels), "Expected 1 FRIEND relationship that is OUTGOING and active at 2025-04-15T00:00:00Z")
+	assert.Equal(t, "rel1", rels[0]["id"])
 }
