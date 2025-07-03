@@ -554,3 +554,122 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 		}
 	}
 }
+
+func TestReadFilteredRelationships(t *testing.T) {
+	ctx := context.Background()
+	kind := &pb.Kind{
+		Major: "Person",
+		Minor: "Tester",
+	}
+
+	// Create two entities
+	entityA := map[string]interface{}{
+		"Id":      "A",
+		"Name":    "EntityA",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	entityB := map[string]interface{}{
+		"Id":      "B",
+		"Name":    "EntityB",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	_, err := repository.CreateGraphEntity(ctx, kind, entityA)
+	assert.Nil(t, err, "Expected no error when creating entity A")
+	_, err = repository.CreateGraphEntity(ctx, kind, entityB)
+	assert.Nil(t, err, "Expected no error when creating entity B")
+
+	// Create relationships
+	rel1 := &pb.Relationship{
+		Id:              "rel1",
+		Name:            "FRIEND",
+		RelatedEntityId: "B",
+		StartTime:       "2025-04-01T00:00:00Z",
+	}
+	rel2 := &pb.Relationship{
+		Id:              "rel2",
+		Name:            "COLLEAGUE",
+		RelatedEntityId: "B",
+		StartTime:       "2025-04-02T00:00:00Z",
+		EndTime:         "2025-05-01T00:00:00Z",
+	}
+	_, err = repository.CreateRelationship(ctx, "A", rel1)
+	assert.Nil(t, err, "Expected no error when creating FRIEND relationship")
+	_, err = repository.CreateRelationship(ctx, "A", rel2)
+	assert.Nil(t, err, "Expected no error when creating COLLEAGUE relationship")
+
+	// Also create an incoming relationship to A from B
+	rel3 := &pb.Relationship{
+		Id:              "rel3",
+		Name:            "MENTOR",
+		RelatedEntityId: "A",
+		StartTime:       "2025-04-03T00:00:00Z",
+	}
+	_, err = repository.CreateRelationship(ctx, "B", rel3)
+	assert.Nil(t, err, "Expected no error when creating MENTOR relationship")
+
+	// 1. No filters (should return all relationships for A)
+	rels, err := repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, "")
+	log.Printf("ReadFilteredRelationships response (no filters): %+v", rels)
+	assert.Nil(t, err, "Expected no error when reading filtered relationships with no filters")
+	assert.GreaterOrEqual(t, len(rels), 2, "Expected at least 2 relationships for entity A with no filters")
+
+	// // 2. Filter by relationship type (name)
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"name": "FRIEND"}, "")
+	log.Printf("ReadFilteredRelationships response (only name): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by name")
+	assert.Equal(t, 1, len(rels), "Expected 1 FRIEND relationship")
+	assert.Equal(t, "FRIEND", rels[0]["name"])
+
+	// // 3. Filter by relatedEntityId
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"relatedEntityId": "B"}, "")
+	log.Printf("ReadFilteredRelationships response (only relatedEntityId): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by relatedEntityId")
+	assert.GreaterOrEqual(t, len(rels), 2, "Expected at least 2 relationships to B")
+
+	// // 4. Filter by direction OUTGOING
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"direction": "OUTGOING"}, "")
+	log.Printf("ReadFilteredRelationships response (only direction: OUTGOING): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by direction OUTGOING")
+	for _, r := range rels {
+		assert.Equal(t, "OUTGOING", r["direction"])
+	}
+
+	// // 5. Filter by direction INCOMING
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"direction": "INCOMING"}, "")
+	log.Printf("ReadFilteredRelationships response (only direction: INCOMING): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by direction INCOMING")
+	for _, r := range rels {
+		assert.Equal(t, "INCOMING", r["direction"])
+	}
+
+	// // 6. Filter by startTime (exact match)
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"startTime": "2025-04-01T00:00:00Z"}, "")
+	log.Printf("ReadFilteredRelationships response (only startTime): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by startTime")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with startTime 2025-04-01T00:00:00Z")
+	assert.Equal(t, "2025-04-01T00:00:00Z", rels[0]["startTime"])
+
+	// // 7. Filter by endTime (exact match)
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"endTime": "2025-05-01T00:00:00Z"}, "")
+	log.Printf("ReadFilteredRelationships response (only endTime): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by endTime")
+	assert.Equal(t, 1, len(rels), "Expected 1 relationship with endTime 2025-05-01T00:00:00Z")
+	assert.Equal(t, "2025-05-01T00:00:00Z", rels[0]["endTime"])
+
+	// // 8. Filter by activeAt (should match rel1 and rel2 if activeAt is between their start/end)
+	activeAt := "2025-05-03T00:00:00Z"
+	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, activeAt)
+	log.Printf("ReadFilteredRelationships response (only activeAt): %+v", rels)
+	assert.Nil(t, err, "Expected no error when filtering by activeAt")
+	var foundRel1, foundRel3 bool
+	for _, r := range rels {
+		if r["id"] == "rel1" {
+			foundRel1 = true
+		}
+		if r["id"] == "rel3" {
+			foundRel3 = true
+		}
+	}
+	assert.True(t, foundRel1, "Expected rel1 to be active at 2025-05-03T00:00:00Z")
+	assert.True(t, foundRel3, "Expected rel3 to be active at 2025-05-03T00:00:00Z")
+}
