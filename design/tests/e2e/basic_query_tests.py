@@ -1039,6 +1039,92 @@ def test_search_by_id_with_other_filters():
     
     print("✅ Search by ID ignored additional filters as expected")
 
+def test_relations_no_filters():
+    """Test /relations endpoint with no filters (should return all relationships for the entity)."""
+    print("\n🔍 Testing /relations with no filters...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    res = requests.post(url, json={})
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert isinstance(body, list), "Response should be a list"
+    assert len(body) >= 3, "Expected at least 3 relationships"
+    print("✅ /relations with no filters:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_name():
+    """Test /relations endpoint filtering by relationship name."""
+    print("\n🔍 Testing /relations with filter by name...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"name": "linked"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["name"] == "linked" for rel in body), "All relationships should have name 'linked'"
+    print("✅ /relations with name filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_related_entity_id():
+    """Test /relations endpoint filtering by relatedEntityId."""
+    print("\n🔍 Testing /relations with filter by relatedEntityId...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"relatedEntityId": RELATED_ID_1}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["relatedEntityId"] == RELATED_ID_1 for rel in body), "All relationships should have the correct relatedEntityId"
+    print("✅ /relations with relatedEntityId filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_start_time():
+    """Test /relations endpoint filtering by startTime."""
+    print("\n🔍 Testing /relations with filter by startTime...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"startTime": "2024-06-01T00:00:00Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["startTime"] == "2024-06-01T00:00:00Z" for rel in body), "All relationships should have the correct startTime"
+    print("✅ /relations with startTime filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_end_time():
+    """Test /relations endpoint filtering by endTime."""
+    print("\n🔍 Testing /relations with filter by endTime...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"endTime": "2024-12-31T23:59:59Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["endTime"] == "2024-12-31T23:59:59Z" for rel in body), "All relationships should have the correct endTime"
+    print("✅ /relations with endTime filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_multiple_fields():
+    """Test /relations endpoint filtering by multiple fields."""
+    print("\n🔍 Testing /relations with multiple filters...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {
+        "name": "linked",
+        "relatedEntityId": RELATED_ID_2,
+        "startTime": "2024-06-01T00:00:00Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert len(body) == 1, "Expected exactly one relationship"
+    rel = body[0]
+    assert rel["name"] == "linked"
+    assert rel["relatedEntityId"] == RELATED_ID_2
+    assert rel["startTime"] == "2024-06-01T00:00:00Z"
+    print("✅ /relations with multiple filters:", json.dumps(body, indent=2))
+
+def test_relations_filter_nonexistent():
+    """Test /relations endpoint with filters that match nothing."""
+    print("\n🔍 Testing /relations with non-existent filter...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"name": "nonexistent"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert isinstance(body, list), "Response should be a list"
+    assert len(body) == 0, "Expected no relationships for non-existent filter"
+    print("✅ /relations with non-existent filter returned empty list.")
+
 if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
 
@@ -1075,6 +1161,15 @@ if __name__ == "__main__":
         test_search_by_active_entities()
         test_search_by_kind_and_terminated()
         test_search_by_name_kind_and_terminated()
+        
+        # Run new relationship filter tests
+        test_relations_no_filters()
+        test_relations_filter_by_name()
+        test_relations_filter_by_related_entity_id()
+        test_relations_filter_by_start_time()
+        test_relations_filter_by_end_time()
+        test_relations_filter_by_multiple_fields()
+        test_relations_filter_nonexistent()
         
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:

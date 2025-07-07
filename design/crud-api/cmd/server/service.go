@@ -101,6 +101,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 
 	// If no output fields specified, return the entity with basic info
 	if len(req.Output) == 0 {
+		log.Printf("Returning entity from ReadEntity: %+v", response)
 		return response, nil
 	}
 
@@ -123,18 +124,30 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 		case "relationships":
 			// Handle relationships based on the input entity
 			if req.Entity != nil {
-				// Call GetFilteredRelationships for each relationship
-				for _, rel := range req.Entity.Relationships {
-					log.Printf("Fetching related entity IDs for entity %s with relationship %s and start time %s", req.Entity.Id, rel.Name, rel.StartTime)
-					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
+				if len(req.Entity.Relationships) == 0 {
+					// No filters provided, fetch all relationships for the entity
+					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, "", "", "", "", "", "", req.ActiveAt)
 					if err != nil {
 						log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
-						continue // Continue with other relationships even if one fails
+					} else {
+						for id, relationship := range filteredRels {
+							response.Relationships[id] = relationship
+						}
 					}
+				} else {
+					// Call GetFilteredRelationships for each relationship
+					for _, rel := range req.Entity.Relationships {
+						log.Printf("Fetching related entity IDs for entity %s with relationship %s and start time %s", req.Entity.Id, rel.Name, rel.StartTime)
+						filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
+						if err != nil {
+							log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
+							continue // Continue with other relationships even if one fails
+						}
 
-					// Add the relationships to the response
-					for id, relationship := range filteredRels {
-						response.Relationships[id] = relationship
+						// Add the relationships to the response
+						for id, relationship := range filteredRels {
+							response.Relationships[id] = relationship
+						}
 					}
 				}
 			} else {
@@ -154,7 +167,6 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			log.Printf("Unknown output field requested: %s", field)
 		}
 	}
-
 	return response, nil
 }
 

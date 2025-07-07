@@ -6,6 +6,7 @@ import ballerina/protobuf.types.'any;
 import ballerina/os;
 import ballerina/lang.'int as langint;
 import ballerina/io;
+import ballerina/protobuf.types.'any as pbAny;
 
 string crudHostname = os:getEnv("CRUD_SERVICE_HOST");
 string queryHostname = os:getEnv("QUERY_SERVICE_HOST");
@@ -271,10 +272,7 @@ service /v1 on ep0 {
             name: {
                 startTime: "",
                 endTime: "",
-                value: {
-                    typeUrl: "type.googleapis.com/google.protobuf.StringValue",
-                    value: ""
-                }
+                value: check pbAny:pack("")
             },
             metadata: [],
             attributes: [],

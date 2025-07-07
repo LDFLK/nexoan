@@ -849,7 +849,6 @@ function testEntityWithSimpleOnlyNodesGraphAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -955,7 +954,6 @@ function testEntityWithSimpleGraphAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1091,7 +1089,6 @@ function testEntityWithMultiGraphAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1262,7 +1259,6 @@ function testEntityWithMixedTypeListAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1354,7 +1350,6 @@ function testEntityWithEmptyListAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1450,7 +1445,6 @@ function testEntityWithMapAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1580,7 +1574,6 @@ function testEntityWithNestedMapAttributes() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1677,7 +1670,6 @@ function testEntityWithEmptyMapValues() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},
@@ -1816,7 +1808,6 @@ function testEntityWithNestedMapValues() returns error? {
     
     // Read entity to verify attributes
     ReadEntityRequest readEntityRequest = {
-        id: testId,
         entity: {
             id: testId,
             kind: {},

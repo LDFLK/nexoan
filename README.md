@@ -105,7 +105,6 @@ Make sure the CRUD server and the API server are running.
 Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
 
 ReadEntityRequest readEntityRequest = {
-    id: entityId,
     entity: {
         id: entityId,
         kind: {},
