@@ -188,61 +188,6 @@ service /v1 on ep0 {
         return {};
     }
 
-    # Get all related entity IDs
-    #
-    # + return - List of all related entities 
-    // resource function post entities/[string entityId]/allrelations() returns RecordStringrelatedEntityIdStringstartTimeStringendTimeStringidStringnameArrayOk|error {
-    //     // Create entity filter without any relationship filtering criteria
-    //     Entity entityFilter = {
-    //         id: entityId,
-    //         kind: {
-    //             major: "",
-    //             minor: ""
-    //         },
-    //         created: "",
-    //         terminated: "",
-    //         name: {
-    //             startTime: "",
-    //             endTime: "",
-    //             value: {
-    //                 typeUrl: "type.googleapis.com/google.protobuf.StringValue",
-    //                 value: ""
-    //             }
-    //         },
-    //         metadata: [],
-    //         attributes: [],
-    //         relationships: []  // No filtering criteria for relationships
-    //     };
-
-    //     // Create ReadEntityRequest with output field set to relationships only
-    //     ReadEntityRequest request = {
-    //         entity: entityFilter,
-    //         output: ["relationships"]  // Only request relationships field
-    //     };
-
-    //     // Read the entity using the crud service
-    //     Entity entity = check ep->ReadEntity(request);
-
-    //     // Process the relationships returned by the backend
-    //     record {string id?; string relatedEntityId?; string name?; string startTime?; string endTime?; string direction?;}[] relationships = [];
-
-    //     foreach var relEntry in entity.relationships {
-    //         Relationship rel = relEntry.value;
-
-    //         // Add to our result list
-    //         relationships.push({
-    //             id: rel.id,
-    //             relatedEntityId: rel.relatedEntityId,
-    //             name: rel.name,
-    //             startTime: rel.startTime,
-    //             endTime: rel.endTime,
-    //             direction: rel.direction
-    //         });
-    //     }
-
-    //     return {body: relationships};
-    // }
-
     # Get related entity IDs
     #
     # + return - List of related entities 

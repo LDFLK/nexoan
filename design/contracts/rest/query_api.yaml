@@ -236,37 +236,3 @@ paths:
                     direction:
                       type: string
                     
-
-  /entities/{entityId}/allrelations:
-    post:
-      summary: Get all related entity IDs
-      description: >
-        Retrieves all related entity IDs for the given entity ID without applying any filters.
-      parameters:
-        - name: entityId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: List of all related entities
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    relatedEntityId:
-                      type: string
-                    startTime:
-                      type: string
-                      format: date-time
-                    endTime:
-                      type: string
-                      format: date-time
-                    id:
-                      type: string
-                    name:
-                      type: string
