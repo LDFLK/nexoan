@@ -25,6 +25,9 @@ message Relationship {
     string endTime = 3;
     string id = 4;
     string name = 5;
+    // TODO: Add relationship metadata
+    // FIXME: https://github.com/LDFLK/nexoan/issues/154
+    // map<string, google.protobuf.Any> metadata = 6; // Metadata as a flexible key-value map
 }
 
 message Entity {

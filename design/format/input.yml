@@ -1,0 +1,688 @@
+# JSON Input Type Specifications for Nexoan
+# This specification defines how different data types should be represented in JSON format
+
+version: "0.1.0"
+description: "Data insertion or querying taken place in the Update API or the Query API requires a certain format when feeding the attributes."
+
+types:
+  scalar:
+    description: "Basic scalar data types"
+    validation_rules:
+      - "string values must be valid UTF-8 encoded text"
+      - "number values must be valid JSON numbers (integers or floating-point)"
+      - "boolean values must be exactly 'true' or 'false'"
+      - "null value must be exactly 'null'"
+      - "scalar values cannot be undefined or empty"
+    examples:
+      - type: "string"
+        example: '"value"'
+      - type: "number"
+        example: "42"
+      - type: "boolean"
+        example: "true"
+      - type: "null"
+        example: "null"
+
+  list:
+    description: "Ordered collection of values"
+    validation_rules:
+      - "must be a valid JSON array"
+      - "all elements must be of valid types (scalar, list, map, tabular, or graph)"
+      - "empty arrays are allowed"
+      - "array elements can be of mixed types"
+    structure:
+      type: "array"
+      items:
+        type: "any"
+    example: "[1, 2, 3, 4]"
+
+  map:
+    description: "Key-value pair collection"
+    validation_rules:
+      - "must be a valid JSON object"
+      - "keys must be valid UTF-8 strings"
+      - "values must be of valid types (scalar, list, map, tabular, or graph)"
+      - "empty objects are allowed"
+      - "duplicate keys are not allowed"
+    structure:
+      type: "object"
+      properties:
+        type: "object"
+        additionalProperties: true
+    example: '{"key1": "value1", "key2": "value2"}'
+
+  tabular:
+    description: "Table-like data structure"
+    validation_rules:
+      - "must contain 'columns' and 'rows' properties"
+      - "columns must be a non-empty array of strings"
+      - "rows must be an array of arrays"
+      - "each row must have the same number of elements as columns"
+      - "row elements must be of valid types (scalar, list, map)"
+      - "column names must be unique"
+    structure:
+      type: "object"
+      properties:
+        columns:
+          type: "array"
+          items:
+            type: "string"
+        rows:
+          type: "array"
+          items:
+            type: "array"
+    example: |
+      {
+        "columns": ["id", "name", "age"],
+        "rows": [
+          [1, "John", 30],
+          [2, "Jane", 25]
+        ]
+      }
+
+  graph:
+    description: "Graph data structure with nodes and edges"
+    validation_rules:
+      - "must contain 'nodes' and 'edges' properties"
+      - "nodes must be a non-empty array of objects"
+      - "each node must have a unique 'id' property"
+      - "node properties must be valid types (scalar, list, map)"
+      - "edges must be an array of objects"
+      - "each edge must reference valid node IDs in 'source' and 'target'"
+      - "edge properties must be valid types (scalar, list, map)"
+      - "self-referential edges are allowed"
+      - "multiple edges between the same nodes are allowed"
+    structure:
+      type: "object"
+      properties:
+        nodes:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              id:
+                type: "string"
+              properties:
+                type: "object"
+        edges:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              source:
+                type: "string"
+              target:
+                type: "string"
+              properties:
+                type: "object"
+    example: |
+      {
+        "nodes": [
+          {"id": "1", "properties": {"name": "Node 1"}},
+          {"id": "2", "properties": {"name": "Node 2"}}
+        ],
+        "edges": [
+          {
+            "source": "1",
+            "target": "2",
+            "properties": {"weight": 1.5}
+          }
+        ]
+      }
+
+  entity:
+    description: "Complete entity representation with temporal attributes and relationships"
+    note: "Entity attributes can contain values that conform to any of the defined types (scalar, list, map, tabular, graph). The actual value format should match the structure of these types when used in attributes."
+    validation_rules:
+      - "Attribute values must conform to one of the defined types (scalar, list, map, tabular, graph)"
+      - "Temporal fields (startTime, endTime) must be valid ISO 8601 timestamps"
+      - "Empty endTime indicates the value is currently active"
+      - "Relationships must reference valid entity IDs"
+      - "Each attribute key must be unique within an entity"
+    structure:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          description: "Unique identifier for the entity"
+        kind:
+          type: "object"
+          properties:
+            major:
+              type: "string"
+              description: "Major category of the entity"
+            minor:
+              type: "string"
+              description: "Minor category or subtype of the entity"
+        created:
+          type: "string"
+          description: "ISO 8601 timestamp of entity creation"
+        terminated:
+          type: "string"
+          description: "ISO 8601 timestamp of entity termination (empty if active)"
+        name:
+          type: "object"
+          properties:
+            startTime:
+              type: "string"
+              description: "ISO 8601 timestamp when name became effective"
+            endTime:
+              type: "string"
+              description: "ISO 8601 timestamp when name ceased to be effective (empty if current)"
+            value:
+              type: "any"
+              description: "The actual name value (packed in protobuf Any format)"
+        metadata:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              key:
+                type: "string"
+                description: "Metadata key"
+              value:
+                type: "any"
+                description: "Metadata value (packed in protobuf Any format)"
+        attributes:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              key:
+                type: "string"
+                description: "Attribute key"
+              value:
+                type: "object"
+                properties:
+                  values:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        startTime:
+                          type: "string"
+                          description: "ISO 8601 timestamp when attribute value became effective"
+                        endTime:
+                          type: "string"
+                          description: "ISO 8601 timestamp when attribute value ceased to be effective (empty if current)"
+                        value:
+                          type: "any"
+                          description: "The actual attribute value (packed in protobuf Any format). Must conform to one of the defined types (scalar, list, map, tabular, graph)"
+        relationships:
+          type: "array"
+          items:
+            type: "object"
+            description: "Array of relationships (structure to be defined based on requirements)"
+    examples:
+      - description: "Entity with scalar attribute"
+        value: |
+          {
+            "id": "entity-123",
+            "kind": {
+              "major": "person",
+              "minor": "employee"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "John Doe"
+            },
+            "metadata": [
+              {
+                "key": "department",
+                "value": "Engineering"
+              }
+            ],
+            "attributes": [
+              {
+                "key": "age",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": 30
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": []
+          }
+      - description: "Entity with list attribute"
+        value: |
+          {
+            "id": "entity-124",
+            "kind": {
+              "major": "person",
+              "minor": "employee"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "Jane Smith"
+            },
+            "attributes": [
+              {
+                "key": "salary_history",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": [50000, 55000, 60000]
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": []
+          }
+      - description: "Entity with map attribute"
+        value: |
+          {
+            "id": "entity-125",
+            "kind": {
+              "major": "person",
+              "minor": "employee"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "Bob Wilson"
+            },
+            "attributes": [
+              {
+                "key": "contact_info",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "email": "bob@example.com",
+                        "phone": "+1234567890",
+                        "address": "123 Main St"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": []
+          }
+      - description: "Entity with tabular attribute"
+        value: |
+          {
+            "id": "entity-126",
+            "kind": {
+              "major": "project",
+              "minor": "development"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "Project Alpha"
+            },
+            "attributes": [
+              {
+                "key": "task_progress",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "columns": ["task_id", "status", "assigned_to", "completion_percentage"],
+                        "rows": [
+                          ["TASK-001", "In Progress", "John Doe", 75],
+                          ["TASK-002", "Completed", "Jane Smith", 100],
+                          ["TASK-003", "Not Started", "Bob Wilson", 0]
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": []
+          }
+      - description: "Entity with graph attribute"
+        value: |
+          {
+            "id": "entity-127",
+            "kind": {
+              "major": "system",
+              "minor": "network"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "Network Topology"
+            },
+            "attributes": [
+              {
+                "key": "network_graph",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "nodes": [
+                          {
+                            "id": "router-1",
+                            "properties": {
+                              "type": "router",
+                              "ip": "192.168.1.1",
+                              "status": "active"
+                            }
+                          },
+                          {
+                            "id": "switch-1",
+                            "properties": {
+                              "type": "switch",
+                              "ports": 24,
+                              "status": "active"
+                            }
+                          },
+                          {
+                            "id": "server-1",
+                            "properties": {
+                              "type": "server",
+                              "ip": "192.168.1.100",
+                              "status": "active"
+                            }
+                          }
+                        ],
+                        "edges": [
+                          {
+                            "source": "router-1",
+                            "target": "switch-1",
+                            "properties": {
+                              "bandwidth": "1Gbps",
+                              "type": "ethernet"
+                            }
+                          },
+                          {
+                            "source": "switch-1",
+                            "target": "server-1",
+                            "properties": {
+                              "bandwidth": "100Mbps",
+                              "type": "ethernet"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": []
+          }
+      - description: "Entity with multiple complex attributes and relationships"
+        value: |
+          {
+            "id": "entity-128",
+            "kind": {
+              "major": "organization",
+              "minor": "company"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "TechCorp Inc."
+            },
+            "metadata": [
+              {
+                "key": "industry",
+                "value": "Technology"
+              },
+              {
+                "key": "founded_year",
+                "value": 2010
+              }
+            ],
+            "attributes": [
+              {
+                "key": "employee_stats",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "columns": ["department", "headcount", "budget", "location"],
+                        "rows": [
+                          ["Engineering", 150, 5000000, "San Francisco"],
+                          ["Sales", 75, 3000000, "New York"],
+                          ["Marketing", 50, 2000000, "London"]
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "org_structure",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "nodes": [
+                          {
+                            "id": "ceo",
+                            "properties": {
+                              "title": "CEO",
+                              "name": "John Smith",
+                              "level": "C-Suite"
+                            }
+                          },
+                          {
+                            "id": "cto",
+                            "properties": {
+                              "title": "CTO",
+                              "name": "Sarah Johnson",
+                              "level": "C-Suite"
+                            }
+                          },
+                          {
+                            "id": "eng_manager",
+                            "properties": {
+                              "title": "Engineering Manager",
+                              "name": "Mike Brown",
+                              "level": "Management"
+                            }
+                          }
+                        ],
+                        "edges": [
+                          {
+                            "source": "ceo",
+                            "target": "cto",
+                            "properties": {
+                              "relationship": "reports_to",
+                              "since": "2020-01-01"
+                            }
+                          },
+                          {
+                            "source": "cto",
+                            "target": "eng_manager",
+                            "properties": {
+                              "relationship": "reports_to",
+                              "since": "2021-06-01"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "financial_metrics",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "revenue": 50000000,
+                        "expenses": {
+                          "rd": 15000000,
+                          "marketing": 10000000,
+                          "operations": 20000000
+                        },
+                        "growth_rate": 0.15
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": [
+              {
+                "target": "entity-129",
+                "type": "subsidiary",
+                "properties": {
+                  "ownership_percentage": 100,
+                  "acquisition_date": "2022-01-01"
+                }
+              },
+              {
+                "target": "entity-130",
+                "type": "partner",
+                "properties": {
+                  "partnership_type": "strategic",
+                  "start_date": "2023-01-01"
+                }
+              }
+            ]
+          }
+      - description: "Entity with nested complex types"
+        value: |
+          {
+            "id": "entity-129",
+            "kind": {
+              "major": "product",
+              "minor": "software"
+            },
+            "created": "2024-01-01T00:00:00Z",
+            "terminated": "",
+            "name": {
+              "startTime": "2024-01-01T00:00:00Z",
+              "endTime": "",
+              "value": "DataPlatform"
+            },
+            "attributes": [
+              {
+                "key": "component_architecture",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "nodes": [
+                          {
+                            "id": "frontend",
+                            "properties": {
+                              "type": "service",
+                              "technologies": ["React", "TypeScript"],
+                              "metrics": {
+                                "response_time": 200,
+                                "error_rate": 0.01
+                              }
+                            }
+                          },
+                          {
+                            "id": "backend",
+                            "properties": {
+                              "type": "service",
+                              "technologies": ["Java", "Spring"],
+                              "metrics": {
+                                "response_time": 150,
+                                "error_rate": 0.005
+                              }
+                            }
+                          },
+                          {
+                            "id": "database",
+                            "properties": {
+                              "type": "storage",
+                              "technologies": ["PostgreSQL"],
+                              "metrics": {
+                                "size_gb": 500,
+                                "query_time": 50
+                              }
+                            }
+                          }
+                        ],
+                        "edges": [
+                          {
+                            "source": "frontend",
+                            "target": "backend",
+                            "properties": {
+                              "protocol": "REST",
+                              "security": "JWT"
+                            }
+                          },
+                          {
+                            "source": "backend",
+                            "target": "database",
+                            "properties": {
+                              "protocol": "JDBC",
+                              "pool_size": 20
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "key": "deployment_history",
+                "value": {
+                  "values": [
+                    {
+                      "startTime": "2024-01-01T00:00:00Z",
+                      "endTime": "",
+                      "value": {
+                        "columns": ["version", "deployment_date", "changes", "status"],
+                        "rows": [
+                          ["1.0.0", "2024-01-01", ["Initial release"], "completed"],
+                          ["1.1.0", "2024-02-01", ["Performance improvements", "Bug fixes"], "completed"],
+                          ["1.2.0", "2024-03-01", ["New features"], "in_progress"]
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "relationships": [
+              {
+                "target": "entity-128",
+                "type": "parent_company",
+                "properties": {
+                  "integration_level": "full",
+                  "since": "2022-01-01"
+                }
+              }
+            ]
+          }
