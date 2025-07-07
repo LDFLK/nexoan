@@ -284,7 +284,8 @@ service /v1 on ep0 {
                         startTime: payload.startTime ?: "",
                         endTime: payload.endTime ?: "",
                         id: payload.id ?: "",
-                        name: payload.name ?: ""
+                        name: payload.name ?: "",
+                        direction: payload.direction ?: ""
                     }
                 }
             ]
