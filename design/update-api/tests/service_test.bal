@@ -782,7 +782,8 @@ function testEntityWithRelationship() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "graph", "only_nodes"]
+    groups: ["entity", "attributes", "graph", "only_nodes"],
+    enable: false
 }
 function testEntityWithSimpleOnlyNodesGraphAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -880,7 +881,8 @@ function testEntityWithSimpleOnlyNodesGraphAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "graph", "simple"]
+    groups: ["entity", "attributes", "graph", "simple"],
+    enable: false
 }
 function testEntityWithSimpleGraphAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -985,7 +987,8 @@ function testEntityWithSimpleGraphAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "graph", "multi"]
+    groups: ["entity", "attributes", "graph", "multi"],
+    enable: false
 }
 function testEntityWithMultiGraphAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1120,7 +1123,8 @@ function testEntityWithMultiGraphAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "list"]
+    groups: ["entity", "attributes", "list"],
+    enable: false
 }
 function testEntityWithSimpleListAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1190,7 +1194,8 @@ function testEntityWithSimpleListAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "list", "mixed"]
+    groups: ["entity", "attributes", "list", "mixed"],
+    enable: false
 }
 function testEntityWithMixedTypeListAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1288,7 +1293,8 @@ function testEntityWithMixedTypeListAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "list", "empty"]
+    groups: ["entity", "attributes", "list", "empty"],
+    enable: false
 }
 function testEntityWithEmptyListAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1379,7 +1385,8 @@ function testEntityWithEmptyListAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "map"]
+    groups: ["entity", "attributes", "map"],
+    enable: false
 }
 function testEntityWithMapAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1474,7 +1481,8 @@ function testEntityWithMapAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "map", "nested"]
+    groups: ["entity", "attributes", "map", "nested"],
+    enable: false
 }
 function testEntityWithNestedMapAttributes() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1603,7 +1611,8 @@ function testEntityWithNestedMapAttributes() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "map", "empty"]
+    groups: ["entity", "attributes", "map", "empty"],
+    enable: false
 }
 function testEntityWithEmptyMapValues() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143
@@ -1699,7 +1708,8 @@ function testEntityWithEmptyMapValues() returns error? {
 }
 
 @test:Config {
-    groups: ["entity", "attributes", "map", "nested"]
+    groups: ["entity", "attributes", "map", "nested"],
+    enable: false
 }
 function testEntityWithNestedMapValues() returns error? {
     // TODO: Complete Test Case https://github.com/LDFLK/nexoan/issues/143

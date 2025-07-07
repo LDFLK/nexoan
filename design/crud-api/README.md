@@ -14,12 +14,11 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 go get google.golang.org/grpc
 go get go.mongodb.org/mongo-driver/mongo
+go get github.com/lib/pq  # PostgreSQL driver
 ```
 
 ## Development
 
-⚠️ **Warning**  
-All the commands here are for the **LINUX** & **macOS**, but they work on the **Windows** too. but for the commands which does not works on the **Windows** We have given the working command by mentioning that. Please look for that.
 
 
 ### Generate Go Code (Developer)
@@ -33,39 +32,7 @@ cp env.template .env
 source .env
 go test -v ./...
 ./crud-service
-```
 
-For windows (make sure you open the **Powershell CLI**)
-```bash
-cd crud-api
-echo .env
-# after updating the required fields to be added to the environment
-# you have to copy and paste the env configurations on the Powershell CLI
-# (you can find the example env configurations here)
-```
-
-Example .env configurations
-```bash
-# For LINUX & macOS
-export MONGO_URI=YOUR_MONOG_URI
-export MONGO_DB_NAME=YOUR_DB_NAME
-export MONGO_COLLECTION=YOUR_COLLECTION
-
-export NEO4J_URI=YOUR_NEO4J_URI
-export NEO4J_USERNAME=YOUR_NEO4J_USERNAME
-export NEO4J_PASSWORD=YOUR_PASSWORD
-export NEO4J_DATABASE=YOUR_DATABASE
-
-# For Windows (edit with your configs and paste on Powershell CLI)
-$env:MONGO_URI="YOUR_URI"
-$env:MONGO_DB_NAME="YOUR_DB_NAME"
-$env:MONGO_COLLECTION="YOUR_COLLECTION"
-
-$env:NEO4J_URI="YOUR_NEO4J_URI"
-$env:NEO4J_USER="YOUR_USERNAME"
-$env:NEO4J_PASSWORD="YOUR_PASSWORD"
-$env:NEO4J_DATABASE="YOUR_DATABASE"
-```
 
 ## Go Module Setup
 
@@ -137,6 +104,11 @@ docker run -d \
   -e NEO4J_USER=${NEO4J_USER} \
   -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
   -e MONGO_URI=${MONGO_URI} \
+  -e POSTGRES_HOST=${POSTGRES_HOST} \
+  -e POSTGRES_PORT=${POSTGRES_PORT} \
+  -e POSTGRES_USER=${POSTGRES_USER} \
+  -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+  -e POSTGRES_DB=${POSTGRES_DB} \
   crud-service
 ```
 
@@ -160,7 +132,9 @@ grpc.reflection.v1alpha.ServerReflection
 
 ### Run Tests: Mode 1 (Independent Environments and Services)
 
-We assume the Mongodb and Neo4j are provided as services or they exist in the same network. 
+We assume the Mongodb, Neo4j, and PostgreSQL are provided as services or they exist in the same network. 
+
+> **Note**: For detailed PostgreSQL testing instructions including coverage reports and specific test selection, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ```bash
 # Build the test image
@@ -173,12 +147,13 @@ docker run --rm \
   -e NEO4J_USER=${NEO4J_USER} \
   -e NEO4J_PASSWORD=${NEO4J_PASSWORD} \
   -e MONGO_URI=${MONGO_URI} \
+  -e POSTGRES_TEST_DB_URI=${POSTGRES_TEST_DB_URI} \
   crud-service-test-v1
 ```
 
 ### Run Tests: Mode 2 (Choreo and CI/CD)
 
-MongoDB and Neo4j are running in the same container. 
+MongoDB, Neo4j, and PostgreSQL are running in the same container. 
 
 ```bash
 docker build -t crud-service-test-standalone -f Dockerfile.test .

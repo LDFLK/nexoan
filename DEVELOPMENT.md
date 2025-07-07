@@ -11,23 +11,31 @@ export MONGO_TESTING_COLLECTION=""
 export NEO4J_TESTING_DB_URI=""
 export NEO4J_TESTING_USERNAME=""
 export NEO4J_TESTING_PASSWORD=""
+
+export POSTGRES_TESTING_HOST=""
+export POSTGRES_TESTING_PORT=""
+export POSTGRES_TESTING_USER=""
+export POSTGRES_TESTING_PASSWORD=""
+export POSTGRES_TESTING_DB=""
 ```
 
 `config.env` or secrets in Github would make up `NEO4J_AUTH=${NEO4J_TESTING_USERNAME}/${NEO4J_TESTING_PASSWORD}`.
 
 In the same terminal or ssh session, do the following;
 
-This will start an instance of the neo4j database server. 
+This will start instances of the MongoDB, Neo4j, and PostgreSQL database servers.
 
-### Start the Neo4j Server
+### Start the Database Servers
 
 ```bash
 docker compose up --build
 ```
 
-Go to `http://localhost:7474/browser/` and you can access the neo4j browser. 
+- MongoDB can be accessed at `mongodb://localhost:27017`
+- Neo4j can be accessed at `http://localhost:7474/browser/` for the web interface or `bolt://localhost:7687` for the bolt protocol
+- PostgreSQL can be accessed at `localhost:5432`
 
-### Shutdown the Neo4j Server
+### Shutdown the Database Servers
 
 ```bash
 docker compose down -v
@@ -69,7 +77,11 @@ MongoDB Service
 
 Neo4j Service 
 
-`docker compose up -d neo4j` 
+`docker compose up -d neo4j`
+
+PostgreSQL Service
+
+`docker compose up -d postgres`
 
 Build CRUD Service
 
