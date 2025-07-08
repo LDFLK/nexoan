@@ -141,7 +141,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 						filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
 						if err != nil {
 							log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
-							continue // Continue with other relationships even if one fails
+							return nil, err
 						}
 
 						// Add the relationships to the response
