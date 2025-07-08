@@ -112,7 +112,7 @@ func (repo *Neo4jRepository) GetGraphRelationships(ctx context.Context, entityId
 }
 
 // GetRelationshipsByName retrieves relationships for an entity by various filters
-func (repo *Neo4jRepository) GetFilteredRelationships(ctx context.Context, entityId string, relationshipId string,relationship string, relatedEntityId string, startTime string, endTime string, direction string, activeAt string) (map[string]*pb.Relationship, error) {
+func (repo *Neo4jRepository) GetFilteredRelationships(ctx context.Context, entityId string, relationshipId string, relationship string, relatedEntityId string, startTime string, endTime string, direction string, activeAt string) (map[string]*pb.Relationship, error) {
 	// Validate input parameters
 	if entityId == "" {
 		return nil, fmt.Errorf("entityId cannot be empty")
@@ -149,15 +149,15 @@ func (repo *Neo4jRepository) GetFilteredRelationships(ctx context.Context, entit
 	// Convert the list of relationships into a map[string]*pb.Relationship
 	relationships := make(map[string]*pb.Relationship)
 	for _, rel := range relationshipData {
-		relID, ok1 := rel["id"].(string)
-		relatedEntityID, ok2 := rel["relatedEntityId"].(string)
-		startTime, ok3 := rel["startTime"].(string)
+		relID, relIDOk := rel["id"].(string)
+		relatedEntityID, relatedEntityIdOk := rel["relatedEntityId"].(string)
+		startTime, startTimeOk := rel["startTime"].(string)
 		endTime, _ := rel["endTime"].(string) // Optional field
-		name, ok4 := rel["name"].(string)
-		direction, ok5 := rel["direction"].(string)
+		name, nameOk := rel["name"].(string)
+		direction, directionOk := rel["direction"].(string)
 
 		// Ensure required fields are present
-		if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
+		if !relIDOk || !relatedEntityIdOk || !startTimeOk || !nameOk || !directionOk {
 			log.Printf("[GetEntityIdsByRelationship] Skipping relationship due to missing required fields: %v", rel)
 			continue
 		}
