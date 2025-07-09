@@ -101,6 +101,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 
 	// If no output fields specified, return the entity with basic info
 	if len(req.Output) == 0 {
+		log.Printf("Returning entity from ReadEntity: %+v", response)
 		return response, nil
 	}
 
@@ -122,38 +123,35 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 
 		case "relationships":
 			// Handle relationships based on the input entity
-			if req.Entity != nil && len(req.Entity.Relationships) > 0 {
-				// Case 1: Validate that all relationships have a Name field
-				for _, rel := range req.Entity.Relationships {
-					if rel.Name == "" {
-						return nil, fmt.Errorf("invalid relationship: all relationships must have a Name field")
-					}
-				}
-
-				// Case 2: Call GetRelationshipsByName for each relationship
-				for _, rel := range req.Entity.Relationships {
-					log.Printf("Fetching related entity IDs for entity %s with relationship %s and start time %s", req.Entity.Id, rel.Name, rel.StartTime)
-					relsByName, err := s.neo4jRepo.GetRelationshipsByName(ctx, req.Entity.Id, rel.Name, rel.StartTime)
+			if req.Entity != nil {
+				if len(req.Entity.Relationships) == 0 {
+					// No filters provided, fetch all relationships for the entity
+					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, "", "", "", "", "", "", req.ActiveAt)
 					if err != nil {
 						log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
-						continue // Continue with other relationships even if one fails
+					} else {
+						for id, relationship := range filteredRels {
+							response.Relationships[id] = relationship
+						}
 					}
+				} else {
+					// Call GetFilteredRelationships for each relationship
+					for _, rel := range req.Entity.Relationships {
+						log.Printf("Fetching related entity IDs for entity %s with relationship %s and start time %s", req.Entity.Id, rel.Name, rel.StartTime)
+						filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
+						if err != nil {
+							log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
+							return nil, err
+						}
 
-					// Add the relationships to the response
-					for id, relationship := range relsByName {
-						response.Relationships[id] = relationship
+						// Add the relationships to the response
+						for id, relationship := range filteredRels {
+							response.Relationships[id] = relationship
+						}
 					}
 				}
 			} else {
-				// Case 3: If no specific relationships requested, get all relationships
-				log.Printf("Fetching all relationships for entity %s", req.Entity.Id)
-				graphRelationships, err := s.neo4jRepo.GetGraphRelationships(ctx, req.Entity.Id)
-				if err != nil {
-					log.Printf("Error fetching relationships for entity %s: %v", req.Entity.Id, err)
-					// Continue with other fields even if relationships fail
-				} else {
-					response.Relationships = graphRelationships
-				}
+				return nil, fmt.Errorf("entity is required to fetch relationships")
 			}
 
 		case "attributes":
@@ -169,7 +167,6 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			log.Printf("Unknown output field requested: %s", field)
 		}
 	}
-
 	return response, nil
 }
 

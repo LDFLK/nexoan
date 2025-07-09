@@ -876,3 +876,181 @@ func (r *Neo4jRepository) FilterEntities(ctx context.Context, kind *pb.Kind, fil
 
 	return entities, nil
 }
+
+// ReadFilteredRelationships retrieves relationships for an entity based on provided filters
+func (r *Neo4jRepository) ReadFilteredRelationships(ctx context.Context, entityID string, relationshipFilters map[string]interface{}, activeAt string) ([]map[string]interface{}, error) {
+	if entityID == "" {
+		return nil, fmt.Errorf("entity Id cannot be empty")
+	}
+
+	session := r.getSession(ctx)
+	defer session.Close(ctx)
+
+	// Build the base query parts
+	var outgoingQuery, incomingQuery string
+	var params map[string]interface{}
+
+	// Initialize parameters with entityID
+	params = map[string]interface{}{
+		"entityID": entityID,
+	}
+
+	// Build outgoing relationships query
+	outgoingQuery = `
+		MATCH (e {Id: $entityID})-[r]->(related)
+		WHERE 1=1
+	`
+
+	// Build incoming relationships query
+	incomingQuery = `
+		MATCH (e {Id: $entityID})<-[r]-(related)
+		WHERE 1=1
+	`
+
+	// Add relationship filters
+	paramIndex := 1
+	if id, ok := relationshipFilters["id"].(string); ok && id != "" {
+		paramName := fmt.Sprintf("id%d", paramIndex)
+		params[paramName] = id
+		outgoingQuery += fmt.Sprintf(` AND r.Id = $%s`, paramName)
+		incomingQuery += fmt.Sprintf(` AND r.Id = $%s`, paramName)
+		paramIndex++
+	}
+	if relatedEntityId, ok := relationshipFilters["relatedEntityId"].(string); ok && relatedEntityId != "" {
+		paramName := fmt.Sprintf("relatedEntityId%d", paramIndex)
+		params[paramName] = relatedEntityId
+		outgoingQuery += fmt.Sprintf(` AND related.Id = $%s`, paramName)
+		incomingQuery += fmt.Sprintf(` AND related.Id = $%s`, paramName)
+		paramIndex++
+	}
+
+	if name, ok := relationshipFilters["name"].(string); ok && name != "" {
+		paramName := fmt.Sprintf("relationshipName%d", paramIndex)
+		params[paramName] = name
+		outgoingQuery += fmt.Sprintf(` AND type(r) = $%s`, paramName)
+		incomingQuery += fmt.Sprintf(` AND type(r) = $%s`, paramName)
+		paramIndex++
+	}
+
+	if startTime, ok := relationshipFilters["startTime"].(string); ok && startTime != "" {
+		paramName := fmt.Sprintf("startTime%d", paramIndex)
+		params[paramName] = startTime
+		outgoingQuery += fmt.Sprintf(` AND r.Created = datetime($%s)`, paramName)
+		incomingQuery += fmt.Sprintf(` AND r.Created = datetime($%s)`, paramName)
+		paramIndex++
+	}
+
+	if endTime, ok := relationshipFilters["endTime"].(string); ok && endTime != "" {
+		paramName := fmt.Sprintf("endTime%d", paramIndex)
+		params[paramName] = endTime
+		outgoingQuery += fmt.Sprintf(` AND r.Terminated = datetime($%s)`, paramName)
+		incomingQuery += fmt.Sprintf(` AND r.Terminated = datetime($%s)`, paramName)
+		paramIndex++
+	}
+
+	// Add activeAt filter if provided
+	if activeAt != "" {
+		paramName := fmt.Sprintf("activeAt%d", paramIndex)
+		params[paramName] = activeAt
+		activeAtCondition := fmt.Sprintf(` AND r.Created <= datetime($%s) AND (r.Terminated IS NULL OR r.Terminated > datetime($%s))`, paramName, paramName)
+		outgoingQuery += activeAtCondition
+		incomingQuery += activeAtCondition
+		paramIndex++
+	}
+
+	// Add return clause
+	outgoingQuery += `
+		RETURN r.Id AS relationshipID, type(r) AS name, related.Id AS relatedEntityId, 
+		       toString(r.Created) AS startTime, 
+		       CASE WHEN r.Terminated IS NOT NULL THEN toString(r.Terminated) ELSE NULL END AS endTime,
+		       "OUTGOING" AS direction
+	`
+
+	incomingQuery += `
+		RETURN r.Id AS relationshipID, type(r) AS name, related.Id AS relatedEntityId, 
+		       toString(r.Created) AS startTime, 
+		       CASE WHEN r.Terminated IS NOT NULL THEN toString(r.Terminated) ELSE NULL END AS endTime,
+		       "INCOMING" AS direction
+	`
+
+	// Determine which queries to run based on direction filter
+	direction, hasDirection := relationshipFilters["direction"].(string)
+	var finalQuery string
+
+	if hasDirection {
+		switch direction {
+		case "OUTGOING":
+			finalQuery = outgoingQuery
+		case "INCOMING":
+			finalQuery = incomingQuery
+		default:
+			// If direction is not recognized, return both
+			finalQuery = outgoingQuery + " UNION " + incomingQuery
+		}
+	} else {
+		// No direction specified, get both outgoing and incoming
+		finalQuery = outgoingQuery + " UNION " + incomingQuery
+	}
+
+	// Execute the query
+	result, err := session.Run(ctx, finalQuery, params)
+	if err != nil {
+		log.Printf("[neo4j_client.ReadFilteredRelationships] error querying relationships: %v", err)
+		return nil, fmt.Errorf("error querying relationships: %v", err)
+	}
+
+	// Process results
+	var relationships []map[string]interface{}
+	for result.Next(ctx) {
+		record := result.Record()
+
+		// Extract fields from the query result
+		relationshipID, _ := record.Get("relationshipID")
+		name, _ := record.Get("name")
+		relatedEntityID, _ := record.Get("relatedEntityId")
+		startTime, _ := record.Get("startTime")
+		endTime, _ := record.Get("endTime")
+		direction, _ := record.Get("direction")
+
+		// Ensure the relationship ID exists
+		if relationshipID == nil {
+			continue
+		}
+
+		// Format datetime fields
+		var formattedStartTime, formattedEndTime string
+		if startTime != nil {
+			if t, ok := startTime.(time.Time); ok {
+				formattedStartTime = t.Format(time.RFC3339)
+			} else {
+				formattedStartTime = fmt.Sprintf("%v", startTime)
+			}
+		}
+		if endTime != nil {
+			if t, ok := endTime.(time.Time); ok {
+				formattedEndTime = t.Format(time.RFC3339)
+			} else {
+				formattedEndTime = fmt.Sprintf("%v", endTime)
+			}
+		}
+
+		// Populate the relationship map
+		relationship := map[string]interface{}{
+			"id":              fmt.Sprintf("%v", relationshipID),
+			"name":            fmt.Sprintf("%v", name),
+			"relatedEntityId": fmt.Sprintf("%v", relatedEntityID),
+			"startTime":       formattedStartTime,
+			"endTime":         formattedEndTime,
+			"direction":       fmt.Sprintf("%v", direction),
+		}
+
+		relationships = append(relationships, relationship)
+	}
+
+	if err := result.Err(); err != nil {
+		log.Printf("[neo4j_client.ReadFilteredRelationships] error iterating over query result: %v", err)
+		return nil, fmt.Errorf("error iterating over query result: %v", err)
+	}
+
+	return relationships, nil
+}

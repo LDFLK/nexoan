@@ -262,174 +262,6 @@ def test_metadata_lookup():
     assert source_value == "unit-test", f"Source value mismatch: {source_value}"
     assert env_value == "test", f"Env value mismatch: {env_value}"
 
-def test_relationship_query():
-    """Test relationship query via POST /relations."""
-    print("\n🔍 Testing relationship filtering...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
-    payload = {
-        "relatedEntityId": RELATED_ID_1,
-        "startTime": "2024-01-01T00:00:00Z",
-        "endTime": "2024-12-31T23:59:59Z",
-        "id": "rel-001",
-        "name": "linked"
-    }
-    res = requests.post(url, json=payload)
-    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
-    
-    body = res.json()
-    # Add relationship response validation
-    assert isinstance(body, list), "Relationship response should be a list"
-    assert len(body) > 0, "Expected at least one relationship"
-    
-    relationship = body[0]
-    assert "relatedEntityId" in relationship, "Relationship should have relatedEntityId"
-    assert relationship["relatedEntityId"] == RELATED_ID_1, "Related entity ID mismatch"
-    assert relationship["name"] == "linked", "Relationship name mismatch"
-    assert relationship["id"] == "rel-001", "Relationship ID mismatch"
-    print("✅ Relationship response:", json.dumps(res.json(), indent=2))
-
-def test_relationship_query_associated():
-    """Test relationship query for 'associated' relationships with a specific start time."""
-    print("\n🔍 Testing relationship filtering for 'associated' relationships...")
-    
-    # Define the API endpoint and payload
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
-    payload = {
-        "relatedEntityId": "",
-        "startTime": "2024-02-01T00:00:00Z",  # Start time filter
-        "endTime": "",
-        "id": "",
-        "name": "associated"  # Relationship name filter
-    }
-    
-    # Send the POST request
-    res = requests.post(url, json=payload)
-    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
-    
-    # Parse the response
-    body = res.json()
-    assert isinstance(body, list), "Relationship response should be a list"
-    assert len(body) == 1, f"Expected exactly one relationship, got {len(body)}"
-    
-    # Validate the returned relationship
-    relationship = body[0]
-    assert "relatedEntityId" in relationship, "Relationship should have relatedEntityId"
-    assert relationship["relatedEntityId"] == RELATED_ID_3, "Related entity ID mismatch"
-    assert relationship["name"] == "associated", "Relationship name mismatch"
-    assert relationship["startTime"] == "2024-01-01T00:00:00Z", "Start time mismatch"
-    assert relationship["id"] == "rel-003", "Relationship ID mismatch"
-    
-    print("✅ Relationship response for 'associated':", json.dumps(body, indent=2))
-
-def test_relationship_query_linked():
-    """Test relationship query for 'linked' relationships with a specific start time."""
-    print("\n🔍 Testing relationship filtering for 'linked' relationships...")
-    
-    # Define the API endpoint and payload
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
-    payload = {
-        "relatedEntityId": "",
-        "startTime": "2024-02-01T00:00:00Z",  # Start time filter
-        "endTime": "",
-        "id": "",
-        "name": "linked"  # Relationship name filter
-    }
-    
-    # Send the POST request
-    res = requests.post(url, json=payload)
-    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
-    
-    # Parse the response
-    body = res.json()
-    assert isinstance(body, list), "Relationship response should be a list"
-    assert len(body) == 1, f"Expected exactly one relationship, got {len(body)}"
-    
-    # Validate the returned relationship
-    relationship = body[0]
-    assert "relatedEntityId" in relationship, "Relationship should have relatedEntityId"
-    assert relationship["relatedEntityId"] == RELATED_ID_1, "Related entity ID mismatch"
-    assert relationship["name"] == "linked", "Relationship name mismatch"
-    assert relationship["startTime"] == "2024-01-01T00:00:00Z", "Start time mismatch"
-    assert relationship["id"] == "rel-001", "Relationship ID mismatch"
-    
-    print("✅ Relationship response for 'linked':", json.dumps(body, indent=2))
-
-def test_allrelationships_query():
-    """Test relationship query without a payload to retrieve all relationships."""
-    print("\n🔍 Testing relationship retrieval without a payload...")
-    
-    # Define the API endpoint
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/allrelations"
-    
-    # Send the POST request without a payload
-    res = requests.post(url)
-    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
-    
-    # Parse the response
-    body = res.json()
-    assert isinstance(body, list), "Relationship response should be a list"
-    assert len(body) == 3, f"Expected exactly 3 relationships, got {len(body)}"
-    
-    # Expected relationships for validation
-    expected_relationships = [
-        {
-            "relatedEntityId": RELATED_ID_1,
-            "name": "linked",
-            "id": "rel-001",
-            "startTime": "2024-01-01T00:00:00Z",
-            "endTime": "2024-12-31T23:59:59Z"
-        },
-        {
-            "relatedEntityId": RELATED_ID_2,
-            "name": "linked",
-            "id": "rel-002",
-            "startTime": "2024-06-01T00:00:00Z",
-            "endTime": "2024-12-31T23:59:59Z"
-        },
-        {
-            "relatedEntityId": RELATED_ID_3,
-            "name": "associated",
-            "id": "rel-003",
-            "startTime": "2024-01-01T00:00:00Z",
-            "endTime": "2024-12-31T23:59:59Z"
-        }
-    ]
-    
-    # Validate all relationships
-    for expected in expected_relationships:
-        matching_relationships = [
-            rel for rel in body if rel["id"] == expected["id"]
-        ]
-        assert len(matching_relationships) == 1, f"Expected exactly one match for relationship ID {expected['id']}"
-        relationship = matching_relationships[0]
-        assert relationship["relatedEntityId"] == expected["relatedEntityId"], f"Related entity ID mismatch for {expected['id']}"
-        assert relationship["name"] == expected["name"], f"Relationship name mismatch for {expected['id']}"
-        assert relationship["id"] == expected["id"], f"Relationship ID mismatch for {expected['id']}"
-        assert relationship["startTime"] == expected["startTime"], f"Start time mismatch for {expected['id']}"
-        assert relationship["endTime"] == expected["endTime"], f"End time mismatch for {expected['id']}"
-    
-    print("✅ All relationships retrieved successfully without a payload.")
-
-# def test_entity_search():
-#     """Test search by entity ID."""
-#     print("\n🔍 Testing entity search...")
-#     url = f"{QUERY_API_URL}/search"
-#     payload = {
-#         "id": ENTITY_ID,
-#         "created": "",
-#         "terminated": ""
-#     }
-#     res = requests.post(url, json=payload)
-#     assert res.status_code == 200, f"Search failed: {res.text}"
-    
-#     body = res.json()
-#     # Add search response validation
-#     ## FIXME: Make sure to implement the entities/search and update this test case
-#     assert isinstance(body, dict), "Search response should be a dictionary"
-#     assert "body" in body, "Search response should have a 'body' field"
-#     assert isinstance(body["body"], list), "Search response body should be a list"
-#     assert len(body["body"]) == 0, "Expected an empty list in search response"
-
 def create_government_entities():
     """Create government organizational hierarchy for search tests."""
     print("\n🟢 Creating government organizational hierarchy...")
@@ -1039,6 +871,247 @@ def test_search_by_id_with_other_filters():
     
     print("✅ Search by ID ignored additional filters as expected")
 
+def test_relations_no_filters():
+    """Test /relations endpoint with no filters (should return all relationships for the entity)."""
+    print("\n🔍 Testing /relations with no filters...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    res = requests.post(url, json={})
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert isinstance(body, list), "Response should be a list"
+    assert len(body) >= 3, "Expected at least 3 relationships"
+    print("✅ /relations with no filters:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_name():
+    """Test /relations endpoint filtering by relationship name."""
+    print("\n🔍 Testing /relations with filter by name...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"name": "linked"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["name"] == "linked" for rel in body), "All relationships should have name 'linked'"
+    print("✅ /relations with name filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_related_entity_id():
+    """Test /relations endpoint filtering by relatedEntityId."""
+    print("\n🔍 Testing /relations with filter by relatedEntityId...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"relatedEntityId": RELATED_ID_1}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["relatedEntityId"] == RELATED_ID_1 for rel in body), "All relationships should have the correct relatedEntityId"
+    print("✅ /relations with relatedEntityId filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_start_time():
+    """Test /relations endpoint filtering by startTime."""
+    print("\n🔍 Testing /relations with filter by startTime...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"startTime": "2024-06-01T00:00:00Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["startTime"] == "2024-06-01T00:00:00Z" for rel in body), "All relationships should have the correct startTime"
+    print("✅ /relations with startTime filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_end_time():
+    """Test /relations endpoint filtering by endTime."""
+    print("\n🔍 Testing /relations with filter by endTime...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"endTime": "2024-12-31T23:59:59Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["endTime"] == "2024-12-31T23:59:59Z" for rel in body), "All relationships should have the correct endTime"
+    print("✅ /relations with endTime filter:", json.dumps(body, indent=2))
+
+def test_relations_filter_by_multiple_fields():
+    """Test /relations endpoint filtering by multiple fields."""
+    print("\n🔍 Testing /relations with multiple filters...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {
+        "name": "linked",
+        "relatedEntityId": RELATED_ID_2,
+        "startTime": "2024-06-01T00:00:00Z"
+    }
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert len(body) == 1, "Expected exactly one relationship"
+    rel = body[0]
+    assert rel["name"] == "linked"
+    assert rel["relatedEntityId"] == RELATED_ID_2
+    assert rel["startTime"] == "2024-06-01T00:00:00Z"
+    print("✅ /relations with multiple filters:", json.dumps(body, indent=2))
+
+def test_relations_filter_nonexistent():
+    """Test /relations endpoint with filters that match nothing."""
+    print("\n🔍 Testing /relations with non-existent filter...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"name": "nonexistent"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert isinstance(body, list), "Response should be a list"
+    assert len(body) == 0, "Expected no relationships for non-existent filter"
+    print("✅ /relations with non-existent filter returned empty list.")
+
+def test_relations_filter_by_active_at():
+    """Test /relations endpoint filtering by activeAt only."""
+    print("\n🔍 Testing /relations with filter by activeAt...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return relationships active at this time
+    assert isinstance(body, list), "Response should be a list"
+    assert any(rel["id"] == "rel-001" for rel in body), "Expected rel-001 to be active at 2024-07-01T00:00:00Z"
+    assert any(rel["id"] == "rel-002" for rel in body), "Expected rel-002 to be active at 2024-07-01T00:00:00Z"
+    assert any(rel["id"] == "rel-003" for rel in body), "Expected rel-003 to be active at 2024-07-01T00:00:00Z"
+    print("✅ /relations with activeAt filter:", json.dumps(body, indent=2))
+
+
+def test_relations_filter_by_active_at_and_name():
+    """Test /relations endpoint filtering by activeAt and name."""
+    print("\n🔍 Testing /relations with filter by activeAt and name...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "name": "linked"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["name"] == "linked" for rel in body), "All relationships should have name 'linked'"
+    assert any(rel["id"] == "rel-001" for rel in body), "Expected rel-001 to be present"
+    assert any(rel["id"] == "rel-002" for rel in body), "Expected rel-002 to be present"
+    print("✅ /relations with activeAt and name filter:", json.dumps(body, indent=2))
+
+
+def test_relations_filter_by_active_at_and_related_entity_id():
+    """Test /relations endpoint filtering by activeAt and relatedEntityId."""
+    print("\n🔍 Testing /relations with filter by activeAt and relatedEntityId...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "relatedEntityId": RELATED_ID_1}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["relatedEntityId"] == RELATED_ID_1 for rel in body), "All relationships should have the correct relatedEntityId"
+    assert any(rel["id"] == "rel-001" for rel in body), "Expected rel-001 to be present"
+    print("✅ /relations with activeAt and relatedEntityId filter:", json.dumps(body, indent=2))
+
+
+def test_relations_filter_by_active_at_and_direction():
+    """Test /relations endpoint filtering by activeAt and direction."""
+    print("\n🔍 Testing /relations with filter by activeAt and direction...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["direction"] == "OUTGOING" for rel in body), "All relationships should have direction 'OUTGOING'"
+    print("✅ /relations with activeAt and direction filter:", json.dumps(body, indent=2))
+
+
+def test_relations_filter_by_active_at_and_name_and_direction():
+    """Test /relations endpoint filtering by activeAt, name, and direction."""
+    print("\n🔍 Testing /relations with filter by activeAt, name, and direction...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "name": "linked", "direction": "OUTGOING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    assert all(rel["name"] == "linked" for rel in body), "All relationships should have name 'linked'"
+    assert all(rel["direction"] == "OUTGOING" for rel in body), "All relationships should have direction 'OUTGOING'"
+    print("✅ /relations with activeAt, name, and direction filter:", json.dumps(body, indent=2))
+
+
+def test_relations_filter_by_active_at_and_time_range_invalid():
+    """Test /relations endpoint with activeAt and startTime (should return 400)."""
+    print("\n🔍 Testing /relations with activeAt and startTime (should fail)...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "startTime": "2024-01-01T00:00:00Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 400, f"Expected 400 Bad Request, got {res.status_code}: {res.text}"
+    body = res.json()
+    assert "error" in body, "Error message should be present in 400 response"
+    print("✅ /relations with activeAt and startTime correctly failed:", json.dumps(body, indent=2))
+
+def test_gov_relations_filter_by_active_at_and_direction():
+    """Test /relations endpoint for government entity with activeAt and direction OUTGOING."""
+    print("\n🔍 Testing /relations for government entity with activeAt and direction OUTGOING...")
+    url = f"{QUERY_API_URL}/{GOVERNMENT_ID}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return has_minister relationships
+    assert all(rel["direction"] == "OUTGOING" for rel in body), "All relationships should be OUTGOING"
+    assert all(rel["name"] == "has_minister" for rel in body), "All relationships should be has_minister"
+    assert any(rel["relatedEntityId"] == MINISTER_ID_1 for rel in body), "Should include MINISTER_ID_1"
+    assert any(rel["relatedEntityId"] == MINISTER_ID_2 for rel in body), "Should include MINISTER_ID_2"
+    print("✅ Government OUTGOING has_minister relationships:", json.dumps(body, indent=2))
+
+def test_minister_relations_filter_by_active_at_and_direction():
+    """Test /relations endpoint for minister entity with activeAt and direction OUTGOING."""
+    print("\n🔍 Testing /relations for minister entity with activeAt and direction OUTGOING...")
+    url = f"{QUERY_API_URL}/{MINISTER_ID_1}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return has_department relationships
+    print("✅ Minister OUTGOING has_department relationships:", json.dumps(body, indent=2))
+    assert all(rel["direction"] == "OUTGOING" for rel in body), "All relationships should be OUTGOING"
+    assert all(rel["name"] == "has_department" for rel in body), "All relationships should be has_department"
+    assert any(rel["relatedEntityId"] == DEPT_ID_1 for rel in body), "Should include DEPT_ID_1"
+    assert any(rel["relatedEntityId"] == DEPT_ID_2 for rel in body), "Should include DEPT_ID_2"
+    print("✅ Minister OUTGOING has_department relationships:", json.dumps(body, indent=2))
+
+    print("\n🔍 Testing /relations for minister entity with activeAt and direction INCOMING...")
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "INCOMING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return has_minister relationship from government
+    assert all(rel["direction"] == "INCOMING" for rel in body), "All relationships should be INCOMING"
+    assert all(rel["name"] == "has_minister" for rel in body), "All relationships should be has_minister"
+    assert any(rel["relatedEntityId"] == GOVERNMENT_ID for rel in body), "Should include GOVERNMENT_ID as relatedEntityId"
+    print("✅ Minister INCOMING has_minister relationship:", json.dumps(body, indent=2))
+
+
+def test_department_relations_filter_by_active_at_and_direction():
+    """Test /relations endpoint for department entity with activeAt and direction INCOMING."""
+    print("\n🔍 Testing /relations for department entity with activeAt and direction INCOMING...")
+    url = f"{QUERY_API_URL}/{DEPT_ID_1}/relations"
+    payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "INCOMING"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return has_department relationship from minister
+    assert all(rel["direction"] == "INCOMING" for rel in body), "All relationships should be INCOMING"
+    assert all(rel["name"] == "has_department" for rel in body), "All relationships should be has_department"
+    assert any(rel["relatedEntityId"] == MINISTER_ID_1 for rel in body), "Should include MINISTER_ID_1 as relatedEntityId"
+    print("✅ Department INCOMING has_department relationship:", json.dumps(body, indent=2))
+
+def test_minister_relations_filter_by_active_at_only():
+    """Test /relations endpoint for minister entity with only activeAt (2024-01-02)."""
+    print("\n🔍 Testing /relations for minister entity with only activeAt...")
+    url = f"{QUERY_API_URL}/{MINISTER_ID_1}/relations"
+    payload = {"activeAt": "2024-01-02T00:00:00Z"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    # Should return both outgoing has_department and incoming has_minister relationships
+    directions = set(rel["direction"] for rel in body)
+    names = set(rel["name"] for rel in body)
+    related_ids = set(rel["relatedEntityId"] for rel in body)
+    print("✅ Minister relationships with only activeAt:", json.dumps(body, indent=2))
+    assert "OUTGOING" in directions, "Should include OUTGOING relationships"
+    assert "INCOMING" in directions, "Should include INCOMING relationships"
+    assert "has_department" in names, "Should include has_department relationships"
+    assert "has_minister" in names, "Should include has_minister relationships"
+    assert MINISTER_ID_1 in related_ids or DEPT_ID_1 in related_ids or DEPT_ID_2 in related_ids or GOVERNMENT_ID in related_ids, "Should include expected related entity IDs"
+
 if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
 
@@ -1046,10 +1119,6 @@ if __name__ == "__main__":
         create_entity_for_query()
         test_attribute_lookup()
         test_metadata_lookup()
-        test_relationship_query()
-        test_relationship_query_associated()
-        test_relationship_query_linked()
-        test_allrelationships_query()
         
         # Run government organization search tests
         create_government_entities()
@@ -1075,6 +1144,25 @@ if __name__ == "__main__":
         test_search_by_active_entities()
         test_search_by_kind_and_terminated()
         test_search_by_name_kind_and_terminated()
+        
+        # Run relationship filter tests
+        test_relations_no_filters()
+        test_relations_filter_by_name()
+        test_relations_filter_by_related_entity_id()
+        test_relations_filter_by_start_time()
+        test_relations_filter_by_end_time()
+        test_relations_filter_by_multiple_fields()
+        test_relations_filter_nonexistent()
+        test_relations_filter_by_active_at()
+        test_relations_filter_by_active_at_and_name()
+        test_relations_filter_by_active_at_and_related_entity_id()
+        test_relations_filter_by_active_at_and_direction()
+        test_relations_filter_by_active_at_and_name_and_direction()
+        test_relations_filter_by_active_at_and_time_range_invalid()
+        test_gov_relations_filter_by_active_at_and_direction()
+        test_minister_relations_filter_by_active_at_and_direction()
+        test_department_relations_filter_by_active_at_and_direction()
+        test_minister_relations_filter_by_active_at_only()
         
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:

@@ -17,41 +17,46 @@ public type EntitiesEntityIdMetadataResponse record {
 
 public type entitiessearch_kind record {
     string major?;
-    string? minor?;
+    string minor?;
 };
+
+public type RecordStringidStringrelatedEntityIdStringnameStringstartTimeStringendTimeStringdirectionArrayOk record {|
+    *http:Ok;
+    record {string id?; string relatedEntityId?; string name?; string startTime?; string endTime?; string direction?;}[] body;
+|};
 
 public type InlineResponse2001Ok record {|
     *http:Ok;
     inline_response_200_1 body;
 |};
 
+public type RecordStringrelatedEntityIdStringstartTimeStringendTimeStringidStringnameArrayOk record {|
+    *http:Ok;
+    record {string relatedEntityId?; string startTime?; string endTime?; string id?; string name?;}[] body;
+|};
+
 public type inline_response_200_1 record {
-    record {string id?; record {string major?; string? minor?;} kind?; string name?; string created?; string? terminated?;}[] body?;
+    record {string id?; record {string major?; string minor?;} kind?; string name?; string created?; string terminated?;}[] body?;
 };
- 
+
 public type inline_response_200 record {
     string[] body?;
 };
 
-public type inline_response_200_2 record {string 'start?; string? end?; string value?;}|record {string 'start?; string? end?; string value?;}[]|string?;
-
-public type inline_response_200_3 record {
-    string relatedEntityId?;
-    string startTime?;
-    string endTime?;
-    string id?;
-    string name?;
-};
-
-public type InlineResponse2003ArrayOk record {|
-    *http:Ok;
-    inline_response_200_3[] body;
-|};
-
+# Filter criteria for relations. Use either activeAt OR startTime/endTime, but not both. If no time filters are provided, all relations will be returned.
 public type entityId_relations_body record {
-    string relatedEntityId;
-    string startTime;
-    string endTime;
-    string id;
-    string name;
+    # Optional relation ID filter
+    string id?;
+    # Optional related entity ID filter
+    string relatedEntityId?;
+    # Optional relation name filter
+    string name?;
+    # Filter relations active at this specific time
+    string activeAt?;
+    # Filter relations with start time
+    string startTime?;
+    # Filter relations with end time
+    string endTime?;
+    # Filter by relation direction
+    string direction?;
 };

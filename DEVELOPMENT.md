@@ -88,3 +88,35 @@ Build CRUD Service
 `docker compose build crud` 
 
 And to up it `docker compose up crud`
+
+### Using crud api services via ballerina
+
+When using any crud services such as ReadEntity, UpdateEntity etc via ballerina (for example in the query api or update api layer) pay special attention to the name field in Entity objects.
+
+The name field is a TimeBasedValue of the following structure:
+message TimeBasedValue {
+    string startTime = 1;
+    string endTime = 2;
+    google.protobuf.Any value = 3; // Storing any type of value
+}
+
+Note that when creating the Entity, if you don't pass the name field, the "Any" value inside will default to a null value. This will cause Ballerina to throw an error as it can't handle null values in this context. Thus, always ensure that when passing an empty name field you must include the field with an empty string for the value part.
+
+For example, this will throw an error as the name field is not present:
+
+Entity relFilterName = {
+        id: entityId,
+        relationships: [{key: "", value: {name: "linked"}}]
+    };
+
+But this will not throw an error as though the name is empty, the field itself is still present:
+
+Entity relFilterName = {
+        id: entityId,
+        name: {
+            value: check pbAny:pack("")
+        },
+        relationships: [{key: "", value: {name: "linked"}}]
+    };
+
+* Note this doesn't apply to other fields. If you don't want to include a field's value, you don't need to pass the field at all. 
