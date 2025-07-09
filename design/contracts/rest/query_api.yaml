@@ -3,7 +3,7 @@ info:
   title: Query API
   version: 1.0.0
 servers:
-  - url: https://api.opendata.com/v1
+  - url: http://localhost:8081/v1/entities
     description: Production server
 paths:
   /entities/root:
