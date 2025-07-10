@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"lk/datafoundation/crud-api/pkg/schema"
+
 	_ "github.com/lib/pq"
 )
 
@@ -209,4 +211,19 @@ func (r *PostgresRepository) InsertTabularData(ctx context.Context, tableName st
 	}
 
 	return nil
+}
+
+// GetData retrieves data from a table with optional filters.
+func (r *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+	return GetData(ctx, r, tableName, filters)
+}
+
+// GetTableList retrieves a list of attribute tables for a given entity ID.
+func (r *PostgresRepository) GetTableList(ctx context.Context, entityID string) ([]string, error) {
+	return GetTableList(ctx, r, entityID)
+}
+
+// GetSchemaOfTable retrieves the schema for a given attribute table.
+func (r *PostgresRepository) GetSchemaOfTable(ctx context.Context, tableName string) (*schema.SchemaInfo, error) {
+	return GetSchemaOfTable(ctx, r, tableName)
 }

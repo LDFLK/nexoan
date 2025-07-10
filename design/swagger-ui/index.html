@@ -1,107 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Nexoan API Documentation</title>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css"
+    />
     <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        #swagger-ui {
-            max-width: 1460px;
-            margin: 0 auto;
-        }
-        .swagger-ui .topbar {
-            display: none;
-        }
-        #error-message {
-            color: red;
-            text-align: center;
-            margin: 20px;
-            display: none;
-        }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #swagger-ui {
+        max-width: 1460px;
+        margin: 0 auto;
+      }
+      .swagger-ui .topbar {
+        display: none;
+      }
+      #error-message {
+        color: red;
+        text-align: center;
+        margin: 20px;
+        display: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="error-message"></div>
     <div id="swagger-ui"></div>
+
     <script>
-        window.onload = function() {
-            const errorDiv = document.getElementById('error-message');
-            
-            // Function to show error message
-            function showError(message) {
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
+      window.onload = function () {
+        const errorDiv = document.getElementById("error-message");
+
+        function showError(message) {
+          errorDiv.textContent = message;
+          errorDiv.style.display = "block";
+        }
+
+        async function loadYamlFile(url) {
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(
+                `Failed to load ${url}: ${response.status} ${response.statusText}`
+              );
             }
+            const yamlText = await response.text();
+            return jsyaml.load(yamlText); // Convert YAML to JS object
+          } catch (error) {
+            showError(`Error loading ${url}: ${error.message}`);
+            throw error;
+          }
+        }
 
-            // Function to load YAML file
-            async function loadYamlFile(url) {
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
-                    }
-                    return await response.text();
-                } catch (error) {
-                    showError(`Error loading ${url}: ${error.message}`);
-                    throw error;
-                }
-            }
+        let specs = {};
 
-            // Load both YAML files and initialize Swagger UI
-            Promise.all([
-                loadYamlFile('/contracts/rest/query_api.yaml'),
-                loadYamlFile('/contracts/rest/update_api.yaml')
-            ]).then(([queryYaml, updateYaml]) => {
-                const ui = SwaggerUIBundle({
-                    spec: queryYaml,  // Start with Query API
-                    dom_id: '#swagger-ui',
-                    deepLinking: true,
-                    presets: [
-                        SwaggerUIBundle.presets.apis,
-                        SwaggerUIBundle.SwaggerUIStandalonePreset
-                    ],
-                    plugins: [
-                        SwaggerUIBundle.plugins.DownloadUrl
-                    ],
-                    layout: "BaseLayout",
-                    onComplete: function() {
-                        console.log('Swagger UI loaded successfully');
-                    }
-                });
+        Promise.all([
+          loadYamlFile("/contracts/rest/query_api.yaml"),
+          loadYamlFile("/contracts/rest/update_api.yaml"),
+        ])
+          .then(([queryYaml, updateYaml]) => {
+            specs = {
+              query: queryYaml,
+              update: updateYaml,
+            };
 
-                // Add API selector
-                const select = document.createElement('select');
-                select.style.margin = '20px';
-                select.style.padding = '5px';
-                select.style.position = 'absolute';
-                select.style.right = '20px';
-                select.style.top = '20px';
-
-                const queryOption = document.createElement('option');
-                queryOption.value = queryYaml;
-                queryOption.text = 'Query API';
-                select.appendChild(queryOption);
-
-                const updateOption = document.createElement('option');
-                updateOption.value = updateYaml;
-                updateOption.text = 'Update API';
-                select.appendChild(updateOption);
-
-                select.onchange = function() {
-                    ui.specActions.updateSpec(this.value);
-                };
-
-                document.body.insertBefore(select, document.getElementById('swagger-ui'));
-                window.ui = ui;
-            }).catch(error => {
-                console.error('Failed to load API definitions:', error);
+            // Initialize UI with default spec (now update API)
+            let ui = SwaggerUIBundle({
+              spec: specs.update, // changed from specs.query
+              dom_id: "#swagger-ui",
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset,
+              ],
+              plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+              layout: "BaseLayout",
             });
-        };
+
+            // Dropdown for switching APIs
+            const select = document.createElement("select");
+            select.style.margin = "20px";
+            select.style.padding = "5px";
+            select.style.position = "absolute";
+            select.style.right = "20px";
+            select.style.top = "20px";
+
+            const updateOption = document.createElement("option");
+            updateOption.value = "update";
+            updateOption.text = "Update API";
+            updateOption.selected = true;
+            select.appendChild(updateOption);
+
+            const queryOption = document.createElement("option");
+            queryOption.value = "query";
+            queryOption.text = "Query API";
+            select.appendChild(queryOption);
+
+            select.onchange = function () {
+              const selectedSpec = specs[this.value];
+              document.getElementById("swagger-ui").innerHTML = "";
+
+              // Re-create UI with the selected spec
+              ui = SwaggerUIBundle({
+                spec: selectedSpec,
+                dom_id: "#swagger-ui",
+                deepLinking: true,
+                presets: [
+                  SwaggerUIBundle.presets.apis,
+                  SwaggerUIBundle.SwaggerUIStandalonePreset,
+                ],
+                plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+                layout: "BaseLayout",
+              });
+            };
+
+            document.body.insertBefore(select, document.getElementById("swagger-ui"));
+          })
+          .catch((error) => {
+            console.error("Failed to load API definitions:", error);
+          });
+      };
     </script>
-</body>
-</html> 
+  </body>
+</html>

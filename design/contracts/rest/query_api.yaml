@@ -3,7 +3,7 @@ info:
   title: Query API
   version: 1.0.0
 servers:
-  - url: https://api.opendata.com/v1
+  - url: http://localhost:8081/v1/entities
     description: Production server
 paths:
   /entities/root:
@@ -30,22 +30,36 @@ paths:
 
   /entities/search:
     post:
-      summary: Find entities based on criteria
+      summary: Get entities based on id or filter criteria
+      description:
+        This endpoint allows you to search for entities using either a specific `id` or a set of filter criteria. 
+
       requestBody:
         required: true
+        description: |
+          This request body corresponds to the filter criteria used to retrieve entities.
+
+          - It is required to provide **either** `id` or `kind.major`. <br>
+          - If `id` is provided, all other filter fields are ignored, and only the matching entity will be returned. <br>
+          - If `id` is not provided, `kind.major` becomes required, and additional fields can be included as filters. <br>
+          - All other attributes are optional.
+
         content:
           application/json:
             schema:
               type: object
+              required: []
               properties:
                 id:
                   type: string
-                  description: Optional entity ID to search for
+                  description: Required if `kind.major` is not provided
                 kind:
                   type: object
+                  description: Required if `id` is not provided
                   properties:
                     major:
                       type: string
+                      description: Required if `id` is not provided
                     minor:
                       type: string
                 name:
@@ -170,7 +184,11 @@ paths:
 
   /entities/{entityId}/relations:
     post:
-      summary: Get related entity IDs
+      summary: Get relationships for an entity based off its id and/or other relationship filters
+      description: |
+        This endpoint retrieves the relationships of the specified entity, identified by its `entityId`.  
+        You can optionally pass filter parameters in the request body to control which relationships are returned.
+
       parameters:
         - name: entityId
           in: path
@@ -178,6 +196,16 @@ paths:
           schema:
             type: string
       requestBody:
+        description: |
+          The request body contains filter parameters used to filter the relationships of the entity identified by `entityId`.  
+          This payload is optional - if omitted, the response will include all relationships associated with the given `entityId`.
+          All fields in the payload are optional.
+
+          - If the `id` of a relationship is provided in the payload, all other filter fields are ignored, and only the matching relationship will be returned.
+          - If the `activeAt` field is provided, the response will include only relationships that were active at that specific timestamp - meaning they were created and not yet terminated at that time.
+          - You may use either `activeAt` **or** `startTime`/`endTime` for filtering by time range, but not both.
+          - The `direction` can be either **OUTGOING** or **INCOMING** corresponding to the direction of the relationship relative to the entity.
+
         required: false
         content:
           application/json:

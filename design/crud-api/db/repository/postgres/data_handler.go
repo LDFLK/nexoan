@@ -625,3 +625,120 @@ type Column struct {
 	Name string
 	Type string
 }
+
+// GetTableList retrieves a list of attribute tables for a given entity ID.
+func GetTableList(ctx context.Context, repo *PostgresRepository, entityID string) ([]string, error) {
+	query := `
+		SELECT table_name
+		FROM entity_attributes
+		WHERE entity_id = $1
+	`
+	rows, err := repo.DB().QueryContext(ctx, query, entityID)
+	if err != nil {
+		return nil, fmt.Errorf("error querying for table list: %v", err)
+	}
+	defer rows.Close()
+
+	var tableList []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, fmt.Errorf("error scanning table name: %v", err)
+		}
+		tableList = append(tableList, tableName)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over table list rows: %v", err)
+	}
+
+	return tableList, nil
+}
+
+// GetSchemaOfTable retrieves the schema for a given attribute table.
+func GetSchemaOfTable(ctx context.Context, repo *PostgresRepository, tableName string) (*schema.SchemaInfo, error) {
+	query := `
+		SELECT schema_definition
+		FROM attribute_schemas
+		WHERE table_name = $1
+		ORDER BY schema_version DESC
+		LIMIT 1
+	`
+	var schemaJSON []byte
+	err := repo.DB().QueryRowContext(ctx, query, tableName).Scan(&schemaJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error getting schema for table %s: %v", tableName, err)
+	}
+
+	var schemaInfo schema.SchemaInfo
+	if err := json.Unmarshal(schemaJSON, &schemaInfo); err != nil {
+		return nil, fmt.Errorf("error unmarshaling schema for table %s: %v", tableName, err)
+	}
+
+	return &schemaInfo, nil
+}
+
+// GetData retrieves data from a table with optional filters.
+func GetData(ctx context.Context, repo *PostgresRepository, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+	// Base query
+	query := fmt.Sprintf("SELECT * FROM %s", sanitizeIdentifier(tableName))
+
+	var args []interface{}
+	var whereClauses []string
+	argCount := 1
+
+	// Add filters to the query
+	for key, value := range filters {
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", sanitizeIdentifier(key), argCount))
+		args = append(args, value)
+		argCount++
+	}
+
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Execute the query
+	rows, err := repo.DB().QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error querying data from %s: %v", tableName, err)
+	}
+	defer rows.Close()
+
+	// Get column names
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("error getting columns from %s: %v", tableName, err)
+	}
+
+	var results []map[string]interface{}
+	for rows.Next() {
+		rowValues := make([]interface{}, len(columns))
+		rowPointers := make([]interface{}, len(columns))
+		for i := range rowValues {
+			rowPointers[i] = &rowValues[i]
+		}
+
+		if err := rows.Scan(rowPointers...); err != nil {
+			return nil, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		rowData := make(map[string]interface{})
+		for i, colName := range columns {
+			val := rowValues[i]
+			// Handle byte slices (common for text, json, etc.)
+			if b, ok := val.([]byte); ok {
+				rowData[colName] = string(b)
+			} else {
+				rowData[colName] = val
+			}
+		}
+		results = append(results, rowData)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %v", err)
+	}
+
+	return results, nil
+}
