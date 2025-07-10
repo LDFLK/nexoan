@@ -2,19 +2,20 @@ package mongo
 
 import (
 	"context"
-	"github.com/LDFLK/nexoan/design/crud-api/db/queryexecutor/interfaces"
-	"github.com/LDFLK/nexoan/design/crud-api/db/repository/mongo"
-	pb "github.com/LDFLK/nexoan/design/crud-api/lk/datafoundation/crud-api"
+	"lk/datafoundation/crud-api/db/queryexecutor/interfaces"
+	mongorepo "lk/datafoundation/crud-api/db/repository/mongo"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // MongoQueryExecutor implements the MongoExecutor interface
 type MongoQueryExecutor struct {
-	repository *mongo.MongoRepository
+	repository *mongorepo.MongoRepository
 }
 
 // NewMongoQueryExecutor creates a new MongoDB query executor
-func NewMongoQueryExecutor(repository *mongo.MongoRepository) interfaces.MongoExecutor {
+func NewMongoQueryExecutor(repository *mongorepo.MongoRepository) interfaces.MongoExecutor {
 	return &MongoQueryExecutor{
 		repository: repository,
 	}

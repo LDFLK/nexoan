@@ -2,7 +2,8 @@ package interfaces
 
 import (
 	"context"
-	pb "github.com/LDFLK/nexoan/design/crud-api/lk/datafoundation/crud-api"
+	"lk/datafoundation/crud-api/pkg/schema"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -55,22 +56,13 @@ type Neo4jExecutor interface {
 
 // PostgresExecutor defines PostgreSQL specific operations
 type PostgresExecutor interface {
-	// Time Series Operations
-	HandleTimeSeriesData(ctx context.Context, plan *QueryPlan) error
-	GetTimeSeriesData(ctx context.Context, plan *QueryPlan) (*pb.TimeSeriesData, error)
-	AggregateTimeSeriesData(ctx context.Context, plan *QueryPlan) (*pb.TimeSeriesAggregation, error)
+	// Table Operations
+	TableExists(ctx context.Context, plan *QueryPlan) (bool, error)
+	CreateDynamicTable(ctx context.Context, plan *QueryPlan) error
+	GetTableList(ctx context.Context, plan *QueryPlan) ([]string, error)
+	GetSchemaOfTable(ctx context.Context, plan *QueryPlan) (*schema.SchemaInfo, error)
 
-	// Attribute Operations
-	HandleAttributeData(ctx context.Context, plan *QueryPlan) error
-	GetAttributeData(ctx context.Context, plan *QueryPlan) (map[string]*pb.AttributeValue, error)
-	BulkAttributeOperation(ctx context.Context, plan *QueryPlan) error
-
-	// Transaction Operations
-	BeginTransaction(ctx context.Context) error
-	CommitTransaction(ctx context.Context) error
-	RollbackTransaction(ctx context.Context) error
-
-	// Query Operations
-	ExecuteQuery(ctx context.Context, plan *QueryPlan) (interface{}, error)
-	ExecuteBatchQuery(ctx context.Context, plan *QueryPlan) ([]interface{}, error)
+	// Data Operations
+	InsertTabularData(ctx context.Context, plan *QueryPlan) error
+	GetData(ctx context.Context, plan *QueryPlan) ([]map[string]interface{}, error)
 } 

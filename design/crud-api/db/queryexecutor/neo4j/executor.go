@@ -2,18 +2,18 @@ package neo4j
 
 import (
 	"context"
-	"github.com/LDFLK/nexoan/design/crud-api/db/queryexecutor/interfaces"
-	"github.com/LDFLK/nexoan/design/crud-api/db/repository/neo4j"
-	pb "github.com/LDFLK/nexoan/design/crud-api/lk/datafoundation/crud-api"
+	"lk/datafoundation/crud-api/db/queryexecutor/interfaces"
+	neo4jrepo "lk/datafoundation/crud-api/db/repository/neo4j"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 )
 
 // Neo4jQueryExecutor implements the Neo4jExecutor interface
 type Neo4jQueryExecutor struct {
-	repository *neo4j.Neo4jRepository
+	repository *neo4jrepo.Neo4jRepository
 }
 
 // NewNeo4jQueryExecutor creates a new Neo4j query executor
-func NewNeo4jQueryExecutor(repository *neo4j.Neo4jRepository) interfaces.Neo4jExecutor {
+func NewNeo4jQueryExecutor(repository *neo4jrepo.Neo4jRepository) interfaces.Neo4jExecutor {
 	return &Neo4jQueryExecutor{
 		repository: repository,
 	}
