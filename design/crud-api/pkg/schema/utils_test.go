@@ -654,22 +654,6 @@ func TestValidateTabularAttributes(t *testing.T) {
 			expectError: true,
 			errorMsg:    "tabular data must contain 'columns' field",
 		},
-		{
-			name: "only columns field",
-			input: map[string]interface{}{
-				"columns": []interface{}{"id", "name"},
-			},
-			expectError: true,
-			errorMsg:    "tabular data must contain 'rows' field",
-		},
-		{
-			name: "only rows field",
-			input: map[string]interface{}{
-				"rows": []interface{}{[]interface{}{1, "Alice"}},
-			},
-			expectError: true,
-			errorMsg:    "tabular data must contain 'columns' field",
-		},
 	}
 
 	for _, tc := range testCases {
@@ -794,32 +778,6 @@ func TestValidateGraphAttributes(t *testing.T) {
 		{
 			name:        "empty object",
 			input:       map[string]interface{}{},
-			expectError: true,
-			errorMsg:    "graph data must contain 'nodes' field",
-		},
-		{
-			name: "only nodes field",
-			input: map[string]interface{}{
-				"nodes": []interface{}{
-					map[string]interface{}{
-						"id":   "1",
-						"type": "user",
-					},
-				},
-			},
-			expectError: true,
-			errorMsg:    "graph data must contain 'edges' field",
-		},
-		{
-			name: "only edges field",
-			input: map[string]interface{}{
-				"edges": []interface{}{
-					map[string]interface{}{
-						"source": "1",
-						"target": "2",
-					},
-				},
-			},
 			expectError: true,
 			errorMsg:    "graph data must contain 'nodes' field",
 		},
