@@ -582,3 +582,256 @@ func TestValidateTabularData(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateTabularAttributes(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       map[string]interface{}
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid tabular data with both required fields",
+			input: map[string]interface{}{
+				"columns": []interface{}{"id", "name", "age"},
+				"rows": []interface{}{
+					[]interface{}{1, "Alice", 30},
+					[]interface{}{2, "Bob", 25},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "missing columns field",
+			input: map[string]interface{}{
+				"rows": []interface{}{
+					[]interface{}{1, "Alice", 30},
+				},
+			},
+			expectError: true,
+			errorMsg:    "tabular data must contain 'columns' field",
+		},
+		{
+			name: "missing rows field",
+			input: map[string]interface{}{
+				"columns": []interface{}{"id", "name", "age"},
+			},
+			expectError: true,
+			errorMsg:    "tabular data must contain 'rows' field",
+		},
+		{
+			name: "missing both required fields",
+			input: map[string]interface{}{
+				"data": "some data",
+			},
+			expectError: true,
+			errorMsg:    "tabular data must contain 'columns' field",
+		},
+		{
+			name: "extra field present",
+			input: map[string]interface{}{
+				"columns": []interface{}{"id", "name"},
+				"rows":    []interface{}{[]interface{}{1, "Alice"}},
+				"extra":   "should not be here",
+			},
+			expectError: true,
+			errorMsg:    "unexpected key 'extra' in tabular data; only 'columns' and 'rows' are allowed",
+		},
+		{
+			name: "multiple extra fields present",
+			input: map[string]interface{}{
+				"columns": []interface{}{"id", "name"},
+				"rows":    []interface{}{[]interface{}{1, "Alice"}},
+				"extra1":  "should not be here",
+				"extra2":  "also should not be here",
+			},
+			expectError: true,
+			errorMsg:    "unexpected key 'extra", // Check for partial match since order is non-deterministic
+		},
+		{
+			name:        "empty object",
+			input:       map[string]interface{}{},
+			expectError: true,
+			errorMsg:    "tabular data must contain 'columns' field",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateTabularAttributes(tc.input)
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorMsg != "" {
+					assert.Contains(t, err.Error(), tc.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateGraphAttributes(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       map[string]interface{}
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid graph data with both required fields",
+			input: map[string]interface{}{
+				"nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+						"name": "Alice",
+					},
+				},
+				"edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+						"type":   "follows",
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "missing nodes field",
+			input: map[string]interface{}{
+				"edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+						"type":   "follows",
+					},
+				},
+			},
+			expectError: true,
+			errorMsg:    "graph data must contain 'nodes' field",
+		},
+		{
+			name: "missing edges field",
+			input: map[string]interface{}{
+				"nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+						"name": "Alice",
+					},
+				},
+			},
+			expectError: true,
+			errorMsg:    "graph data must contain 'edges' field",
+		},
+		{
+			name: "missing both required fields",
+			input: map[string]interface{}{
+				"data": "some data",
+			},
+			expectError: true,
+			errorMsg:    "graph data must contain 'nodes' field",
+		},
+		{
+			name: "extra field present",
+			input: map[string]interface{}{
+				"nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+					},
+				},
+				"edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+					},
+				},
+				"extra": "should not be here",
+			},
+			expectError: true,
+			errorMsg:    "unexpected key 'extra' in graph data; only 'nodes' and 'edges' are allowed",
+		},
+		{
+			name: "multiple extra fields present",
+			input: map[string]interface{}{
+				"nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+					},
+				},
+				"edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+					},
+				},
+				"extra1": "should not be here",
+				"extra2": "also should not be here",
+			},
+			expectError: true,
+			errorMsg:    "unexpected key 'extra", // Check for partial match since order is non-deterministic
+		},
+		{
+			name:        "empty object",
+			input:       map[string]interface{}{},
+			expectError: true,
+			errorMsg:    "graph data must contain 'nodes' field",
+		},
+		{
+			name: "case sensitive field names",
+			input: map[string]interface{}{
+				"Nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+					},
+				},
+				"Edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+					},
+				},
+			},
+			expectError: true,
+			errorMsg:    "graph data must contain 'nodes' field",
+		},
+		{
+			name: "mixed case field names",
+			input: map[string]interface{}{
+				"nodes": []interface{}{
+					map[string]interface{}{
+						"id":   "1",
+						"type": "user",
+					},
+				},
+				"Edges": []interface{}{
+					map[string]interface{}{
+						"source": "1",
+						"target": "2",
+					},
+				},
+			},
+			expectError: true,
+			errorMsg:    "graph data must contain 'edges' field",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateGraphAttributes(tc.input)
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorMsg != "" {
+					assert.Contains(t, err.Error(), tc.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
