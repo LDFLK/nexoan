@@ -77,6 +77,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 
 	// Process each attribute
 	for attrName, timeBasedValueList := range entity.Attributes {
+		fmt.Printf("DEBUG: Processing attribute %s\n", attrName)
 		if timeBasedValueList == nil {
 			continue
 		}
@@ -89,12 +90,13 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 
 			// Determine storage type
 			storageType, err := p.determineStorageType(value.Value)
+			fmt.Printf("DEBUG: Determined storage type for attribute %s: %s\n", attrName, storageType)
 			if err != nil {
 				return fmt.Errorf("error determining storage type for attribute %s: %v", attrName, err)
 			}
 
 			// Create or update graph metadata BEFORE processing the attribute
-			if err := p.handleGraphMetadata(ctx, entity.Id, attrName, storageType, operation); err != nil {
+			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation); err != nil {
 				return fmt.Errorf("error handling graph metadata for attribute %s: %v", attrName, err)
 			}
 
@@ -115,18 +117,23 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 	return nil
 }
 
-// handleGraphMetadata handles the graph metadata operations
-func (p *EntityAttributeProcessor) handleGraphMetadata(ctx context.Context, entityID, attrName string, storageType storageinference.StorageType, operation string) error {
+// handleAttributeLookUp handles the attribute look up operations
+// This is the first step in the attribute processing pipeline.
+// It creates the attribute look up metadata and the attribute node in the graph.
+// It also creates the IS_ATTRIBUTE relationship between the entity and the attribute.
+// It also creates the attribute metadata in the document database.
+func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, entityID, attrName string, storageType storageinference.StorageType, operation string) error {
 	// Generate attribute metadata
+	fmt.Printf("DEBUG: Handling graph metadata for attribute %s\n", attrName)
 	attributeID := GenerateAttributeID(entityID, attrName)
 	storagePath := GenerateStoragePath(entityID, attrName, storageType)
 
 	metadata := &AttributeMetadata{
 		EntityID:      entityID,
+		AttributeID:   attributeID,
 		AttributeName: attrName,
 		StorageType:   storageType,
 		StoragePath:   storagePath,
-		Created:       time.Now(),
 		Updated:       time.Now(),
 		Schema:        make(map[string]interface{}), // TODO: Extract schema from value
 	}
@@ -134,25 +141,22 @@ func (p *EntityAttributeProcessor) handleGraphMetadata(ctx context.Context, enti
 	switch operation {
 	case "create":
 		// Create attribute node in graph
-		if err := p.graphManager.CreateAttributeNode(ctx, metadata); err != nil {
-
+		if err := p.graphManager.CreateAttribute(ctx, metadata); err != nil {
+			metadata.Created = time.Now()
 			return fmt.Errorf("failed to create attribute node: %v", err)
-		}
-
-		// Create IS_ATTRIBUTE relationship
-		if err := p.graphManager.CreateIS_ATTRIBUTE_Relationship(ctx, entityID, attributeID); err != nil {
-			return fmt.Errorf("failed to create IS_ATTRIBUTE relationship: %v", err)
 		}
 
 	case "update":
 		// Update attribute metadata in graph
-		if err := p.graphManager.UpdateAttributeMetadata(ctx, metadata); err != nil {
+		if err := p.graphManager.UpdateAttribute(ctx, metadata); err != nil {
+			metadata.Updated = time.Now()
 			return fmt.Errorf("failed to update attribute metadata: %v", err)
 		}
 
 	case "delete":
 		// Delete attribute node and relationships from graph
-		if err := p.graphManager.DeleteAttributeNode(ctx, entityID, attrName); err != nil {
+		if err := p.graphManager.DeleteAttribute(ctx, entityID, attrName); err != nil {
+			metadata.Updated = time.Now()
 			return fmt.Errorf("failed to delete attribute node: %v", err)
 		}
 

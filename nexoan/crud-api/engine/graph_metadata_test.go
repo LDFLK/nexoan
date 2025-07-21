@@ -20,6 +20,7 @@ func TestGraphMetadataManager(t *testing.T) {
 	// Test creating attribute metadata
 	metadata := &AttributeMetadata{
 		EntityID:      "test-entity-1",
+		AttributeID:   "test-attribute-1",
 		AttributeName: "test-attribute",
 		StorageType:   storageinference.TabularData,
 		StoragePath:   "tables/attr_test-entity-1_test-attribute",
@@ -32,12 +33,7 @@ func TestGraphMetadataManager(t *testing.T) {
 	}
 
 	// Test creating attribute node
-	err := manager.CreateAttributeNode(ctx, metadata)
-	assert.NoError(t, err)
-
-	// Test creating IS_ATTRIBUTE relationship
-	attributeID := GenerateAttributeID(metadata.EntityID, metadata.AttributeName)
-	err = manager.CreateIS_ATTRIBUTE_Relationship(ctx, metadata.EntityID, attributeID)
+	err := manager.CreateAttribute(ctx, metadata)
 	assert.NoError(t, err)
 
 	// Test getting attribute metadata
@@ -50,16 +46,16 @@ func TestGraphMetadataManager(t *testing.T) {
 	// Test updating attribute metadata
 	metadata.Updated = time.Now()
 	metadata.Schema["new_field"] = "new_value"
-	err = manager.UpdateAttributeMetadata(ctx, metadata)
+	err = manager.UpdateAttribute(ctx, metadata)
 	assert.NoError(t, err)
 
 	// Test listing entity attributes
-	attributes, err := manager.ListEntityAttributes(ctx, metadata.EntityID)
+	attributes, err := manager.ListAttributes(ctx, metadata.EntityID)
 	assert.NoError(t, err)
 	assert.NotNil(t, attributes)
 
 	// Test deleting attribute node
-	err = manager.DeleteAttributeNode(ctx, metadata.EntityID, metadata.AttributeName)
+	err = manager.DeleteAttribute(ctx, metadata.EntityID, metadata.AttributeName)
 	assert.NoError(t, err)
 }
 
@@ -69,8 +65,8 @@ func TestDatasetTypeMapping(t *testing.T) {
 		storageinference.TabularData: TabularDataset,
 		storageinference.GraphData:   GraphDataset,
 		storageinference.MapData:     DocumentDataset,
-		storageinference.ListData:    BlobDataset,
-		storageinference.ScalarData:  BlobDataset,
+		storageinference.ListData:    DocumentDataset,
+		storageinference.ScalarData:  DocumentDataset,
 		storageinference.UnknownData: BlobDataset,
 	}
 
@@ -101,8 +97,8 @@ func TestStoragePathGeneration(t *testing.T) {
 		storageinference.TabularData: "tables/attr_test-entity-123_user_profile",
 		storageinference.GraphData:   "graphs/attr_test-entity-123_user_profile",
 		storageinference.MapData:     "documents/attr_test-entity-123_user_profile",
-		storageinference.ListData:    "blobs/attr_test-entity-123_user_profile",
-		storageinference.ScalarData:  "blobs/attr_test-entity-123_user_profile",
+		storageinference.ListData:    "documents/attr_test-entity-123_user_profile",
+		storageinference.ScalarData:  "documents/attr_test-entity-123_user_profile",
 		storageinference.UnknownData: "unknown/attr_test-entity-123_user_profile",
 	}
 

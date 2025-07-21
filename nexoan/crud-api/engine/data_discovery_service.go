@@ -33,7 +33,7 @@ type AttributeLocation struct {
 // DiscoverEntityAttributes discovers all attributes for an entity
 func (d *DataDiscoveryService) DiscoverEntityAttributes(ctx context.Context, entityID string) ([]*AttributeLocation, error) {
 	// Query the graph to find all attributes for the entity
-	attributes, err := d.graphManager.ListEntityAttributes(ctx, entityID)
+	attributes, err := d.graphManager.ListAttributes(ctx, entityID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list entity attributes: %v", err)
 	}
