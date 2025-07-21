@@ -198,9 +198,7 @@ func GetDatasetType(storageType storageinference.StorageType) string {
 		return TabularDataset
 	case storageinference.GraphData:
 		return GraphDataset
-	case storageinference.MapData:
-		return DocumentDataset
-	case storageinference.ListData, storageinference.ScalarData:
+	case storageinference.MapData, storageinference.ListData, storageinference.ScalarData:
 		return DocumentDataset
 	default:
 		return BlobDataset
