@@ -214,25 +214,27 @@ func TestDataDiscoveryService(t *testing.T) {
 }
 */
 
-// TestAttributeLocationStructure tests the AttributeLocation structure
-func TestAttributeLocationStructure(t *testing.T) {
-	location := &AttributeLocation{
+// TestAttributeMetadataStructure tests the AttributeMetadata structure
+func TestAttributeMetadataStructure(t *testing.T) {
+	metadata := &AttributeMetadata{
 		EntityID:      "test-entity-1",
+		AttributeID:   "test-entity-1_attr_user_profile",
 		AttributeName: "user_profile",
 		StorageType:   storageinference.TabularData,
 		StoragePath:   "tables/attr_test-entity-1_user_profile",
-		DatasetType:   TabularDataset,
-		Created:       time.Now().Format("2006-01-02T15:04:05Z"),
-		Updated:       time.Now().Format("2006-01-02T15:04:05Z"),
+		Created:       time.Now(),
+		Updated:       time.Now(),
+		Schema:        make(map[string]interface{}),
 	}
 
-	assert.Equal(t, "test-entity-1", location.EntityID)
-	assert.Equal(t, "user_profile", location.AttributeName)
-	assert.Equal(t, storageinference.TabularData, location.StorageType)
-	assert.Equal(t, "tables/attr_test-entity-1_user_profile", location.StoragePath)
-	assert.Equal(t, TabularDataset, location.DatasetType)
-	assert.NotEmpty(t, location.Created)
-	assert.NotEmpty(t, location.Updated)
+	assert.Equal(t, "test-entity-1", metadata.EntityID)
+	assert.Equal(t, "test-entity-1_attr_user_profile", metadata.AttributeID)
+	assert.Equal(t, "user_profile", metadata.AttributeName)
+	assert.Equal(t, storageinference.TabularData, metadata.StorageType)
+	assert.Equal(t, "tables/attr_test-entity-1_user_profile", metadata.StoragePath)
+	assert.NotZero(t, metadata.Created)
+	assert.NotZero(t, metadata.Updated)
+	assert.NotNil(t, metadata.Schema)
 }
 
 // TestAttributeSearchCriteria tests the search criteria structure
@@ -278,12 +280,15 @@ func TestDiscoveryReportStructure(t *testing.T) {
 			GraphDataset:    20,
 			DocumentDataset: 30,
 		},
-		RecentAttributes: []*AttributeLocation{
+		RecentAttributes: []*AttributeMetadata{
 			{
 				EntityID:      "entity-1",
+				AttributeID:   "entity-1_attr_attr-1",
 				AttributeName: "attr-1",
 				StorageType:   storageinference.TabularData,
-				DatasetType:   TabularDataset,
+				Created:       time.Now(),
+				Updated:       time.Now(),
+				Schema:        make(map[string]interface{}),
 			},
 		},
 		StorageBreakdown: map[string]interface{}{
