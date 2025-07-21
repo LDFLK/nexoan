@@ -7,6 +7,48 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+
+
+// Usage examples:
+//
+//	// Example : Handling metadata result
+//	result, err := executor.Execute(ctx, &QueryParameter{
+//		Operation: "get_metadata",
+//		Parameters: map[string]interface{}{
+//			"entityId": "123",
+//		},
+//	})
+//	if err != nil {
+//		return err
+//	}
+//	
+//	if result.GetType() == "metadata" {
+//		metadata := result.GetData().(map[string]*anypb.Any)
+//		department := metadata["department"].String()
+//		role := metadata["role"].String()
+//	}
+
+//	}
+type ExecutorResult interface {
+	// GetType returns the type of the result
+	// Common types include:
+	// - "metadata": For document metadata results
+	// - "entity": For graph entity results
+	// - "relationships": For graph relationship results
+	// - "records": For tabular data results
+	// - "schema": For table schema results
+	GetType() string
+
+	// GetData returns the actual result data
+	// The type of the returned interface{} depends on GetType():
+	// - "metadata" returns map[string]*anypb.Any
+	// - "entity" returns map[string]interface{} with "kind" and "name" keys
+	// - "relationships" returns map[string]*pb.Relationship
+	// - "records" returns []map[string]interface{}
+	// - "schema" returns *schema.SchemaInfo
+	GetData() interface{}
+}
+
 // Executor is the main parent interface that defines common behavior for all database executors.
 // It provides a unified way to execute queries across different database types.
 //
@@ -15,7 +57,7 @@ import (
 //	executor := GetExecutor()
 //	result, err := executor.Execute(ctx, &QueryParameter{
 //		Operation: "get_metadata",
-//		Filters: map[string]interface{}{
+//		Parameters: map[string]interface{}{
 //			"entityId": "123",
 //		},
 //	})
@@ -25,20 +67,20 @@ type Executor interface {
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing operation details
+	//   - queryParameter: QueryParameter containing operation details
 	//
 	// Returns:
-	//   - interface{}: Result of the operation, type depends on the operation
+	//   - ExecutorResult: Result of the operation with type information
 	//   - error: Any error that occurred during execution
 	//
 	// Example:
 	//   result, err := executor.Execute(ctx, &QueryParameter{
 	//       Operation: "get_metadata",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//       },
 	//   })
-	Execute(ctx context.Context, plan *QueryParameter) (interface{}, error)
+	Execute(ctx context.Context, queryParameter *QueryParameter) (ExecutorResult, error)
 }
 
 // QueryParameter defines the structure for query execution parameters.
@@ -48,10 +90,11 @@ type Executor interface {
 //
 //	param := &QueryParameter{
 //		Operation: "get_metadata",
-//		Filters: map[string]interface{}{
+//		Parameters: map[string]interface{}{
 //			"entityId": "123",
 //			"kind": "Person",
-//		TimeRange: struct{
+//		},
+//		TimeParameters: struct{
 //			StartTime: "2024-01-01T00:00:00Z",
 //			EndTime: "2024-12-31T23:59:59Z",
 //		},
@@ -60,19 +103,25 @@ type QueryParameter struct {
 	// Operation specifies the type of operation to perform
 	// Valid values include:
 	// - "get_metadata": Retrieve entity metadata
+	// - "create_metadata": Create new metadata
+	// - "update_metadata": Update existing metadata
+	// - "delete_metadata": Delete metadata
 	// - "create_entity": Create a new entity
+	// - "update_entity": Update an existing entity
+	// - "delete_entity": Delete an entity
 	// - "get_relationships": Get entity relationships
 	Operation string
 
-	// Filters specify criteria for the operation
-	// Common filter keys:
+	// Parameters specify operation parameters
+	// Common parameter keys:
 	// - "entityId": ID of the entity
 	// - "kind": Entity kind/type
 	// - "name": Entity name
-	Filters map[string]interface{}
+	// - "metadata": Metadata key-value pairs
+	Parameters map[string]interface{}
 
-	// TimeRange specifies temporal constraints for the operation
-	TimeRange struct {
+	// TimeParameters specifies temporal constraints for the operation
+	TimeParameters struct {
 		// StartTime is the ISO8601 timestamp for the start of the time range
 		StartTime string
 
@@ -91,7 +140,7 @@ type QueryParameter struct {
 //
 //	executor := GetDocumentExecutor()
 //	metadata, err := executor.GetMetadata(ctx, &QueryParameter{
-//		Filters: map[string]interface{}{
+//		Parameters: map[string]interface{}{
 //			"entityId": "123",
 //		},
 //	})
@@ -102,7 +151,7 @@ type DocumentExecutor interface {
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing metadata operation details
+	//   - queryParameter: QueryParameter containing metadata operation details
 	//
 	// Returns:
 	//   - error: Any error that occurred during the operation
@@ -110,20 +159,20 @@ type DocumentExecutor interface {
 	// Example:
 	//   err := executor.HandleMetadata(ctx, &QueryParameter{
 	//       Operation: "update_metadata",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//           "metadata": map[string]interface{}{
 	//               "department": "Engineering",
 	//           },
 	//       },
 	//   })
-	HandleMetadata(ctx context.Context, plan *QueryParameter) error
+	HandleMetadata(ctx context.Context, queryParameter *QueryParameter) error
 
 	// GetMetadata retrieves metadata for an entity.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing entity identifier
+	//   - queryParameter: QueryParameter containing entity identifier
 	//
 	// Returns:
 	//   - map[string]*anypb.Any: Map of metadata key-value pairs
@@ -131,21 +180,21 @@ type DocumentExecutor interface {
 	//
 	// Example:
 	//   metadata, err := executor.GetMetadata(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//       },
 	//   })
-	GetMetadata(ctx context.Context, plan *QueryParameter) (map[string]*anypb.Any, error)
+	GetMetadata(ctx context.Context, queryParameter *QueryParameter) (map[string]*anypb.Any, error)
 }
 
-// GraphExecutor interface defines operations for graph databases (e.g., Neo4j).
+// GraphExecutor processes data defined as Graph storage type.
 // It handles entity and relationship operations in a graph structure.
 //
 // Example Usage:
 //
 //	executor := GetGraphExecutor()
 //	entity, err := executor.GraphEntity(ctx, &QueryParameter{
-//		Filters: map[string]interface{}{
+//		Parameters: map[string]interface{}{
 //			"entityId": "123",
 //		},
 //	})
@@ -156,7 +205,7 @@ type GraphExecutor interface {
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing entity identifier
+	//   - queryParameter: QueryParameter containing entity identifier
 	//
 	// Returns:
 	//   - *pb.Kind: Entity kind information
@@ -167,41 +216,39 @@ type GraphExecutor interface {
 	//
 	// Example:
 	//   kind, name, created, terminated, err := executor.GraphEntity(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//       },
 	//   })
-	GraphEntity(ctx context.Context, plan *QueryParameter) (*pb.Kind, *pb.TimeBasedValue, string, string, error)
+	GetGraphEntity(ctx context.Context, queryParameter *QueryParameter) (*pb.Kind, *pb.TimeBasedValue, string, string, error)
 
-	// GraphEntityCreate creates a new entity in the graph.
+	// CreateGraphEntity creates a new entity in the graph.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing entity details
+	//   - queryParameter: QueryParameter containing entity identifier
 	//
 	// Returns:
-	//   - bool: True if creation was successful
-	//   - error: Any error that occurred during creation
+	//   - *pb.Kind: Entity kind information
+	//   - *pb.TimeBasedValue: Entity name with temporal information
+	//   - string: Creation timestamp
+	//   - string: Termination timestamp
+	//   - error: Any error that occurred during retrieval
 	//
 	// Example:
-	//   success, err := executor.GraphEntityCreate(ctx, &QueryParameter{
-	//       Operation: "create_entity",
-	//       Filters: map[string]interface{}{
+	//   kind, name, created, terminated, err := executor.CreateGraphEntity(ctx, &QueryParameter{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
-	//           "kind": map[string]string{
-	//               "major": "Person",
-	//               "minor": "Employee",
-	//           },
-	//           "name": "John Doe",
 	//       },
 	//   })
-	GraphEntityCreate(ctx context.Context, plan *QueryParameter) (bool, error)
+
+	GraphEntityCreate(ctx context.Context, queryParameter *QueryParameter) (bool, error)
 
 	// GraphEntityUpdate updates an existing entity in the graph.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing update details
+	//   - queryParameter: QueryParameter containing update details
 	//
 	// Returns:
 	//   - bool: True if update was successful
@@ -210,18 +257,18 @@ type GraphExecutor interface {
 	// Example:
 	//   success, err := executor.GraphEntityUpdate(ctx, &QueryParameter{
 	//       Operation: "update_entity",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//           "name": "Jane Doe",
 	//       },
 	//   })
-	GraphEntityUpdate(ctx context.Context, plan *QueryParameter) (bool, error)
+	GraphEntityUpdate(ctx context.Context, queryParameter *QueryParameter) (bool, error)
 
 	// GraphEntityFilter filters entities based on criteria.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing filter criteria
+	//   - queryParameter: QueryParameter containing filter criteria
 	//
 	// Returns:
 	//   - []map[string]interface{}: List of matching entities
@@ -229,59 +276,61 @@ type GraphExecutor interface {
 	//
 	// Example:
 	//   entities, err := executor.GraphEntityFilter(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "kind": "Person",
 	//           "department": "Engineering",
 	//       },
 	//   })
-	GraphEntityFilter(ctx context.Context, plan *QueryParameter) ([]map[string]interface{}, error)
+	GraphEntityFilter(ctx context.Context, queryParameter *QueryParameter) ([]map[string]interface{}, error)
 
-	// GraphRelationships retrieves all relationships for an entity.
+	// GraphAllRelationshipsByNode retrieves all relationships for an entity.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing entity identifier
+	//   - queryParameter: QueryParameter containing entity identifier
 	//
 	// Returns:
 	//   - map[string]*pb.Relationship: Map of relationships keyed by relationship ID
 	//   - error: Any error that occurred during retrieval
 	//
 	// Example:
-	//   relationships, err := executor.GraphRelationships(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//   relationships, err := executor.GraphAllRelationshipsByNode(ctx, &QueryParameter{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//       },
 	//   })
-	GraphRelationships(ctx context.Context, plan *QueryParameter) (map[string]*pb.Relationship, error)
+	GraphAllRelationshipsByNode(ctx context.Context, queryParameter *QueryParameter) (map[string]*pb.Relationship, error)
 
-	// FilteredRelationships retrieves relationships based on filter criteria.
+	// GetRelationshipsByFilter retrieves relationships based on specified criteria.
+	// This function allows filtering relationships based on various parameters
+	// such as type, direction, and temporal constraints.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing filter criteria
+	//   - queryParameter: QueryParameter containing filter criteria
 	//
 	// Returns:
 	//   - map[string]*pb.Relationship: Map of filtered relationships
 	//   - error: Any error that occurred during filtering
 	//
 	// Example:
-	//   relationships, err := executor.FilteredRelationships(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//   relationships, err := executor.GetRelationshipsByFilter(ctx, &QueryParameter{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//           "relationshipType": "MANAGES",
 	//           "direction": "OUTGOING",
 	//       },
-	//       TimeRange: struct{
+	//       TimeParameters: struct{
 	//           ActiveAt: "2024-03-21T00:00:00Z",
 	//       },
 	//   })
-	FilteredRelationships(ctx context.Context, plan *QueryParameter) (map[string]*pb.Relationship, error)
+	GetRelationshipsByFilter(ctx context.Context, queryParameter *QueryParameter) (map[string]*pb.Relationship, error)
 
 	// RelationshipsCreate creates new relationships for an entity.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing relationship details
+	//   - queryParameter: QueryParameter containing relationship details
 	//
 	// Returns:
 	//   - error: Any error that occurred during creation
@@ -289,33 +338,33 @@ type GraphExecutor interface {
 	// Example:
 	//   err := executor.RelationshipsCreate(ctx, &QueryParameter{
 	//       Operation: "create_relationship",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "entityId": "123",
 	//           "relatedEntityId": "456",
 	//           "relationshipType": "MANAGES",
 	//           "startTime": "2024-01-01T00:00:00Z",
 	//       },
 	//   })
-	RelationshipsCreate(ctx context.Context, plan *QueryParameter) error
+	RelationshipsCreate(ctx context.Context, queryParameter *QueryParameter) error
 
-	// RelationshipsUpdate updates existing relationships.
+	// UpdateRelationships updates existing relationships.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing update details
+	//   - queryParameter: QueryParameter containing update details
 	//
 	// Returns:
 	//   - error: Any error that occurred during update
 	//
 	// Example:
-	//   err := executor.RelationshipsUpdate(ctx, &QueryParameter{
+	//   err := executor.UpdateRelationships(ctx, &QueryParameter{
 	//       Operation: "update_relationship",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "relationshipId": "rel123",
 	//           "endTime": "2024-03-21T00:00:00Z",
 	//       },
 	//   })
-	RelationshipsUpdate(ctx context.Context, plan *QueryParameter) error
+	UpdateRelationships(ctx context.Context, queryParameter *QueryParameter) error
 }
 
 // TabularExecutor interface defines operations for relational databases (e.g., PostgreSQL).
@@ -325,7 +374,7 @@ type GraphExecutor interface {
 //
 //	executor := GetTabularExecutor()
 //	exists, err := executor.TableExists(ctx, &QueryParameter{
-//		Filters: map[string]interface{}{
+//		Parameters: map[string]interface{}{
 //			"tableName": "employees",
 //		},
 //	})
@@ -336,7 +385,7 @@ type TabularExecutor interface {
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing table name
+	//   - queryParameter: QueryParameter containing table name
 	//
 	// Returns:
 	//   - bool: True if table exists
@@ -344,17 +393,17 @@ type TabularExecutor interface {
 	//
 	// Example:
 	//   exists, err := executor.TableExists(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "tableName": "employees",
 	//       },
 	//   })
-	TableExists(ctx context.Context, plan *QueryParameter) (bool, error)
+	TableExists(ctx context.Context, queryParameter *QueryParameter) (bool, error)
 
 	// CreateLookupTable creates a new lookup table.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing table schema
+	//   - queryParameter: QueryParameter containing table schema
 	//
 	// Returns:
 	//   - error: Any error that occurred during creation
@@ -362,7 +411,7 @@ type TabularExecutor interface {
 	// Example:
 	//   err := executor.CreateLookupTable(ctx, &QueryParameter{
 	//       Operation: "create_table",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "tableName": "departments",
 	//           "columns": []map[string]string{
 	//               {"name": "id", "type": "VARCHAR(36)"},
@@ -370,13 +419,13 @@ type TabularExecutor interface {
 	//           },
 	//       },
 	//   })
-	CreateLookupTable(ctx context.Context, plan *QueryParameter) error
+	CreateLookupTable(ctx context.Context, queryParameter *QueryParameter) error
 
 	// GetTableList retrieves list of tables.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing filter criteria
+	//   - queryParameter: QueryParameter containing filter criteria
 	//
 	// Returns:
 	//   - []string: List of table names
@@ -384,43 +433,43 @@ type TabularExecutor interface {
 	//
 	// Example:
 	//   tables, err := executor.GetTableList(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "schema": "public",
 	//       },
 	//   })
-	GetTableList(ctx context.Context, plan *QueryParameter) ([]string, error)
+	GetTableList(ctx context.Context, queryParameter *QueryParameter) ([]string, error)
 
-	// GetSchemaOfTable retrieves schema information for a table.
+	// GetTableSchema retrieves schema of a table.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing table name
+	//   - queryParameter: QueryParameter containing table name
 	//
 	// Returns:
 	//   - *schema.SchemaInfo: Table schema information
 	//   - error: Any error that occurred during retrieval
 	//
 	// Example:
-	//   schemaInfo, err := executor.GetSchemaOfTable(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//   schemaInfo, err := executor.GetTableSchema(ctx, &QueryParameter{
+	//       Parameters: map[string]interface{}{
 	//           "tableName": "employees",
 	//       },
 	//   })
-	GetSchemaOfTable(ctx context.Context, plan *QueryParameter) (*schema.SchemaInfo, error)
+	GetTableSchema(ctx context.Context, queryParameter *QueryParameter) (*schema.SchemaInfo, error)
 
-	// InsertRecordData inserts new records into a table.
+	// InsertRecord inserts new records into a table.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing record data
+	//   - queryParameter: QueryParameter containing record data
 	//
 	// Returns:
 	//   - error: Any error that occurred during insertion
 	//
 	// Example:
-	//   err := executor.InsertRecordData(ctx, &QueryParameter{
+	//   err := executor.InsertRecord(ctx, &QueryParameter{
 	//       Operation: "insert",
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "tableName": "employees",
 	//           "data": map[string]interface{}{
 	//               "id": "emp123",
@@ -429,13 +478,13 @@ type TabularExecutor interface {
 	//           },
 	//       },
 	//   })
-	InsertRecordData(ctx context.Context, plan *QueryParameter) error
+	InsertRecord(ctx context.Context, queryParameter *QueryParameter) error
 
 	// GetRecord retrieves records from a table.
 	//
 	// Parameters:
 	//   - ctx: Context for the operation
-	//   - plan: QueryParameter containing query criteria
+	//   - queryParameter: QueryParameter containing query criteria
 	//
 	// Returns:
 	//   - []map[string]interface{}: List of records matching criteria
@@ -443,12 +492,13 @@ type TabularExecutor interface {
 	//
 	// Example:
 	//   records, err := executor.GetRecord(ctx, &QueryParameter{
-	//       Filters: map[string]interface{}{
+	//       Parameters: map[string]interface{}{
 	//           "tableName": "employees",
 	//           "department": "Engineering",
 	//           "limit": 10,
 	//           "offset": 0,
 	//       },
 	//   })
-	GetRecord(ctx context.Context, plan *QueryParameter) ([]map[string]interface{}, error)
+	GetRecord(ctx context.Context, queryParameter *QueryParameter) ([]map[string]interface{}, error)
+	
 } 
