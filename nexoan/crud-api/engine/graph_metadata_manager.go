@@ -3,9 +3,14 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"lk/datafoundation/crud-api/commons"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"lk/datafoundation/crud-api/pkg/storageinference"
+
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // DatasetType represents the major type for datasets
@@ -21,6 +26,10 @@ const (
 
 // IS_ATTRIBUTE relationship type
 const IS_ATTRIBUTE_RELATIONSHIP = "IS_ATTRIBUTE"
+
+// IS_ATTRIBUTE relationship direction
+// The reason for outgoing is the attribute we create here is an attribute of the parent entity.
+const IS_ATTRIBUTE_RELATIONSHIP_DIRECTION = "OUTGOING"
 
 // GraphMetadataManager handles the reference graph for tracking attributes
 type GraphMetadataManager struct {
@@ -47,16 +56,6 @@ type AttributeMetadata struct {
 
 // CreateAttributeNode creates a node in the graph for an attribute
 func (g *GraphMetadataManager) CreateAttribute(ctx context.Context, metadata *AttributeMetadata) error {
-	// TODO: Implement Neo4j or graph database connection
-	// This would create a node with the following properties:
-	// - id: unique identifier for the attribute
-	// - entity_id: the parent entity ID
-	// - attribute_name: name of the attribute
-	// - storage_type: type of storage (tabular, graph, document, blob)
-	// - storage_path: path in the storage system
-	// - created: creation timestamp
-	// - updated: last update timestamp
-	// - schema: schema information as JSON
 
 	fmt.Printf("Creating attribute node: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
 		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
@@ -66,79 +65,138 @@ func (g *GraphMetadataManager) CreateAttribute(ctx context.Context, metadata *At
 		return err
 	}
 
-	err = g.createAttributeLookUpMetadata(ctx, metadata)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-// createAttributeLookUpMetadata creates the metadata for the attribute look up
-// This is the metadata that will be used to look up the attribute.
-// It will have the following properties:
-// - attribute_id: the attribute ID
-// - storage_path: path in the storage system
-// - updated: last update timestamp (stored as a timeline in the database)
-// - schema: schema information as a dictionary
-// - metadata: other metadata such as data source, version, etc.
+// createAttributeLookUpGraph creates the graph node, relationship, and metadata for an attribute
 //
-// These metadata are stored in the document database where generally metadata are stored.
-// We locate the metadata for a given attribute by the attribute ID.
+// This function creates a complete attribute representation in the graph database with:
+//   - A graph node representing the attribute
+//   - A relationship connecting the attribute to its parent entity
+//   - Metadata containing attribute information
 //
-// Storage path is stored as a dictionary with the following properties:
-//   - storage_database: the connection details or a way to access the data.
-//   - identifier: the identifier used in the said database.
-//     If the database is table, it will the table name.
-//     If the database is a graph, it will the root node or map of nodes and relationships.
-//     If the database is a document, it will the document name.
-//     If the database is a blob, it will the blob name.
+// Graph Node Properties:
+//   - attribute_id: Unique identifier for the attribute
+//   - attribute_name: Name of the attribute
+//   - storage_type: Type of storage (tabular, graph, document, blob)
+//   - created: Creation timestamp
 //
-// Metadata are additional information about the attribute such as data source, version, verification status, etc.
+// Relationship:
+//   - Creates an IS_ATTRIBUTE relationship between the attribute and its parent entity
+//   - Used for lookups by entity ID and attribute name
+//   - Direction: INCOMING (attribute belongs to parent entity)
 //
-//	And the metadata is basically stored as a dictionary and with the ability add any key-value pair as needed.
-func (g *GraphMetadataManager) createAttributeLookUpMetadata(ctx context.Context, metadata *AttributeMetadata) error {
-	_ = ctx // TODO: Use context when implementing actual graph database operations
-
-	fmt.Printf("Creating attribute look up metadata: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
-		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
-
-	return nil
-}
-
-// createAttributeLookUpGraph creates the graph node for the attribute look up
-// This is the graph node that will be used to look up the attribute.
-// It will have the following properties:
-// - attribute_id: the attribute ID
-// - attribute_name: name of the attribute
-// - storage_type: type of storage (tabular, graph, document, blob)
-// - created: creation timestamp
+// Metadata Structure:
+//   - attribute_id: The attribute ID
+//   - storage_path: Path in the storage system
+//   - storage_type: Type of storage
+//   - updated: Last update timestamp
+//   - schema: Schema information as a dictionary
 //
-// This will create a graph node in the chosen graph database and this will represent
-// a relationship between the attribute owner entity such that this attribute will have
-// a relationship named IS_ATTRIBUTE to the attribute node.
-// This relationship will be used to look up the attribute by the entity ID and attribute name.
-// This method only handles creating the look up graph node and the relationship to
-// the attribute owner entity. But it will not create the attribute owner entity.
+// Storage Path Details:
+//   - storage_database: Connection details or access method
+//   - identifier: Database-specific identifier
+//   - Tables: table name
+//   - Graphs: root node or map of nodes/relationships
+//   - Documents: document name
+//   - Blobs: blob name
+//
+// Additional Metadata:
+//   - Data source information
+//   - Version details
+//   - Verification status
+//   - Any other key-value pairs as needed
+//
+// Note: This method creates the attribute node and relationship but does not create
+// the parent entity node itself.
 func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, metadata *AttributeMetadata) error {
 	fmt.Printf("Creating attribute look up graph: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
 		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
 
-	err := g.createAttributeRelationship(ctx, metadata.EntityID, metadata.AttributeID)
+	// create the attribute node in the graph
+	attributeNode := &pb.Entity{
+		Id: metadata.AttributeID,
+		Kind: &pb.Kind{
+			Major: "Dataset",
+			Minor: string(metadata.StorageType),
+		},
+		Name:       commons.CreateTimeBasedValue(metadata.Created.Format(time.RFC3339), "", metadata.AttributeName),
+		Created:    metadata.Created.Format(time.RFC3339),
+		Terminated: "",
+		Metadata:   MakeMetadataOfAttributeMetadata(metadata),
+		Attributes: make(map[string]*pb.TimeBasedValueList),
+		Relationships: make(map[string]*pb.Relationship),
+	}
+
+	parentNode := &pb.Entity{
+		Id: metadata.EntityID,
+		Metadata:   make(map[string]*anypb.Any),
+		Attributes: make(map[string]*pb.TimeBasedValueList),
+		Relationships: map[string]*pb.Relationship{
+			IS_ATTRIBUTE_RELATIONSHIP: MakeRelationshipFromAttributeMetadata(metadata),
+		},
+	}
+
+	neo4jRepository, err := commons.GetNeo4jRepository(ctx)
 	if err != nil {
+		log.Printf("[GraphMetadataManager.CreateAttribute] Error getting Neo4j repository: %v", err)
 		return err
 	}
+
+	success, err := neo4jRepository.HandleGraphEntityCreation(ctx, attributeNode)
+	if !success {
+		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating graph entity: %v", err)
+		return err
+	}
+
+	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute node for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
+
+	// create the relationship between the entity and the attribute
+	err = neo4jRepository.HandleGraphRelationshipsUpdate(ctx, parentNode)
+	if err != nil {
+		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating relationship: %v", err)
+		return err
+	}
+
+	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created relationship for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
 
 	return nil
 }
 
-// createIS_ATTRIBUTE_Relationship creates the IS_ATTRIBUTE relationship between entity and attribute
-func (g *GraphMetadataManager) createAttributeRelationship(ctx context.Context, entityID, attributeID string) error {
-	_ = ctx // TODO: Use context when implementing actual graph database operations
+// MakeMetadataOfAttributeMetadata converts AttributeMetadata to Entity Metadata map
+func MakeMetadataOfAttributeMetadata(metadata *AttributeMetadata) map[string]*anypb.Any {
+	entityMetadata := make(map[string]*anypb.Any)
 
-	fmt.Printf("Creating IS_ATTRIBUTE relationship: Entity=%s -> Attribute=%s\n", entityID, attributeID)
+	// Add attribute_id
+	entityMetadata["attribute_id"] = commons.ConvertStringToAny(metadata.AttributeID)
 
-	return nil
+	// Add storage_path
+	entityMetadata["storage_path"] = commons.ConvertStringToAny(metadata.StoragePath)
+
+	// Add storage_type
+	entityMetadata["storage_type"] = commons.ConvertStringToAny(string(metadata.StorageType))
+
+	// Add updated timestamp
+	entityMetadata["updated"] = commons.ConvertStringToAny(metadata.Updated.Format(time.RFC3339))
+
+	// Add schema information
+	if len(metadata.Schema) > 0 {
+		entityMetadata["schema"] = commons.ConvertMapToAny(metadata.Schema)
+	}
+
+	return entityMetadata
+}
+
+// MakeRelationshipProto creates a Relationship protobuf object for IS_ATTRIBUTE relationship
+func MakeRelationshipFromAttributeMetadata(metadata *AttributeMetadata) *pb.Relationship {
+	return &pb.Relationship{
+		Id:              GenerateAttributeRelationshipID(metadata.EntityID, metadata.AttributeName),
+		RelatedEntityId: metadata.AttributeID,
+		Name:            IS_ATTRIBUTE_RELATIONSHIP,
+		StartTime:       metadata.Created.Format(time.RFC3339),
+		EndTime:         "",
+		Direction:       IS_ATTRIBUTE_RELATIONSHIP_DIRECTION,
+	}
 }
 
 // GetAttributeMetadata retrieves metadata for an attribute
@@ -206,6 +264,10 @@ func GetDatasetType(storageType storageinference.StorageType) string {
 }
 
 // GenerateAttributeID generates a unique ID for an attribute
+func GenerateAttributeRelationshipID(entityID, attributeName string) string {
+	return fmt.Sprintf("%s_is_attribute_of_%s", attributeName, entityID)
+}
+
 func GenerateAttributeID(entityID, attributeName string) string {
 	return fmt.Sprintf("%s_attr_%s", entityID, attributeName)
 }
@@ -214,6 +276,9 @@ func GenerateAttributeID(entityID, attributeName string) string {
 func GenerateStoragePath(entityID, attributeName string, storageType storageinference.StorageType) string {
 	switch storageType {
 	case storageinference.TabularData:
+		// TODO: This is a placeholder if data are stored in multiple databases.
+		// 	This needs to be thought through and implemented such that we define a schema
+		//   for the user to define that kind of information.
 		return fmt.Sprintf("tables/attr_%s_%s", entityID, attributeName)
 	case storageinference.GraphData:
 		return fmt.Sprintf("graphs/attr_%s_%s", entityID, attributeName)

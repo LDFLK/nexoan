@@ -17,9 +17,11 @@ func TestGraphMetadataManager(t *testing.T) {
 
 	ctx := context.Background()
 
+	parentEntityID := "test-entity-1"
+
 	// Test creating attribute metadata
 	metadata := &AttributeMetadata{
-		EntityID:      "test-entity-1",
+		EntityID:      parentEntityID,
 		AttributeID:   "test-attribute-1",
 		AttributeName: "test-attribute",
 		StorageType:   storageinference.TabularData,
@@ -32,8 +34,15 @@ func TestGraphMetadataManager(t *testing.T) {
 		},
 	}
 
+	entity, err := createEntityWithAttributes(parentEntityID, "test-entity-1", map[string]string{
+		"test-attribute": `{"columns": ["id", "name"], "types": ["int", "string"]}`,
+	})
+	assert.NoError(t, err)
+	err = saveEntityToDatabase(ctx, entity)
+	assert.NoError(t, err)	
+
 	// Test creating attribute node
-	err := manager.CreateAttribute(ctx, metadata)
+	err = manager.CreateAttribute(ctx, metadata)
 	assert.NoError(t, err)
 
 	// Test getting attribute metadata
@@ -113,7 +122,7 @@ func TestStoragePathGeneration(t *testing.T) {
 // TestGraphMetadataIntegration tests the integration of graph metadata with attribute processing
 func TestGraphMetadataIntegration(t *testing.T) {
 	// Create an entity with mixed data types
-	entity, err := createEntityWithAttributes("integration-test-entity", map[string]string{
+	entity, err := createEntityWithAttributes("id-integration-test-entity-1", "integration-test-entity-1", map[string]string{
 		"tabular_data": `{
 			"columns": ["id", "name"],
 			"rows": [[1, "John"], [2, "Jane"]]
@@ -130,6 +139,10 @@ func TestGraphMetadataIntegration(t *testing.T) {
 
 	processor := NewEntityAttributeProcessor()
 	ctx := context.Background()
+
+	// save the parent entity in the database
+	err = saveEntityToDatabase(ctx, entity)
+	assert.NoError(t, err)
 
 	// Test create operation - this should create graph metadata
 	err = processor.ProcessEntityAttributes(ctx, entity, "create")
