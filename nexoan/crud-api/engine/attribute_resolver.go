@@ -163,7 +163,7 @@ func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, en
 	case "read":
 		// For read operations, we might want to verify the attribute exists in the graph
 		// This is optional but can be useful for validation
-		_, err := p.graphManager.GetAttributeMetadata(ctx, entityID, attrName)
+		_, err := p.graphManager.GetAttribute(ctx, entityID, attrName)
 		if err != nil {
 			fmt.Printf("Warning: attribute %s not found in graph metadata for entity %s\n", attrName, entityID)
 		}

@@ -46,7 +46,7 @@ func TestGraphMetadataManager(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test getting attribute metadata
-	retrievedMetadata, err := manager.GetAttributeMetadata(ctx, metadata.EntityID, metadata.AttributeName)
+	retrievedMetadata, err := manager.GetAttribute(ctx, metadata.EntityID, metadata.AttributeName)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedMetadata)
 	assert.Equal(t, metadata.EntityID, retrievedMetadata.EntityID)

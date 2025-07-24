@@ -56,7 +56,7 @@ func (d *DataDiscoveryService) FindAttributeByName(ctx context.Context, attribut
 // GetAttributeLocation gets the specific location of an attribute
 func (d *DataDiscoveryService) GetAttributeLocation(ctx context.Context, entityID, attributeName string) (*AttributeMetadata, error) {
 	// Get metadata from graph
-	metadata, err := d.graphManager.GetAttributeMetadata(ctx, entityID, attributeName)
+	metadata, err := d.graphManager.GetAttribute(ctx, entityID, attributeName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attribute metadata: %v", err)
 	}
@@ -153,7 +153,7 @@ func (d *DataDiscoveryService) ValidateAttributeLocation(ctx context.Context, lo
 // GetAttributeSchema retrieves the schema information for an attribute
 func (d *DataDiscoveryService) GetAttributeSchema(ctx context.Context, entityID, attributeName string) (map[string]interface{}, error) {
 	// Get metadata which includes schema information
-	metadata, err := d.graphManager.GetAttributeMetadata(ctx, entityID, attributeName)
+	metadata, err := d.graphManager.GetAttribute(ctx, entityID, attributeName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attribute metadata: %v", err)
 	}
