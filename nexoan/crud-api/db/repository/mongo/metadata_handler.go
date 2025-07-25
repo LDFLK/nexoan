@@ -12,8 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// ...existing code...
-
 // CreateMetadata creates a new entity with metadata if it doesn't exist.
 func (repo *MongoRepository) HandleMetadataCreation(ctx context.Context, entityId string, entity *pb.Entity) error {
 	if entity == nil || entity.GetMetadata() == nil || len(entity.GetMetadata()) == 0 {
@@ -25,7 +23,7 @@ func (repo *MongoRepository) HandleMetadataCreation(ctx context.Context, entityI
 		return err
 	}
 	if existingEntity != nil {
-		return mongo.ErrNoDocuments // Or return a custom error: entity already exists
+		return mongo.ErrNoDocuments
 	}
 
 	newEntity := &pb.Entity{
@@ -43,8 +41,8 @@ func (repo *MongoRepository) HandleMetadataCreation(ctx context.Context, entityI
 }
 
 // UpdateMetadata updates metadata for an existing entity.
-func (repo *MongoRepository) HandleMetadataUpdate(ctx context.Context, entityId string, metadata map[string]*anypb.Any) error {
-	if len(metadata) == 0 {
+func (repo *MongoRepository) HandleMetadataUpdate(ctx context.Context, entityId string, entity *pb.Entity) error {
+	if len(entity.GetMetadata()) == 0 {
 		return nil
 	}
 
@@ -53,10 +51,10 @@ func (repo *MongoRepository) HandleMetadataUpdate(ctx context.Context, entityId 
 		return err
 	}
 	if existingEntity == nil {
-		return mongo.ErrNoDocuments // Or return a custom error: entity not found
+		return mongo.ErrNoDocuments
 	}
 
-	_, err = repo.UpdateEntity(ctx, entityId, bson.M{"metadata": metadata})
+	_, err = repo.UpdateEntity(ctx, entityId, bson.M{"metadata": entity.GetMetadata()})
 	return err
 }
 

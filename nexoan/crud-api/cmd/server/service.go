@@ -180,7 +180,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	var metadata map[string]*anypb.Any
 
 	// Pass the ID and metadata to HandleMetadata
-	err := s.mongoRepo.HandleMetadataUpdate(ctx, updateEntityID, updateEntity.GetMetadata())
+	err := s.mongoRepo.HandleMetadataUpdate(ctx, updateEntityID, updateEntity)
 	if err != nil {
 		// Log error and continue with empty metadata
 		log.Printf("[server.UpdateEntity] Error updating metadata for entity %s: %v", updateEntityID, err)
