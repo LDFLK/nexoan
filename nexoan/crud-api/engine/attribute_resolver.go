@@ -190,16 +190,16 @@ func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolve
 	}
 
 	switch operation {
-	case "create":
-		return resolver.CreateResolve(ctx, entityID, attrName, value)
-	case "read":
-		return resolver.ReadResolve(ctx, entityID, attrName, value)
-	case "update":
-		return resolver.UpdateResolve(ctx, entityID, attrName, value)
-	case "delete":
-		return resolver.DeleteResolve(ctx, entityID, attrName, value)
-	default:
-		return fmt.Errorf("unknown operation: %s", operation)
+		case "create":
+			return resolver.CreateResolve(ctx, entityID, attrName, value)
+		case "read":
+			return resolver.ReadResolve(ctx, entityID, attrName, value)
+		case "update":
+			return resolver.UpdateResolve(ctx, entityID, attrName, value)
+		case "delete":
+			return resolver.DeleteResolve(ctx, entityID, attrName, value)
+		default:
+			return fmt.Errorf("unknown operation: %s", operation)
 	}
 }
 

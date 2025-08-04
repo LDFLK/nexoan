@@ -7,7 +7,36 @@ import (
 	"lk/datafoundation/crud-api/pkg/storageinference"
 )
 
-// DataDiscoveryService provides methods to discover and locate data attributes
+// DataDiscoveryService provides comprehensive data discovery and metadata management capabilities
+// for the distributed data platform architecture. It serves as the central service for
+// discovering, locating, and managing data attributes across different storage systems.
+//
+// Key Capabilities:
+//   - **Attribute Discovery**: Find and locate data attributes across entities and storage systems
+//   - **Metadata Management**: Retrieve and manage attribute metadata including storage locations, schemas, and properties
+//   - **Search and Filtering**: Advanced search capabilities with multiple criteria and patterns
+//   - **Storage Resolution**: Resolve storage types and provide appropriate resolvers for data access
+//   - **Validation**: Validate attribute locations and metadata integrity
+//   - **Reporting**: Generate comprehensive discovery reports and analytics
+//
+// Storage System Support:
+//   - **Graph Databases**: Neo4j and other graph databases for relationship data
+//   - **Tabular Storage**: SQL databases, data warehouses, and structured data stores
+//   - **Document Storage**: NoSQL databases, document stores, and JSON data
+//   - **Blob Storage**: File systems, object storage, and binary data
+//
+// Use Cases:
+//   - **Data Catalog**: Building comprehensive data catalogs and inventories
+//   - **Data Lineage**: Tracking data relationships and dependencies
+//   - **Compliance**: Supporting data governance and regulatory requirements
+//   - **Analytics**: Enabling data discovery for analytics and reporting
+//   - **Integration**: Facilitating data integration across heterogeneous systems
+//
+// Architecture Integration:
+//   - Works with GraphMetadataManager for graph-based metadata storage
+//   - Integrates with AttributeResolver for data access operations
+//   - Supports the LDF entity-attribute relationship model
+//   - Provides RESTful and GraphQL API endpoints for external access
 type DataDiscoveryService struct {
 	graphManager *GraphMetadataManager
 }
