@@ -117,3 +117,10 @@ Entity relFilterName = {
 ```
 
 * Note this doesn't apply to other fields. If you don't want to include a field's value, you don't need to pass the field at all. 
+
+
+## Debug with Choreo
+
+```bash
+choreo connect --project ldf_sandbox_vibhatha --component crud-service
+```

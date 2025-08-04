@@ -44,3 +44,6 @@ docker/neo4j/logs/*
 #vscode
 .vscode
 
+#env
+nexoan/crud-api/.env.*
+
