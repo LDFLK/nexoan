@@ -17,7 +17,7 @@ func TestGraphMetadataManager(t *testing.T) {
 
 	ctx := context.Background()
 
-	parentEntityID := "test-entity-1"
+	parentEntityID := "engine-test-entity-1"
 
 	// Test creating attribute metadata
 	metadata := &AttributeMetadata{
@@ -34,12 +34,12 @@ func TestGraphMetadataManager(t *testing.T) {
 		},
 	}
 
-	entity, err := createEntityWithAttributes(parentEntityID, "test-entity-1", map[string]string{
+	entity, err := createEntityWithAttributes(parentEntityID, "Engine Test Entity 1", map[string]string{
 		"test-attribute": `{"columns": ["id", "name"], "types": ["int", "string"]}`,
 	})
 	assert.NoError(t, err)
 	err = saveEntityToDatabase(ctx, entity)
-	assert.NoError(t, err)	
+	assert.NoError(t, err)
 
 	// Test creating attribute node
 	err = manager.CreateAttribute(ctx, metadata)
@@ -89,26 +89,26 @@ func TestDatasetTypeMapping(t *testing.T) {
 
 // TestAttributeIDGeneration tests the attribute ID generation
 func TestAttributeIDGeneration(t *testing.T) {
-	entityID := "test-entity-123"
+	entityID := "engine-test-entity-123"
 	attributeName := "user_profile"
 
 	attributeID := GenerateAttributeID(entityID, attributeName)
-	expectedID := "test-entity-123_attr_user_profile"
+	expectedID := "engine-test-entity-123_attr_user_profile"
 	assert.Equal(t, expectedID, attributeID)
 }
 
 // TestStoragePathGeneration tests the storage path generation
 func TestStoragePathGeneration(t *testing.T) {
-	entityID := "test-entity-123"
+	entityID := "engine-test-entity-123"
 	attributeName := "user_profile"
 
 	testCases := map[storageinference.StorageType]string{
-		storageinference.TabularData: "tables/attr_test-entity-123_user_profile",
-		storageinference.GraphData:   "graphs/attr_test-entity-123_user_profile",
-		storageinference.MapData:     "documents/attr_test-entity-123_user_profile",
-		storageinference.ListData:    "documents/attr_test-entity-123_user_profile",
-		storageinference.ScalarData:  "documents/attr_test-entity-123_user_profile",
-		storageinference.UnknownData: "unknown/attr_test-entity-123_user_profile",
+		storageinference.TabularData: "tables/attr_engine-test-entity-123_user_profile",
+		storageinference.GraphData:   "graphs/attr_engine-test-entity-123_user_profile",
+		storageinference.MapData:     "documents/attr_engine-test-entity-123_user_profile",
+		storageinference.ListData:    "documents/attr_engine-test-entity-123_user_profile",
+		storageinference.ScalarData:  "documents/attr_engine-test-entity-123_user_profile",
+		storageinference.UnknownData: "unknown/attr_engine-test-entity-123_user_profile",
 	}
 
 	for storageType, expectedPath := range testCases {
@@ -122,7 +122,7 @@ func TestStoragePathGeneration(t *testing.T) {
 // TestGraphMetadataIntegration tests the integration of graph metadata with attribute processing
 func TestGraphMetadataIntegration(t *testing.T) {
 	// Create an entity with mixed data types
-	entity, err := createEntityWithAttributes("id-integration-test-entity-1", "integration-test-entity-1", map[string]string{
+	entity, err := createEntityWithAttributes("engine-id-integration-test-entity-1", "integration-test-entity-1", map[string]string{
 		"tabular_data": `{
 			"columns": ["id", "name"],
 			"rows": [[1, "John"], [2, "Jane"]]
@@ -230,21 +230,21 @@ func TestDataDiscoveryService(t *testing.T) {
 // TestAttributeMetadataStructure tests the AttributeMetadata structure
 func TestAttributeMetadataStructure(t *testing.T) {
 	metadata := &AttributeMetadata{
-		EntityID:      "test-entity-1",
-		AttributeID:   "test-entity-1_attr_user_profile",
+		EntityID:      "engine-test-entity-1",
+		AttributeID:   "engine-test-entity-1_attr_user_profile",
 		AttributeName: "user_profile",
 		StorageType:   storageinference.TabularData,
-		StoragePath:   "tables/attr_test-entity-1_user_profile",
+		StoragePath:   "tables/engine-test-entity-1_attr_user_profile",
 		Created:       time.Now(),
 		Updated:       time.Now(),
 		Schema:        make(map[string]interface{}),
 	}
 
-	assert.Equal(t, "test-entity-1", metadata.EntityID)
-	assert.Equal(t, "test-entity-1_attr_user_profile", metadata.AttributeID)
+	assert.Equal(t, "engine-test-entity-1", metadata.EntityID)
+	assert.Equal(t, "engine-test-entity-1_attr_user_profile", metadata.AttributeID)
 	assert.Equal(t, "user_profile", metadata.AttributeName)
 	assert.Equal(t, storageinference.TabularData, metadata.StorageType)
-	assert.Equal(t, "tables/attr_test-entity-1_user_profile", metadata.StoragePath)
+	assert.Equal(t, "tables/engine-test-entity-1_attr_user_profile", metadata.StoragePath)
 	assert.NotZero(t, metadata.Created)
 	assert.NotZero(t, metadata.Updated)
 	assert.NotNil(t, metadata.Schema)
@@ -295,8 +295,8 @@ func TestDiscoveryReportStructure(t *testing.T) {
 		},
 		RecentAttributes: []*AttributeMetadata{
 			{
-				EntityID:      "entity-1",
-				AttributeID:   "entity-1_attr_attr-1",
+				EntityID:      "engine-test-entity-1",
+				AttributeID:   "engine-test-entity-1_attr_attr-1",
 				AttributeName: "attr-1",
 				StorageType:   storageinference.TabularData,
 				Created:       time.Now(),
@@ -320,7 +320,7 @@ func TestDiscoveryReportStructure(t *testing.T) {
 	assert.Equal(t, 20, report.ByDatasetType[GraphDataset])
 	assert.Equal(t, 30, report.ByDatasetType[DocumentDataset])
 	assert.Len(t, report.RecentAttributes, 1)
-	assert.Equal(t, "entity-1", report.RecentAttributes[0].EntityID)
+	assert.Equal(t, "engine-test-entity-1", report.RecentAttributes[0].EntityID)
 	assert.Equal(t, "1.5GB", report.StorageBreakdown["total_size"])
 	assert.Equal(t, 50, report.StorageBreakdown["table_count"])
 }
