@@ -18,7 +18,6 @@ listener http:Listener ep0 = new (check langint:fromString(updateServicePort), c
 
 // Create gRPC client with proper configuration for HTTP/2
 grpc:ClientConfiguration grpcConfig = {
-    timeout: 300000 // 5 minutes timeout
 };
 
 CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);

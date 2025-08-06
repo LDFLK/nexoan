@@ -45,13 +45,27 @@ jobs:
           timeout=$((timeout - 5))
         done
         
-        # Additional wait for CRUD service to be fully ready
-        echo "Waiting for CRUD service to be ready..."
-        sleep 30
+        # Wait for CRUD service to complete tests and start the server
+        echo "Waiting for CRUD service to complete tests and start server..."
+        timeout=600  # 10 minutes for Go tests to complete
+        while [ $timeout -gt 0 ]; do
+          if docker compose logs crud | grep -q "CRUD Service is running on"; then
+            echo "✅ CRUD service is now running!"
+            break
+          elif docker compose logs crud | grep -q "FAILED\|failed\|error.*test"; then
+            echo "❌ CRUD service tests failed!"
+            echo "CRUD service logs:"
+            docker compose logs crud
+            docker compose down
+            exit 1
+          fi
+          echo "Waiting for CRUD service startup... ($timeout seconds remaining)"
+          sleep 10
+          timeout=$((timeout - 10))
+        done
         
-        # Check CRUD service health
-        if ! docker compose ps crud | grep -q "healthy\|running"; then
-          echo "CRUD service is not healthy!"
+        if [ $timeout -le 0 ]; then
+          echo "❌ Timeout waiting for CRUD service to start!"
           echo "CRUD service logs:"
           docker compose logs crud
           docker compose down
