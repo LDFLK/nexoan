@@ -4,14 +4,88 @@
 
 ### Prerequisites
 
-- Docker installed
+- Docker and Docker Compose installed
 - Git repository cloned
-- Ports 50051 (CRUD service) and 8080 (Update service) available
-- MongoDB and Neo4j instances (for CRUD service)
+- Ports available:
+  - 50051 (CRUD service)
+  - 8080 (Update service)
+  - 27018 (MongoDB choreo)
+  - 7475/7688 (Neo4j choreo)
+  - 5433 (PostgreSQL choreo)
 
-### Environment Setup
+### Docker Compose Setup (Recommended)
 
-Set up your environment variables in your terminal:
+The easiest way to run the choreo services locally is using the dedicated docker-compose file that includes all required databases.
+
+#### Quick Start
+
+```bash
+# Clone the repository and navigate to the root directory
+cd /path/to/LDFArchitecture
+
+# Start all choreo services (includes databases)
+docker-compose -f docker-compose-choreo.yml up --build
+
+# Or start specific services
+docker-compose -f docker-compose-choreo.yml up --build crud-choreo update-choreo
+
+# Run in background
+docker-compose -f docker-compose-choreo.yml up --build -d
+```
+
+#### Available Docker Compose Commands
+
+```bash
+# Build services with no cache (recommended after code changes)
+docker-compose -f docker-compose-choreo.yml build --no-cache
+
+# Start all services
+docker-compose -f docker-compose-choreo.yml up
+
+# Start with build
+docker-compose -f docker-compose-choreo.yml up --build
+
+# Start specific services
+docker-compose -f docker-compose-choreo.yml up mongodb-choreo neo4j-choreo postgres-choreo
+docker-compose -f docker-compose-choreo.yml up crud-choreo update-choreo
+
+# View logs
+docker-compose -f docker-compose-choreo.yml logs crud-choreo
+docker-compose -f docker-compose-choreo.yml logs update-choreo
+
+# Stop all services
+docker-compose -f docker-compose-choreo.yml down
+
+# Stop and remove volumes (clean slate)
+docker-compose -f docker-compose-choreo.yml down -v
+
+# Debug: Run interactive shell in a service
+docker-compose -f docker-compose-choreo.yml run --entrypoint="" crud-choreo sh
+docker-compose -f docker-compose-choreo.yml run --entrypoint="" update-choreo sh
+
+# Run end-to-end tests
+docker-compose -f docker-compose-choreo.yml up e2e-choreo
+```
+
+#### Service Architecture
+
+The docker-compose setup includes:
+- **mongodb-choreo**: MongoDB instance (port 27018)
+- **neo4j-choreo**: Neo4j graph database (ports 7475, 7688)
+- **postgres-choreo**: PostgreSQL database (port 5433)
+- **crud-choreo**: CRUD API service (port 50051)
+- **update-choreo**: Update API service (port 8080)
+- **e2e-choreo**: End-to-end test runner
+
+#### Database Access
+
+- **MongoDB**: `mongodb://admin:admin123@localhost:27018/admin`
+- **Neo4j**: `http://localhost:7475` (user: neo4j, password: neo4j123)
+- **PostgreSQL**: `postgresql://postgres:postgres@localhost:5433/ldf_choreo_nexoan`
+
+### Manual Environment Setup (Alternative)
+
+If you prefer to run services manually or against external databases, set up your environment variables:
 
 ```bash
 # MongoDB Configuration
@@ -25,6 +99,14 @@ export MONGO_ADMIN_PASSWORD="your-mongo-admin-password"
 export NEO4J_URI="neo4j+s://your-neo4j-instance.databases.neo4j.io"
 export NEO4J_USER="your-neo4j-username"
 export NEO4J_PASSWORD="your-neo4j-password"
+
+# PostgreSQL Configuration
+export POSTGRES_HOST="your-postgres-host"
+export POSTGRES_PORT=5432
+export POSTGRES_USER="your-postgres-username"
+export POSTGRES_PASSWORD="your-postgres-password"
+export POSTGRES_DB="your-postgres-database"
+export POSTGRES_SSL_MODE="require"
 
 # Service Configuration
 export CRUD_SERVICE_HOST="0.0.0.0"
@@ -68,6 +150,31 @@ docker run -d \
   -e CRUD_SERVICE_PORT="$CRUD_SERVICE_PORT" \
   ldf-choreo-crud-service
 ```
+
+2. Start the Update Service:
+
+```bash
+# Build the update service image
+docker build -t ldf-choreo-update-service -f Dockerfile.update.choreo .
+
+# Run the update service using environment variables
+docker run -d -p 8080:8080 \
+  --name ldf-choreo-update-service \
+  -e CRUD_SERVICE_URL="http://host.docker.internal:$CRUD_SERVICE_PORT" \
+  -e UPDATE_SERVICE_HOST="$UPDATE_SERVICE_HOST" \
+  -e UPDATE_SERVICE_PORT="$UPDATE_SERVICE_PORT" \
+  ldf-choreo-update-service
+```
+
+## Testing Locally 
+
+### Running Database services
+
+```bash
+docker-compose -f docker-compose-choreo.yml up -d mongodb-choreo neo4j-choreo postgres-choreo
+```
+
+
 
 ## References
 

@@ -75,9 +75,9 @@ RUN groupadd -g 10014 choreo && \
 RUN cd nexoan/crud-api && \
     go mod download
 
-# Build the application
+# Build the application as a static binary
 RUN cd nexoan/crud-api && \
-    go build -o crud-service cmd/server/service.go cmd/server/utils.go
+    CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o crud-service cmd/server/service.go cmd/server/utils.go
 
 # Final stage
 FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.24
@@ -87,7 +87,7 @@ RUN apt-get update && \
     apt-get install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the built binary from builder stage
+# Copy the built binary to PATH and the entire crud-api directory
 COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
 COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
 COPY --from=builder /etc/passwd /etc/passwd
@@ -109,5 +109,5 @@ USER 10014
 # Expose ports
 EXPOSE 50051
 
-# Set the entrypoint to run the service directly
-ENTRYPOINT ["crud-service"] 
+# Set the entrypoint to run the service from where it actually exists
+ENTRYPOINT ["/app/nexoan/crud-api/crud-service"] 

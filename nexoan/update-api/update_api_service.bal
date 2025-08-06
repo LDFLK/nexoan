@@ -4,18 +4,24 @@
 import ballerina/http;
 import ballerina/protobuf.types.'any as pbAny;
 import ballerina/io;
-import ballerina/os;
 import ballerina/lang.'int as langint;
+import ballerina/grpc;
 
-string crudHostname = os:getEnv("CRUD_SERVICE_HOST");
-string updateHostname = os:getEnv("UPDATE_SERVICE_HOST");
-string crudPort = os:getEnv("CRUD_SERVICE_PORT");
-string updatePort = os:getEnv("UPDATE_SERVICE_PORT");
+configurable string crudServiceUrl = "http://host.docker.internal:50051";
+configurable string updateServiceHost = "0.0.0.0";
+configurable string updateServicePort = "8080";
 
-listener http:Listener ep0 = new (check langint:fromString(updatePort), config = {host: updateHostname});
+listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {
+    host: updateServiceHost,
+    httpVersion: http:HTTP_2_0
+});
 
-string crudServiceUrl = "http://" + crudHostname + ":" + crudPort;
-CrudServiceClient ep = check new (crudServiceUrl);
+// Create gRPC client with proper configuration for HTTP/2
+grpc:ClientConfiguration grpcConfig = {
+    timeout: 300000 // 5 minutes timeout
+};
+
+CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
 
 service / on ep0 {
     # Delete an entity
