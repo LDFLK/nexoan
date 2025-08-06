@@ -548,8 +548,11 @@ function testCreateMinimalGraphEntity() returns error? {
 
 @test:Config {}
 function testCreateMinimalGraphEntityViaRest() returns error? {
-    // Initialize an HTTP client for the REST API
-    http:Client restClient = check new (testUpdateServiceUrl);
+    // Initialize an HTTP client for the REST API with HTTP/2 support
+    http:ClientConfiguration httpConfig = {
+        httpVersion: "2.0" // Enable HTTP/2
+    };
+    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
     
     // Test data setup - minimal JSON entity
     string testId = "test-minimal-json-entity";
@@ -637,8 +640,11 @@ function testEntityWithRelationship() returns error? {
     string sourceEntityId = "test-entity-with-relationship-source";
     string targetEntityId = "test-entity-with-relationship-target";
     
-    // Initialize REST client
-    http:Client restClient = check new (testUpdateServiceUrl);
+    // Initialize REST client with HTTP/2 support
+    http:ClientConfiguration httpConfig = {
+        httpVersion: "2.0" // Enable HTTP/2
+    };
+    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
     
     // Create source entity
     json sourceEntityJson = {

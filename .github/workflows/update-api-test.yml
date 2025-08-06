@@ -26,8 +26,8 @@ jobs:
     
     - name: Build and test Update service
       run: |
-        # Build Update service
-        docker compose build update
+        # Build Update service (force rebuild to pick up environment variable changes)
+        docker compose build --no-cache update
         
         # Start required dependencies
         docker compose up -d mongodb neo4j postgres crud

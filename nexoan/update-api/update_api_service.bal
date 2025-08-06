@@ -7,8 +7,11 @@ import ballerina/io;
 import ballerina/lang.'int as langint;
 import ballerina/grpc;
 
-configurable string crudServiceUrl = "http://0.0.0.0:50051";
+// BAL_CONFIG_VAR_CRUDSERVICEURL
+configurable string crudServiceUrl = ?;
+// BAL_CONFIG_VAR_UPDATESERVICEHOST
 configurable string updateServiceHost = "0.0.0.0";
+// BAL_CONFIG_VAR_UPDATESERVICEPORT
 configurable string updateServicePort = "8080";
 
 listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {
@@ -18,6 +21,10 @@ listener http:Listener ep0 = new (check langint:fromString(updateServicePort), c
 
 // Create gRPC client with proper configuration for HTTP/2
 grpc:ClientConfiguration grpcConfig = {
+    timeout: 300000, // 5 minutes timeout
+    secureSocket: {
+        enable: false // Disable TLS for insecure connection
+    }
 };
 
 CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
@@ -29,6 +36,7 @@ service / on ep0 {
     resource function delete entities/[string id]() returns http:NoContent|error {
         var result = ep->DeleteEntity({id: id});
         if result is error {
+            io:println("gRPC DeleteEntity failed: ", result.message());
             return result;
         }
         return http:NO_CONTENT;
@@ -44,6 +52,7 @@ service / on ep0 {
         io:println(payload);
         var result = ep->CreateEntity(payload);
         if result is error {
+            io:println("gRPC CreateEntity failed: ", result.message());
             return result;
         }
         return result;
@@ -64,6 +73,7 @@ service / on ep0 {
         
         var result = ep->UpdateEntity(updateRequest);
         if result is error {
+            io:println("gRPC UpdateEntity failed: ", result.message());
             return result;
         }
         return result;
@@ -97,6 +107,7 @@ service / on ep0 {
         Entity|error result = ep->ReadEntity(readEntityRequest);
         
         if result is error {
+            io:println("gRPC ReadEntity failed: ", result.message());
             return result;
         }
         
