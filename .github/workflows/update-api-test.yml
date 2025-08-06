@@ -40,10 +40,30 @@ jobs:
             echo "Dependencies are starting to be healthy..."
             break
           fi
+          # Check if any services have failed
+          if docker compose ps | grep -q "Exit"; then
+            echo "❌ Some services have failed during startup!"
+            echo "=== Service Status ==="
+            docker compose ps
+            echo "=== Failed Service Logs ==="
+            docker compose logs mongodb neo4j postgres crud
+            docker compose down
+            exit 1
+          fi
           echo "Waiting for health checks... ($timeout seconds remaining)"
           sleep 5
           timeout=$((timeout - 5))
         done
+        
+        if [ $timeout -le 0 ]; then
+          echo "❌ Timeout waiting for dependencies to be healthy!"
+          echo "=== Service Status ==="
+          docker compose ps
+          echo "=== Dependency Logs ==="
+          docker compose logs mongodb neo4j postgres crud
+          docker compose down
+          exit 1
+        fi
         
         # Wait for CRUD service to complete tests and start the server
         echo "Waiting for CRUD service to complete tests and start server..."
@@ -74,7 +94,17 @@ jobs:
         
         # Start Update service in detached mode
         echo "Starting Update service and running tests..."
-        docker compose up -d update
+        if ! docker compose up -d update; then
+          echo "❌ Failed to start Update service!"
+          echo "=== All Service Status ==="
+          docker compose ps
+          echo "=== CRUD Service Logs ==="
+          docker compose logs crud
+          echo "=== Update Service Logs ==="
+          docker compose logs update
+          docker compose down
+          exit 1
+        fi
         
         # Wait for tests to complete
         echo "Waiting for tests to complete..."
