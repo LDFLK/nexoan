@@ -101,10 +101,11 @@ services:
     networks:
       - ldf-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:50051 || exit 1"]
-      interval: 30s
+      test: ["CMD", "nc", "-zv", "localhost", "50051"]
+      interval: 15s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 120s
 
   update:
     platform: linux/amd64
@@ -125,10 +126,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8080"]
-      interval: 10s
-      timeout: 5s
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 120s
 
   query:
     platform: linux/amd64
@@ -148,11 +149,11 @@ services:
       crud:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "8081"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "nc", "-zv", "localhost", "8081"]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 120s
 
   e2e:
     platform: linux/amd64

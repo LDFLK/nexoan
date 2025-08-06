@@ -156,22 +156,17 @@ COPY --from=builder /app/nexoan/update-api /app/nexoan/update-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
+# Set Ballerina configurable variables from environment variables
+ENV BAL_CONFIG_VAR_CRUDSERVICEURL=${CRUD_SERVICE_URL:-http://crud-choreo:50051}
+ENV BAL_CONFIG_VAR_UPDATESERVICEHOST=${UPDATE_SERVICE_HOST:-0.0.0.0}
+ENV BAL_CONFIG_VAR_UPDATESERVICEPORT=${UPDATE_SERVICE_PORT:-8080}
+
 # Create startup script with proper line endings
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'if [ -z "$CRUD_SERVICE_URL" ]; then' >> /app/start.sh && \
-    echo '    echo "Error: CRUD_SERVICE_URL environment variable is not set"' >> /app/start.sh && \
-    echo '    exit 1' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'if [ -z "$UPDATE_SERVICE_HOST" ]; then' >> /app/start.sh && \
-    echo '    echo "Error: UPDATE_SERVICE_HOST environment variable is not set"' >> /app/start.sh && \
-    echo '    exit 1' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'if [ -z "$UPDATE_SERVICE_PORT" ]; then' >> /app/start.sh && \
-    echo '    echo "Error: UPDATE_SERVICE_PORT environment variable is not set"' >> /app/start.sh && \
-    echo '    exit 1' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "Starting update service with CRUD_SERVICE_URL: $CRUD_SERVICE_URL and UPDATE_SERVICE_HOST: $UPDATE_SERVICE_HOST and UPDATE_SERVICE_PORT: $UPDATE_SERVICE_PORT"' >> /app/start.sh && \
+    echo 'echo "Starting update service with Ballerina configurable variables:"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_CRUDSERVICEURL: $BAL_CONFIG_VAR_CRUDSERVICEURL"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEHOST: $BAL_CONFIG_VAR_UPDATESERVICEHOST"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEPORT: $BAL_CONFIG_VAR_UPDATESERVICEPORT"' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo 'exec bal run /app/nexoan/update-api' >> /app/start.sh && \
     chmod +x /app/start.sh && \
