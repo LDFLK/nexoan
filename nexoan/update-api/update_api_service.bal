@@ -7,7 +7,7 @@ import ballerina/io;
 import ballerina/lang.'int as langint;
 import ballerina/grpc;
 
-configurable string crudServiceUrl = "http://host.docker.internal:50051";
+configurable string crudServiceUrl = "http://0.0.0.0:50051";
 configurable string updateServiceHost = "0.0.0.0";
 configurable string updateServicePort = "8080";
 
