@@ -15,23 +15,41 @@ on:
       - 'docker-compose.yml'
 
 jobs:
-  test:
+  update-api-workflow:
     runs-on: ubuntu-latest
     
     steps:
+
     - uses: actions/checkout@v3
-    
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
     - name: Build and test Update service
       run: |
+        # Clean up any existing containers and volumes from previous runs
+        echo "🧹 Cleaning up any existing containers and volumes..."
+        docker compose down -v --remove-orphans || true
+        docker system prune -f || true
+
         # Build Update service (force rebuild to pick up environment variable changes)
         docker compose build --no-cache update
         
         # Start required dependencies
         docker compose up -d mongodb neo4j postgres crud
         
+        # Wait for databases to be fully initialized
+        echo "⏳ Waiting for databases to be fully initialized..."
+        sleep 30
+
+        # Verify databases are fresh and ready
+        echo "🔍 Verifying database state..."
+        echo "MongoDB collections:"
+        docker exec mongodb mongosh --eval "db.getMongo().getDBNames()" || echo "MongoDB not ready yet"
+        echo "Neo4j nodes:"
+        docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH (n) RETURN count(n) as nodeCount" || echo "Neo4j not ready yet"
+        echo "PostgreSQL tables:"
+        docker exec postgres psql -U postgres -d nexoan -c "\dt" || echo "PostgreSQL not ready yet"
+
         # Wait for dependencies to be healthy
         echo "Waiting for dependencies to be healthy..."
         timeout=300
@@ -149,5 +167,7 @@ jobs:
           fi
         fi
         
-        # Cleanup
-        docker compose down 
+        # Cleanup - ensure complete cleanup for next CI run
+        echo "🧹 Final cleanup - removing all containers and volumes..."
+        docker compose down -v --remove-orphans
+        docker system prune -f
