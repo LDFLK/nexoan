@@ -32,6 +32,10 @@ jobs:
         docker system prune -f || true
 
         # Build Update service (force rebuild to pick up environment variable changes)
+        # Remove volumes to ensure fresh state since the database is not being reset after
+        # test runs are completed. 
+        docker volume rm mongodb_data neo4j_data neo4j_logs postgres_data || true
+
         docker compose build --no-cache update
         
         # Start required dependencies
