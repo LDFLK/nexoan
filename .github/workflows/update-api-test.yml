@@ -21,16 +21,25 @@ jobs:
     steps:
 
     - uses: actions/checkout@v3
+    
+    - name: Clear GitHub Actions cache
+      run: |
+        echo "🧹 Clearing GitHub Actions cache..."
+        rm -rf ~/.cache || true
+        rm -rf /tmp/* || true
+        
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
     - name: Build and test Update service
       run: |
-        # Clean up any existing containers from previous runs
-        echo "🧹 Cleaning up any existing containers..."
+        # Complete cache and container cleanup for fresh start
+        echo "🧹 Complete cleanup - removing all containers, images, and cache..."
         docker compose down --remove-orphans || true
-        docker system prune -f || true
-
+        docker system prune -af || true  # -a removes all unused images, -f forces without prompt
+        docker builder prune -af || true  # Clean build cache
+        docker volume prune -f || true    # Clean unused volumes
+        
         # Build Update service (force rebuild to pick up environment variable changes)
         docker compose build --no-cache update
 
