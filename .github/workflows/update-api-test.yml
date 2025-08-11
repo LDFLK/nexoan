@@ -105,6 +105,13 @@ jobs:
             docker compose logs crud
             docker compose down
             exit 1
+          elif docker compose logs crud | grep -q "duplicate key error"; then
+            echo "❌ CRUD service tests failed due to duplicate key error!"
+            echo "This indicates database cleanup didn't work properly."
+            echo "CRUD service logs:"
+            docker compose logs crud
+            docker compose down
+            exit 1
           fi
           echo "Waiting for CRUD service startup... ($timeout seconds remaining)"
           sleep 10

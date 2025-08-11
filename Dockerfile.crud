@@ -161,6 +161,18 @@ until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U 
 done\n\
 echo "PostgreSQL connection successful!"\n\
 \n\
+# Clean databases before running tests\n\
+echo "=== Cleaning Databases Before Tests ==="\n\
+echo "Cleaning MongoDB collections..."\n\
+mongosh --eval "db.getMongo().getDBNames().forEach(function(dbName) { db = db.getSiblingDB(dbName); db.getCollectionNames().forEach(function(collName) { db.getCollection(collName).deleteMany({}); }); });" mongodb://admin:admin123@mongodb:27017/admin || echo "MongoDB cleanup completed"\n\
+\n\
+echo "Cleaning Neo4j database..."\n\
+cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "MATCH (n) DETACH DELETE n" || echo "Neo4j cleanup completed"\n\
+cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "CALL db.schema.visualization()" || echo "Neo4j schema check completed"\n\
+\n\
+echo "Cleaning PostgreSQL tables..."\n\
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DB -c "TRUNCATE TABLE IF EXISTS metadata, entities, relationships CASCADE;" || echo "PostgreSQL cleanup completed"\n\
+\n\
 # Run Go tests\n\
 echo "=== Running Go Tests ==="\n\
 cd /app/nexoan/crud-api\n\
@@ -169,6 +181,18 @@ if ! go test -v ./...; then\n\
   exit 1\n\
 fi\n\
 echo "✅ All tests passed!"\n\
+\n\
+# Clean databases after tests complete\n\
+echo "=== Cleaning Databases After Tests ==="\n\
+echo "Cleaning MongoDB collections after tests..."\n\
+mongosh --eval "db.getMongo().getDBNames().forEach(function(dbName) { db = db.getSiblingDB(dbName); db.getCollectionNames().forEach(function(collName) { db.getCollection(collName).deleteMany({}); }); });" mongodb://admin:admin123@mongodb:27017/admin?authSource=admin || echo "MongoDB post-test cleanup completed"\n\
+\n\
+echo "Cleaning Neo4j database after tests..."\n\
+cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "MATCH (n) DETACH DELETE n" || echo "Neo4j post-test cleanup completed"\n\
+cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "CALL db.schema.visualization()" || echo "Neo4j post-test schema check completed"\n\
+\n\
+echo "Cleaning PostgreSQL tables after tests..."\n\
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DB -c "TRUNCATE TABLE IF EXISTS metadata, entities, relationships CASCADE;" || echo "PostgreSQL post-test cleanup completed"\n\
 \n\
 echo "=== Starting CRUD Service ==="\n\
 exec crud-service 2>&1 | tee /app/crud-service.log\n\

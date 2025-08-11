@@ -174,6 +174,122 @@ docker run -d -p 8080:8080 \
 docker-compose -f docker-compose-choreo.yml up -d mongodb-choreo neo4j-choreo postgres-choreo
 ```
 
+### Using docker-compose.override.yml for Fresh Testing
+
+The `docker-compose.override.yml` file provides a way to override default Docker Compose settings for testing and CI environments. This is particularly useful for ensuring fresh, clean databases for each test run.
+
+#### What docker-compose.override.yml Does
+
+The override file modifies the base `docker-compose.yml` to:
+- **Use tmpfs volumes** for databases (in-memory, no persistence)
+- **Ensure fresh databases** for each test run
+- **Prevent data contamination** between test runs
+- **Optimize CI/CD pipelines** with clean environments
+
+#### How to Use docker-compose.override.yml
+
+```bash
+# Start services with override (recommended for testing)
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+# Start specific services with override
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud
+
+# Build with override
+docker-compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
+
+# Stop services with override
+docker-compose -f docker-compose.yml -f docker-compose.override.yml down
+```
+
+#### Override File Structure
+
+```yaml
+# docker-compose.override.yml
+version: '3.8'
+
+services:
+  mongodb:
+    volumes:
+      - type: tmpfs
+        target: /data/db
+        tmpfs:
+          size: 1000000000  # 1GB in-memory storage
+  
+  neo4j:
+    volumes:
+      - type: tmpfs
+        target: /data
+        tmpfs:
+          size: 1000000000  # 1GB in-memory storage
+  
+  postgres:
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 1000000000  # 1GB in-memory storage
+```
+
+#### Benefits of Using Override
+
+1. **🧹 Fresh Start Every Time**
+   - No leftover data from previous test runs
+   - Consistent test environment
+   - Predictable test results
+
+2. **⚡ Faster CI/CD**
+   - No need to wait for database cleanup
+   - Immediate test execution
+   - Reduced flaky test issues
+
+3. **🔒 Test Isolation**
+   - Each test run is completely independent
+   - No data leakage between runs
+   - Clean slate for debugging
+
+4. **💾 Memory Efficiency**
+   - Databases run in memory (tmpfs)
+   - Faster database operations
+   - No disk I/O overhead
+
+#### When to Use Override vs Standard
+
+| Use Case | Command | Reason |
+|----------|---------|---------|
+| **Development** | `docker-compose up` | Persistent data, faster development |
+| **Testing** | `docker-compose -f docker-compose.yml -f docker-compose.override.yml up` | Fresh databases, test isolation |
+| **CI/CD** | `docker-compose -f docker-compose.yml -f docker-compose.override.yml up` | Clean environment, reliable builds |
+| **Production** | `docker-compose up` | Data persistence, production stability |
+
+#### Troubleshooting Override Issues
+
+```bash
+# Check if override is being applied
+docker-compose -f docker-compose.yml -f docker-compose.override.yml config
+
+# Verify tmpfs volumes are created
+docker volume ls | grep tmpfs
+
+# Check database freshness
+docker exec mongodb mongosh --eval "db.getMongo().getDBNames()"
+docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH (n) RETURN count(n)"
+docker exec postgres psql -U postgres -d nexoan -c "SELECT COUNT(*) FROM information_schema.tables;"
+```
+
+#### Integration with GitHub Actions
+
+The override file is automatically used in CI workflows:
+
+```yaml
+# .github/workflows/update-api-test.yml
+- name: Start services with fresh databases
+  run: |
+    docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud
+```
+
+This ensures that every CI run starts with completely fresh databases, preventing test failures due to leftover data from previous runs.
+
 
 
 ## References
