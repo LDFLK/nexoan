@@ -17,6 +17,28 @@
 ### 4. Run Swagger-UI  
 -Read about running the [Swagger UI](nexoan/swagger-ui/README.md)
 
+### 5. Database Cleanup Service
+The cleanup service provides a way to clean all databases (PostgreSQL, MongoDB, Neo4j) before and after running tests or services.
+
+**Usage:**
+```bash
+# Clean databases before starting services
+docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
+
+# Clean databases after services complete
+docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh post
+
+# Clean databases anytime you need
+docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
+```
+
+**What it cleans:**
+- **PostgreSQL**: `attribute_schemas`, `entity_attributes`, and all `attr_*` tables
+- **MongoDB**: `metadata` and `metadata_test` collections  
+- **Neo4j**: All nodes and relationships
+
+**Note**: The cleanup service uses the `cleanup` profile, so it won't start automatically with `docker-compose up`.
+
 ---
 
 ## Run a sample query with CURL
