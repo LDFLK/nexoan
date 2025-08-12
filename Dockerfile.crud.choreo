@@ -82,16 +82,43 @@ RUN cd nexoan/crud-api && \
 # Final stage
 FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.24
 
-# Install runtime dependencies
+# Install runtime dependencies and database client tools
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y ca-certificates qemu-user-static gnupg curl wget unzip openjdk-17-jdk postgresql-client netcat-openbsd && \
+    # Add MongoDB repository
+    curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
+    gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor && \
+    echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | \
+    tee /etc/apt/sources.list.d/mongodb-org-6.0.list && \
+    apt-get update && \
+    apt-get install -y mongodb-mongosh && \
+    # Download and install Cypher Shell
+    wget https://dist.neo4j.org/cypher-shell/cypher-shell-5.26.5.zip && \
+    unzip cypher-shell-5.26.5.zip && \
+    mkdir -p /usr/local/lib/cypher-shell && \
+    mv cypher-shell-5.26.5/lib/* /usr/local/lib/cypher-shell/ && \
+    # Create a wrapper script with proper classpath
+    echo '#!/bin/sh\n\
+    CLASSPATH=$(find /usr/local/lib/cypher-shell -name "*.jar" | tr "\\n" ":")\n\
+    exec java -cp "$CLASSPATH" org.neo4j.shell.Main "$@"\n\
+    ' > /usr/local/bin/cypher-shell && \
+    chmod +x /usr/local/bin/cypher-shell && \
+    rm -rf cypher-shell-5.26.5.zip cypher-shell-5.26.5 && \
     rm -rf /var/lib/apt/lists/*
+
+# Set Java environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Copy the built binary to PATH and the entire crud-api directory
 COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
 COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
+
+# Copy the Choreo-specific startup script
+COPY crud_startup-choreo.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Add log configuration
 ENV LOG_LEVEL=debug
@@ -109,5 +136,6 @@ USER 10014
 # Expose ports
 EXPOSE 50051
 
-# Set the entrypoint to run the service from where it actually exists
-ENTRYPOINT ["/app/nexoan/crud-api/crud-service"] 
+# The startup script is now copied from crud_startup.sh
+# Display environment variables and start the service
+CMD ["/app/start.sh"]

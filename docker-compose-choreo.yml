@@ -8,7 +8,7 @@ services:
     image: mongo:4.4
     container_name: mongodb-choreo
     ports:
-      - "27018:27017"  # Different port to avoid conflicts
+      - "27017:27017"  # Different port to avoid conflicts
     volumes:
       - mongodb_choreo_data:/data/db
     networks:
@@ -28,8 +28,8 @@ services:
     image: neo4j:5.12.0
     container_name: neo4j-choreo
     ports:
-      - "7475:7474"  # Different port to avoid conflicts
-      - "7688:7687"  # Different port to avoid conflicts
+      - "7474:7474"  # Different port to avoid conflicts
+      - "7687:7687"  # Different port to avoid conflicts
     volumes:
       - neo4j_choreo_data:/data
       - neo4j_choreo_logs:/logs
@@ -51,7 +51,7 @@ services:
     image: postgres:16
     container_name: postgres-choreo
     ports:
-      - "5433:5432"  # Different port to avoid conflicts
+      - "5432:5432"  # Different port to avoid conflicts
     volumes:
       - postgres_choreo_data:/var/lib/postgresql/data
     networks:
@@ -65,6 +65,32 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  cleanup-choreo:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.cleanup.choreo
+    container_name: cleanup-choreo
+    networks:
+      - choreo-network
+    environment:
+      - POSTGRES_HOST=postgres-choreo
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ldf_choreo_nexoan
+      - MONGO_URI=mongodb://admin:admin123@mongodb-choreo:27017/admin?authSource=admin
+      - MONGO_DB_NAME=ldf_choreo_nexoan
+      - NEO4J_URI=bolt://neo4j-choreo:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j123
+    depends_on:
+      - postgres-choreo
+      - mongodb-choreo
+      - neo4j-choreo
+    profiles:
+      - cleanup
 
   crud-choreo:
     platform: linux/amd64
@@ -92,7 +118,6 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=ldf_choreo_nexoan
       - POSTGRES_SSL_MODE=disable
-      - POSTGRES_TEST_DB_URI=postgresql://neondb_owner:npg_OFnZiXT01BEc@ep-green-feather-a1z2cn5i-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       # CRUD Service Configuration
       - CRUD_SERVICE_HOST=0.0.0.0
       - CRUD_SERVICE_PORT=50051
