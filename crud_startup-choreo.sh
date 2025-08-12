@@ -71,8 +71,9 @@ if ! go test -v ./...; then
 fi
 echo "✅ All tests passed! (Choreo)"
 
-# Clean databases after tests complete
-clean_databases "After Tests"
+## Clean databases after tests complete
+## It is better to not clean the database, or not run the tests at all. 
+# clean_databases "After Tests"
 
 echo "=== Starting CRUD Service (Choreo Environment) ==="
 exec crud-service 2>&1 | tee /app/crud-service-choreo.log
