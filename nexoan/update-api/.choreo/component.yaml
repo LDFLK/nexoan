@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: update-ep
+    displayName: Nexoan Update API
+    service:
+      basePath: /
+      port: 8080
+    type: GRPC
+    networkVisibilities: 
+      - Public
