@@ -124,10 +124,15 @@ RUN chmod +x /app/start.sh
 ENV LOG_LEVEL=debug
 ENV LOG_FORMAT=text
 
+# Set Go build cache environment variable
+ENV GOCACHE=/home/choreouser/.cache/go-build
+
 # Create necessary directories and set permissions
 RUN mkdir -p /home/choreouser/.cache/go-build && \
+    mkdir -p /home/choreouser/.cache/go-build/00 && \
     chown -R choreouser:choreo /home/choreouser && \
     chmod -R 755 /home/choreouser && \
+    chmod -R 777 /home/choreouser/.cache && \
     chown -R choreouser:choreo /app && \
     chmod -R 755 /app
 
