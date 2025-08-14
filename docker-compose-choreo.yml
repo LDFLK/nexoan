@@ -8,7 +8,7 @@ services:
     image: mongo:4.4
     container_name: mongodb-choreo
     ports:
-      - "27017:27017"  # Different port to avoid conflicts
+      - "27017:27017"
     volumes:
       - mongodb_choreo_data:/data/db
     networks:
@@ -28,8 +28,8 @@ services:
     image: neo4j:5.12.0
     container_name: neo4j-choreo
     ports:
-      - "7474:7474"  # Different port to avoid conflicts
-      - "7687:7687"  # Different port to avoid conflicts
+      - "7474:7474"
+      - "7687:7687"
     volumes:
       - neo4j_choreo_data:/data
       - neo4j_choreo_logs:/logs
@@ -51,7 +51,7 @@ services:
     image: postgres:16
     container_name: postgres-choreo
     ports:
-      - "5432:5432"  # Different port to avoid conflicts
+      - "5432:5432"
     volumes:
       - postgres_choreo_data:/var/lib/postgresql/data
     networks:
