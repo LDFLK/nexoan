@@ -128,7 +128,7 @@ services:
       - ldf-network
     healthcheck:
       test: ["CMD", "nc", "-zv", "localhost", "50051"]
-      interval: 15s
+      interval: 30s
       timeout: 10s
       retries: 5
       start_period: 120s
