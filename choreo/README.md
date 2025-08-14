@@ -9,9 +9,9 @@
 - Ports available:
   - 50051 (CRUD service)
   - 8080 (Update service)
-  - 27018 (MongoDB choreo)
-  - 7475/7688 (Neo4j choreo)
-  - 5433 (PostgreSQL choreo)
+  - 27017 (MongoDB choreo)
+  - 7474/7687 (Neo4j choreo)
+  - 5432 (PostgreSQL choreo)
 
 ### Docker Compose Setup (Recommended)
 
@@ -21,7 +21,7 @@ The easiest way to run the choreo services locally is using the dedicated docker
 
 ```bash
 # Clone the repository and navigate to the root directory
-cd /path/to/LDFArchitecture
+cd /path/to/nexoan
 
 # Start all choreo services (includes databases)
 docker-compose -f docker-compose-choreo.yml up --build
