@@ -387,3 +387,39 @@ func validateTabularValue(value interface{}, schema *SchemaInfo) error {
 
 	return nil
 }
+
+// validateTabularAttributes checks that only 'columns' and 'rows' are present as keys in the map.
+func validateTabularAttributes(obj map[string]interface{}) error {
+	required := []string{"columns", "rows"}
+	// Check required keys
+	for _, key := range required {
+		if _, exists := obj[key]; !exists {
+			return fmt.Errorf("tabular data must contain '%s' field", key)
+		}
+	}
+	// Check for extra keys
+	for key := range obj {
+		if key != "columns" && key != "rows" {
+			return fmt.Errorf("unexpected key '%s' in tabular data; only 'columns' and 'rows' are allowed", key)
+		}
+	}
+	return nil
+}
+
+// validateGraphAttributes checks that only 'nodes' and 'edges' are present as keys in the map.
+func validateGraphAttributes(obj map[string]interface{}) error {
+	required := []string{"nodes", "edges"}
+	// Check required keys
+	for _, key := range required {
+		if _, exists := obj[key]; !exists {
+			return fmt.Errorf("graph data must contain '%s' field", key)
+		}
+	}
+	// Check for extra keys
+	for key := range obj {
+		if key != "nodes" && key != "edges" {
+			return fmt.Errorf("unexpected key '%s' in graph data; only 'nodes' and 'edges' are allowed", key)
+		}
+	}
+	return nil
+}
