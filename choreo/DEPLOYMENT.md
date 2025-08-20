@@ -29,3 +29,9 @@ and a few file mounts to make things work.
 | 1 | crud-go-build-mnt | Empty Directory (In-Memory) | /home/choreouser/.cache | Go build cache directory |
 | 2 | default-tmp-emptydir | Empty Directory (In-Memory) | /tmp | Temporary files directory |
 | 3 | mnt-go-core-dir | Empty Directory (In-Memory) | /go | Go core directory |
+
+### Choreo Configs
+
+When deploying the CRUD service on thing to note is that GRPC services are not exposed through the Gateway in Choreo. So we have to choose the `PROJECT_URL` from `Manage`->`Overview` tabs in Choreo
+console. Make sure to extract that URL and use it as the `crudServiceURL` config in both `Update` API and
+`Query` API services.
