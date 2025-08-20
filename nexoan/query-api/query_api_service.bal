@@ -9,7 +9,7 @@ import ballerina/io;
 import ballerina/protobuf.types.'any as pbAny;
 
 // BAL_CONFIG_VAR_CRUDSERVICEURL
-configurable string crudServiceUrl = ?;
+configurable string crudServiceUrl = "http://localhost:50051";
 // BAL_CONFIG_VAR_QUERYSERVICEHOST
 configurable string queryServiceHost = "0.0.0.0";
 // BAL_CONFIG_VAR_QUERYSERVICEPORT

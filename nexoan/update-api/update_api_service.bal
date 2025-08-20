@@ -6,34 +6,15 @@ import ballerina/protobuf.types.'any as pbAny;
 import ballerina/io;
 import ballerina/lang.'int as langint;
 import ballerina/grpc;
-import ballerina/os;
 import ballerina/log;
 
-// BAL_CONFIG_VAR_DEPLOYMENTENV
-configurable string deploymentEnv = "local";
 // BAL_CONFIG_VAR_CRUDSERVICEURL
-configurable string crudServiceUrl = ?;
+configurable string crudServiceUrl = "http://localhost:50051";
 // BAL_CONFIG_VAR_UPDATESERVICEHOST
 configurable string updateServiceHost = "0.0.0.0";
 // BAL_CONFIG_VAR_UPDATESERVICEPORT
 configurable string updateServicePort = "8080";
 
-// Helper function to get CRUD service URL based on deployment environment
-function getCrudServiceUrl() returns string {
-    if deploymentEnv == "choreo" {
-        // For Choreo, use the environment variable
-        string choreoUrl = os:getEnv("CHOREO_UPDATE_TO_CRUD_CON_SERVICEURL");
-        io:println("CHOREO_UPDATE_TO_CRUD_CON_SERVICEURL: " + choreoUrl);
-        if choreoUrl != "" {
-            return choreoUrl;
-        }
-        // If not set, return error or use configurable value as fallback
-        return crudServiceUrl;
-    } else {
-        // For local/other environments, use the configurable value
-        return crudServiceUrl;
-    }
-}
 
 listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {
     host: updateServiceHost,
@@ -48,7 +29,7 @@ grpc:ClientConfiguration grpcConfig = {
     }
 };
 
-CrudServiceClient ep = check new (getCrudServiceUrl(), grpcConfig);
+CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
 
 service / on ep0 {
     # Delete an entity
