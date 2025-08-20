@@ -7,6 +7,7 @@ import ballerina/io;
 import ballerina/lang.'int as langint;
 import ballerina/grpc;
 import ballerina/os;
+import ballerina/log;
 
 // BAL_CONFIG_VAR_DEPLOYMENTENV
 configurable string deploymentEnv = "local";
@@ -72,8 +73,7 @@ service / on ep0 {
         io:println(payload);
         var result = ep->CreateEntity(payload);
         if result is error {
-            io:println("gRPC CreateEntity failed: ", result.message());
-            return result;
+            log:printError("gRPC CreateEntity failed: ", result);
         }
         return result;
     }
@@ -93,8 +93,7 @@ service / on ep0 {
         
         var result = ep->UpdateEntity(updateRequest);
         if result is error {
-            io:println("gRPC UpdateEntity failed: ", result.message());
-            return result;
+            log:printError("gRPC UpdateEntity failed: ", result);
         }
         return result;
     }
@@ -124,18 +123,20 @@ service / on ep0 {
             },
             output: ["metadata", "attributes", "relationships"]
         };
-        Entity|error result = ep->ReadEntity(readEntityRequest);
         
+        Entity|error result = ep->ReadEntity(readEntityRequest);
+
         if result is error {
-            io:println("gRPC ReadEntity failed: ", result.message());
+            log:printError("gRPC ReadEntity failed: ", result);
             return result;
+        } else {
+            io:println("Retrieved entity with ID: ", id);
+            io:println("Entity metadata: ", result.metadata);
+            io:println("Entity attributes: ", result.attributes);
+            io:println("Entity relationships: ", result.relationships);
         }
         
         // Successfully retrieved the entity
-        io:println("Retrieved entity with ID: ", id);
-        io:println("Entity metadata: ", result.metadata);
-        io:println("Entity attributes: ", result.attributes);
-        io:println("Entity relationships: ", result.relationships);
         return result;
     }
 }
