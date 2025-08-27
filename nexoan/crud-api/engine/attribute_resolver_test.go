@@ -97,6 +97,7 @@ func TestEntityWithGraphDataOnly(t *testing.T) {
 	processor := NewEntityAttributeProcessor()
 
 	// Test all CRUD operations
+	// create test merely checks if the ProcessEntityAttributes function is working
 	// TODO: "read", "update", "delete"
 	operations := []string{"create"}
 	for _, operation := range operations {

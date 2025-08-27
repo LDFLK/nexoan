@@ -56,15 +56,14 @@ type AttributeMetadata struct {
 
 // CreateAttributeNode creates a node in the graph for an attribute
 func (g *GraphMetadataManager) CreateAttribute(ctx context.Context, metadata *AttributeMetadata) error {
-
 	fmt.Printf("Creating attribute node: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
 		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
-
+	// create the attribute look up graph
 	err := g.createAttributeLookUpGraph(ctx, metadata)
 	if err != nil {
 		return err
 	}
-
+	// TODO: save the attribute values in the matching storage system
 	return nil
 }
 
@@ -133,12 +132,17 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 		Relationships: make(map[string]*pb.Relationship),
 	}
 
+	// the relationships map needs a unique key for each relationship
+	// since the attribute id and the name of the attribute is unique for each attribute
+	// among all entities, we can use this to form a unique key for the relationship
+	relationshipId := GenerateAttributeRelationshipID(metadata.EntityID, metadata.AttributeName)
+
 	parentNode := &pb.Entity{
 		Id:         metadata.EntityID,
 		Metadata:   make(map[string]*anypb.Any),
 		Attributes: make(map[string]*pb.TimeBasedValueList),
 		Relationships: map[string]*pb.Relationship{
-			IS_ATTRIBUTE_RELATIONSHIP: MakeRelationshipFromAttributeMetadata(metadata),
+			relationshipId: MakeRelationshipFromAttributeMetadata(metadata),
 		},
 	}
 
