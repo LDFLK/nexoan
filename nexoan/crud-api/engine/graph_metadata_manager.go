@@ -233,7 +233,7 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	}
 
 	// Get all IS_ATTRIBUTE relationships for the entity
-	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP}, "")
+	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION}, "")
 	if err != nil {
 		log.Printf("[GraphMetadataManager.GetAttribute] Error getting relationships: %v", err)
 		return nil, err
@@ -325,7 +325,7 @@ func (g *GraphMetadataManager) ListAttributes(ctx context.Context, entityID stri
 		return nil, err
 	}
 
-	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP}, "")
+	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION}, "")
 	if err != nil {
 		log.Printf("[GraphMetadataManager.ListAttributes] Error getting relationships: %v", err)
 		return nil, err
