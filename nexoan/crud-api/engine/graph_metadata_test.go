@@ -62,6 +62,7 @@ func TestGraphMetadataManager(t *testing.T) {
 	attributes, err := manager.ListAttributes(ctx, metadata.EntityID)
 	assert.NoError(t, err)
 	assert.NotNil(t, attributes)
+	assert.Equal(t, 1, len(attributes))
 
 	// Test deleting attribute node
 	err = manager.DeleteAttribute(ctx, metadata.EntityID, metadata.AttributeName)
@@ -160,72 +161,6 @@ func TestGraphMetadataIntegration(t *testing.T) {
 	err = processor.ProcessEntityAttributes(ctx, entity, "delete")
 	assert.NoError(t, err)
 }
-
-// TestDataDiscoveryService tests the data discovery service functionality
-// TODO: Re-enable this test when the complete data discovery functionality is implemented
-// Currently disabled due to placeholder implementations returning nil values
-/*
-func TestDataDiscoveryService(t *testing.T) {
-	service := NewDataDiscoveryService()
-	assert.NotNil(t, service)
-
-	ctx := context.Background()
-
-	// Test discovering entity attributes
-	locations, err := service.DiscoverEntityAttributes(ctx, "test-entity-1")
-	assert.NoError(t, err)
-	assert.NotNil(t, locations) // Should be non-nil even if empty
-
-	// Test finding attributes by type
-	tabularAttributes, err := service.FindAttributeByType(ctx, storageinference.TabularData)
-	assert.NoError(t, err)
-	assert.NotNil(t, tabularAttributes) // Should be non-nil even if empty
-
-	// Test finding attributes by name
-	userProfileAttributes, err := service.FindAttributeByName(ctx, "user_profile")
-	assert.NoError(t, err)
-	assert.NotNil(t, userProfileAttributes) // Should be non-nil even if empty
-
-	// Test getting attribute location
-	location, err := service.GetAttributeLocation(ctx, "test-entity-1", "test-attribute")
-	assert.NoError(t, err)
-	assert.NotNil(t, location)
-
-	// Test search attributes
-	criteria := &AttributeSearchCriteria{
-		StorageType: storageinference.TabularData,
-		DatasetType: TabularDataset,
-	}
-	searchResults, err := service.SearchAttributes(ctx, criteria)
-	assert.NoError(t, err)
-	assert.NotNil(t, searchResults) // Should be non-nil even if empty
-
-	// Test generating discovery report
-	report, err := service.GenerateDiscoveryReport(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, report)
-
-	// Test getting storage resolver
-	resolver, err := service.GetStorageResolver(storageinference.TabularData)
-	assert.NoError(t, err)
-	assert.NotNil(t, resolver)
-
-	// Test validating attribute location
-	valid, err := service.ValidateAttributeLocation(ctx, location)
-	assert.NoError(t, err)
-	assert.True(t, valid)
-
-	// Test getting attribute schema
-	schema, err := service.GetAttributeSchema(ctx, "test-entity-1", "test-attribute")
-	assert.NoError(t, err)
-	assert.NotNil(t, schema)
-
-	// Test listing entities with attributes
-	entities, err := service.ListEntitiesWithAttributes(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, entities) // Should be non-nil even if empty
-}
-*/
 
 // TestAttributeMetadataStructure tests the AttributeMetadata structure
 func TestAttributeMetadataStructure(t *testing.T) {

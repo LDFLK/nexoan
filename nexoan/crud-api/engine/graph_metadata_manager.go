@@ -223,7 +223,7 @@ func MakeRelationshipFromAttributeMetadata(metadata *AttributeMetadata) *pb.Rela
 }
 
 // GetAttributeMetadata retrieves metadata for an attribute
-func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID, attributeName string) (*AttributeMetadata, error) {
+func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string, attributeName string) (*AttributeMetadata, error) {
 	fmt.Printf("Getting attribute metadata: EntityID=%s, AttributeName=%s\n", entityID, attributeName)
 
 	neo4jRepository, err := commons.GetNeo4jRepository(ctx)
