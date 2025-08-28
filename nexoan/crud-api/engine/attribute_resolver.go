@@ -3,8 +3,9 @@ package engine
 import (
 	"context"
 	"fmt"
-	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	commons "lk/datafoundation/crud-api/commons"
+	dbcommons "lk/datafoundation/crud-api/commons/db"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	schema "lk/datafoundation/crud-api/pkg/schema"
 	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
 
@@ -13,13 +14,20 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+// Result represents the result of an attribute resolver operation
+type Result struct {
+	Data    interface{} // Can hold any type of data (TimeBasedValue, error details, etc.)
+	Success bool        // Indicates if the operation was successful
+	Error   error       // Error if the operation failed
+}
+
 // AttributeResolver interface defines the contract for all attribute resolvers
 type AttributeResolver interface {
 	Initialize() error
-	CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error
-	ReadResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error
-	UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error
-	DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error
+	CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
+	ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result
+	UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
+	DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
 	Finalize() error
 }
 
@@ -110,8 +118,15 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			}
 
 			// Execute the appropriate operation
-			if err := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value); err != nil {
-				return fmt.Errorf("error executing %s operation for attribute %s: %v", operation, attrName, err)
+			result := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value)
+			if !result.Success {
+				return fmt.Errorf("error executing %s operation for attribute %s: %v", operation, attrName, result.Error)
+			}
+
+			// For read operations, we might want to do something with the result
+			if operation == "read" && result.Data != nil {
+				fmt.Printf("Read operation completed for attribute %s\n", attrName)
+				// TODO: Handle the read result (e.g., store it, return it, etc.)
 			}
 		}
 	}
@@ -186,22 +201,34 @@ func (p *EntityAttributeProcessor) determineStorageType(anyValue *anypb.Any) (st
 }
 
 // executeOperation executes the appropriate CRUD operation
-func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolver AttributeResolver, operation, entityID, attrName string, value *pb.TimeBasedValue) error {
+// Returns a Result object containing operation-specific data and status
+func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolver AttributeResolver, operation, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	if resolver == nil {
-		return fmt.Errorf("resolver is nil")
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("resolver is nil"),
+		}
 	}
 
 	switch operation {
 	case "create":
 		return resolver.CreateResolve(ctx, entityID, attrName, value)
 	case "read":
-		return resolver.ReadResolve(ctx, entityID, attrName, value)
+		// For read operations, pass empty filters by default
+		// In the future, this could be made configurable
+		filters := make(map[string]interface{})
+		return resolver.ReadResolve(ctx, entityID, attrName, filters)
 	case "update":
 		return resolver.UpdateResolve(ctx, entityID, attrName, value)
 	case "delete":
 		return resolver.DeleteResolve(ctx, entityID, attrName, value)
 	default:
-		return fmt.Errorf("unknown operation: %s", operation)
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("unknown operation: %s", operation),
+		}
 	}
 }
 
@@ -210,40 +237,65 @@ type GraphAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *GraphAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *GraphAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement graph-specific create logic
 	// - Validate graph structure (nodes and edges)
 	// - Store in graph database (Neo4j)
 	// - Handle graph relationships
 	fmt.Printf("Creating graph attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
 	// TODO: implement graph-specific read logic
 	// - Query graph database
 	// - Retrieve nodes and edges
 	// - Return graph structure
-	fmt.Printf("Reading graph attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	fmt.Printf("Reading graph attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
+
+	// TODO: Return actual graph data from Neo4j
+	// For now, return empty TimeBasedValue
+	timeBasedValue := &pb.TimeBasedValue{
+		StartTime: "",
+		EndTime:   "",
+		Value:     nil, // TODO: Convert graph data to Any
+	}
+
+	return &Result{
+		Data:    timeBasedValue,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *GraphAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *GraphAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement graph-specific update logic
 	// - Update nodes and edges
 	// - Handle graph modifications
 	// - Maintain graph consistency
 	fmt.Printf("Updating graph attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *GraphAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *GraphAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement graph-specific delete logic
 	// - Remove nodes and edges
 	// - Clean up relationships
 	// - Handle cascading deletes
 	fmt.Printf("Deleting graph attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
 // TabularAttributeResolver handles tabular data structures with columns and rows
@@ -251,11 +303,7 @@ type TabularAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
-	// TODO: implement tabular-specific create logic
-	// - Validate tabular structure (columns and rows)
-	// - Create or update database table
-	// - Insert data rows
+func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: startDate and endDate must be stored in somewhere in the tabular database.
 	//  this will be useful for schema evolution setup.
 	startDate := value.StartTime
@@ -264,68 +312,128 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 	// validate the data are in tabular shape
 	values := value.Value
 	if values == nil {
-		return fmt.Errorf("values are nil")
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("values are nil"),
+		}
 	}
 
 	fmt.Printf("Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n", attrName, entityID, startDate, endDate)
 
-	repo, err := commons.GetPostgresRepository(ctx)
+	repo, err := dbcommons.GetPostgresRepository(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get Postgres repository: %v", err)
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to get Postgres repository: %v", err),
+		}
 	}
 
 	// Initialize database tables if they don't exist
 	if err := repo.InitializeTables(ctx); err != nil {
-		return fmt.Errorf("failed to initialize database tables: %v", err)
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to initialize database tables: %v", err),
+		}
 	}
 
 	schemaInfo, err := schema.GenerateSchema(value.Value)
 	if err != nil {
-		return fmt.Errorf("failed to generate schema: %v", err)
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to generate schema: %v", err),
+		}
 	}
 
 	err = repo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo)
 	if err != nil {
-		return fmt.Errorf("failed to handle tabular data: %v", err)
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to handle tabular data: %v", err),
+		}
 	}
 
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
 	// TODO: implement tabular-specific read logic
 	// - Query database table
 	// - Retrieve rows and columns
 	// - Return tabular structure
-	fmt.Printf("Reading tabular attribute %s for entity %s\n", attrName, entityID)
+	fmt.Printf("Reading tabular attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
 
-	// repo, err := commons.GetPostgresRepository(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get Postgres repository: %v", err)
-	// }
+	repo, err := dbcommons.GetPostgresRepository(ctx)
+	if err != nil {
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to get Postgres repository: %v", err),
+		}
+	}
 
-	// TODO: call the data handler to get the data
-	// repo.GetData(ctx, entityID, attrName, value)
+	// Get the table name for this attribute
+	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
-	return nil
+	// Use the GetData method from the repository to retrieve data with filters
+	data, err := repo.GetData(ctx, tableName, filters)
+	if err != nil {
+		return &Result{
+			Data:    nil,
+			Success: false,
+			Error:   fmt.Errorf("failed to get data: %v", err),
+		}
+	}
+
+	fmt.Printf("Retrieved %d rows from table %s\n", len(data), tableName)
+
+	// TODO: Convert the retrieved data to a proper TimeBasedValue
+	// For now, return empty TimeBasedValue
+	timeBasedValue := &pb.TimeBasedValue{
+		StartTime: "",
+		EndTime:   "",
+		Value:     nil, // TODO: Convert tabular data to Any
+	}
+
+	return &Result{
+		Data:    timeBasedValue,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *TabularAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *TabularAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement tabular-specific update logic
 	// - Update table schema if needed
 	// - Update data rows
 	// - Handle schema evolution
 	fmt.Printf("Updating tabular attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *TabularAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *TabularAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement tabular-specific delete logic
 	// - Delete data rows
 	// - Optionally drop table
 	// - Clean up schema
 	fmt.Printf("Deleting tabular attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
 // DocumentAttributeResolver handles document/map data structures with key-value pairs
@@ -333,38 +441,63 @@ type DocumentAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *DocumentAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *DocumentAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement document-specific create logic
 	// - Validate document structure
 	// - Store in document database (MongoDB)
 	// - Handle document indexing
 	fmt.Printf("Creating document attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
 	// TODO: implement document-specific read logic
 	// - Query document database
 	// - Retrieve document structure
 	// - Return key-value pairs
-	fmt.Printf("Reading document attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	fmt.Printf("Reading document attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
+
+	// TODO: Return actual document data from MongoDB
+	// For now, return empty TimeBasedValue
+	timeBasedValue := &pb.TimeBasedValue{
+		StartTime: "",
+		EndTime:   "",
+		Value:     nil, // TODO: Convert document data to Any
+	}
+
+	return &Result{
+		Data:    timeBasedValue,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *DocumentAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *DocumentAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement document-specific update logic
 	// - Update document fields
 	// - Handle partial updates
 	// - Maintain document consistency
 	fmt.Printf("Updating document attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }
 
-func (r *DocumentAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) error {
+func (r *DocumentAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
 	// TODO: implement document-specific delete logic
 	// - Remove document
 	// - Clean up indexes
 	// - Handle cascading deletes
 	fmt.Printf("Deleting document attribute %s for entity %s\n", attrName, entityID)
-	return nil
+	return &Result{
+		Data:    nil,
+		Success: true,
+		Error:   nil,
+	}
 }

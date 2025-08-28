@@ -12,6 +12,8 @@ import (
 	"lk/datafoundation/crud-api/pkg/schema"
 	"lk/datafoundation/crud-api/pkg/typeinference"
 
+	commons "lk/datafoundation/crud-api/commons"
+
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -360,7 +362,7 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 // handleTabularData processes tabular data attributes
 func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
 	// Generate table name
-	tableName := fmt.Sprintf("attr_%s_%s", sanitizeIdentifier(entityID), sanitizeIdentifier(attrName))
+	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
 	// Convert schema to columns
 	columns := schemaToColumns(schemaInfo)
@@ -457,7 +459,7 @@ func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID,
 	// Convert columns to string slice
 	columnNames := make([]string, len(columnsValue.Values))
 	for i, col := range columnsValue.Values {
-		columnNames[i] = sanitizeIdentifier(col.GetStringValue())
+		columnNames[i] = commons.SanitizeIdentifier(col.GetStringValue())
 	}
 
 	// Convert rows to [][]interface{}
@@ -526,31 +528,12 @@ func schemaToColumns(schemaInfo *schema.SchemaInfo) []Column {
 		}
 
 		columns = append(columns, Column{
-			Name: sanitizeIdentifier(fieldName),
+			Name: commons.SanitizeIdentifier(fieldName),
 			Type: colType,
 		})
 	}
 
 	return columns
-}
-
-// sanitizeIdentifier makes a string safe for use as a PostgreSQL identifier
-// IMPROVEME: https://github.com/LDFLK/nexoan/issues/160
-func sanitizeIdentifier(s string) string {
-	// Replace invalid characters with underscores
-	safe := strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
-			return r
-		}
-		return '_'
-	}, strings.ToLower(s))
-
-	// Ensure it doesn't start with a number
-	if len(safe) > 0 && safe[0] >= '0' && safe[0] <= '9' {
-		safe = "_" + safe
-	}
-
-	return safe
 }
 
 // Column represents a database column definition
@@ -614,7 +597,7 @@ func GetSchemaOfTable(ctx context.Context, repo *PostgresRepository, tableName s
 // GetData retrieves data from a table with optional filters.
 func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
 	// Base query
-	query := fmt.Sprintf("SELECT * FROM %s", sanitizeIdentifier(tableName))
+	query := fmt.Sprintf("SELECT * FROM %s", commons.SanitizeIdentifier(tableName))
 
 	var args []interface{}
 	var whereClauses []string
@@ -622,7 +605,7 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 
 	// Add filters to the query
 	for key, value := range filters {
-		whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", sanitizeIdentifier(key), argCount))
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", commons.SanitizeIdentifier(key), argCount))
 		args = append(args, value)
 		argCount++
 	}

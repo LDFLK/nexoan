@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"lk/datafoundation/crud-api/commons"
+	"lk/datafoundation/crud-api/commons/db"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"lk/datafoundation/crud-api/pkg/schema"
 	"lk/datafoundation/crud-api/pkg/storageinference"
@@ -56,7 +57,7 @@ func createEntityWithAttributes(entityID string, entityName string, attributes m
 }
 
 func saveEntityToDatabase(ctx context.Context, entity *pb.Entity) error {
-	neo4jRepository, err := commons.GetNeo4jRepository(ctx)
+	neo4jRepository, err := dbcommons.GetNeo4jRepository(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get Neo4j repository: %w", err)
 	}
