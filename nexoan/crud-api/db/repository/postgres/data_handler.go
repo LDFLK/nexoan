@@ -594,10 +594,29 @@ func GetSchemaOfTable(ctx context.Context, repo *PostgresRepository, tableName s
 	return &schemaInfo, nil
 }
 
-// GetData retrieves data from a table with optional filters.
-func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+// TabularData represents the structure of tabular data with columns and rows
+type TabularData struct {
+	Columns []string        `json:"columns"`
+	Rows    [][]interface{} `json:"rows"`
+}
+
+// GetData retrieves data from a table with optional column selection and filters, returns it as pb.Any with JSON-formatted tabular data.
+func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, columns ...string) (*anypb.Any, error) {
+	// Build the SELECT clause
+	var selectClause string
+	if len(columns) > 0 {
+		// Sanitize and quote column names
+		sanitizedColumns := make([]string, len(columns))
+		for i, col := range columns {
+			sanitizedColumns[i] = commons.SanitizeIdentifier(col)
+		}
+		selectClause = strings.Join(sanitizedColumns, ", ")
+	} else {
+		selectClause = "*"
+	}
+
 	// Base query
-	query := fmt.Sprintf("SELECT * FROM %s", commons.SanitizeIdentifier(tableName))
+	query := fmt.Sprintf("SELECT %s FROM %s", selectClause, commons.SanitizeIdentifier(tableName))
 
 	var args []interface{}
 	var whereClauses []string
@@ -621,16 +640,16 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 	}
 	defer rows.Close()
 
-	// Get column names
-	columns, err := rows.Columns()
+	// Get column names from the result set
+	resultColumns, err := rows.Columns()
 	if err != nil {
 		return nil, fmt.Errorf("error getting columns from %s: %v", tableName, err)
 	}
 
-	var results []map[string]interface{}
+	var tabularRows [][]interface{}
 	for rows.Next() {
-		rowValues := make([]interface{}, len(columns))
-		rowPointers := make([]interface{}, len(columns))
+		rowValues := make([]interface{}, len(resultColumns))
+		rowPointers := make([]interface{}, len(resultColumns))
 		for i := range rowValues {
 			rowPointers[i] = &rowValues[i]
 		}
@@ -639,22 +658,48 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 			return nil, fmt.Errorf("error scanning row: %v", err)
 		}
 
-		rowData := make(map[string]interface{})
-		for i, colName := range columns {
-			val := rowValues[i]
+		// Convert row values to interface{} slice
+		row := make([]interface{}, len(resultColumns))
+		for i, val := range rowValues {
 			// Handle byte slices (common for text, json, etc.)
 			if b, ok := val.([]byte); ok {
-				rowData[colName] = string(b)
+				row[i] = string(b)
 			} else {
-				rowData[colName] = val
+				row[i] = val
 			}
 		}
-		results = append(results, rowData)
+		tabularRows = append(tabularRows, row)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %v", err)
 	}
 
-	return results, nil
+	// Create the tabular data structure
+	tabularData := map[string]interface{}{
+		"columns": resultColumns,
+		"rows":    tabularRows,
+	}
+
+	// Convert to JSON string
+	jsonData, err := json.Marshal(tabularData)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling tabular data to JSON: %v", err)
+	}
+
+	// Create a struct with the JSON string
+	structValue, err := structpb.NewStruct(map[string]interface{}{
+		"data": string(jsonData),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating struct for JSON data: %v", err)
+	}
+
+	// Convert to Any
+	anyValue, err := anypb.New(structValue)
+	if err != nil {
+		return nil, fmt.Errorf("error converting struct to Any: %v", err)
+	}
+
+	return anyValue, nil
 }

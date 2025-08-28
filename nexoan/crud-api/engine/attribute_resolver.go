@@ -384,7 +384,7 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
 	// Use the GetData method from the repository to retrieve data with filters
-	data, err := repo.GetData(ctx, tableName, filters)
+	anyData, err := repo.GetData(ctx, tableName, filters)
 	if err != nil {
 		return &Result{
 			Data:    nil,
@@ -393,14 +393,13 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 		}
 	}
 
-	fmt.Printf("Retrieved %d rows from table %s\n", len(data), tableName)
+	fmt.Printf("Retrieved data from table %s\n", tableName)
 
-	// TODO: Convert the retrieved data to a proper TimeBasedValue
-	// For now, return empty TimeBasedValue
+	// The data is already in the correct format (pb.Any with JSON)
 	timeBasedValue := &pb.TimeBasedValue{
 		StartTime: "",
 		EndTime:   "",
-		Value:     nil, // TODO: Convert tabular data to Any
+		Value:     anyData,
 	}
 
 	return &Result{
