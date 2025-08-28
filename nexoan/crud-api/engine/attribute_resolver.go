@@ -25,7 +25,7 @@ type Result struct {
 type AttributeResolver interface {
 	Initialize() error
 	CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
-	ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result
+	ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result
 	UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
 	DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
 	Finalize() error
@@ -250,12 +250,12 @@ func (r *GraphAttributeResolver) CreateResolve(ctx context.Context, entityID, at
 	}
 }
 
-func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
+func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
 	// TODO: implement graph-specific read logic
 	// - Query graph database
 	// - Retrieve nodes and edges
 	// - Return graph structure
-	fmt.Printf("Reading graph attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
+	fmt.Printf("Reading graph attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
 
 	// TODO: Return actual graph data from Neo4j
 	// For now, return empty TimeBasedValue
@@ -364,12 +364,12 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 	}
 }
 
-func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
+func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
 	// TODO: implement tabular-specific read logic
 	// - Query database table
 	// - Retrieve rows and columns
 	// - Return tabular structure
-	fmt.Printf("Reading tabular attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
+	fmt.Printf("Reading tabular attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
 
 	repo, err := dbcommons.GetPostgresRepository(ctx)
 	if err != nil {
@@ -383,8 +383,8 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 	// Get the table name for this attribute
 	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
-	// Use the GetData method from the repository to retrieve data with filters
-	anyData, err := repo.GetData(ctx, tableName, filters)
+	// Use the GetData method from the repository to retrieve data with filters and fields
+	anyData, err := repo.GetData(ctx, tableName, filters, fields...)
 	if err != nil {
 		return &Result{
 			Data:    nil,
@@ -453,12 +453,12 @@ func (r *DocumentAttributeResolver) CreateResolve(ctx context.Context, entityID,
 	}
 }
 
-func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}) *Result {
+func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
 	// TODO: implement document-specific read logic
 	// - Query document database
 	// - Retrieve document structure
 	// - Return key-value pairs
-	fmt.Printf("Reading document attribute %s for entity %s with filters: %+v\n", attrName, entityID, filters)
+	fmt.Printf("Reading document attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
 
 	// TODO: Return actual document data from MongoDB
 	// For now, return empty TimeBasedValue

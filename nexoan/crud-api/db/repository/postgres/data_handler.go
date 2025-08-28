@@ -600,17 +600,17 @@ type TabularData struct {
 	Rows    [][]interface{} `json:"rows"`
 }
 
-// GetData retrieves data from a table with optional column selection and filters, returns it as pb.Any with JSON-formatted tabular data.
-func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, columns ...string) (*anypb.Any, error) {
+// GetData retrieves data from a table with optional field selection and filters, returns it as pb.Any with JSON-formatted tabular data.
+func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, fields ...string) (*anypb.Any, error) {
 	// Build the SELECT clause
 	var selectClause string
-	if len(columns) > 0 {
-		// Sanitize and quote column names
-		sanitizedColumns := make([]string, len(columns))
-		for i, col := range columns {
-			sanitizedColumns[i] = commons.SanitizeIdentifier(col)
+	if len(fields) > 0 {
+		// Sanitize and quote field names
+		sanitizedFields := make([]string, len(fields))
+		for i, field := range fields {
+			sanitizedFields[i] = commons.SanitizeIdentifier(field)
 		}
-		selectClause = strings.Join(sanitizedColumns, ", ")
+		selectClause = strings.Join(sanitizedFields, ", ")
 	} else {
 		selectClause = "*"
 	}

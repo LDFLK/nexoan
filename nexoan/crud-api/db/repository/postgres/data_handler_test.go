@@ -150,7 +150,12 @@ func TestGetData(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = repo.DB().Exec(fmt.Sprintf(`
-		INSERT INTO %s (col1, col2) VALUES ('val1', 10), ('val2', 20)
+		INSERT INTO %s (col1, col2) VALUES 
+		('val1', 10), 
+		('val2', 20), 
+		('val3', 30), 
+		('val4', 40), 
+		('val5', 50)
 	`, tableName))
 	assert.NoError(t, err)
 
@@ -172,9 +177,19 @@ func TestGetData(t *testing.T) {
 	var tabularData map[string]interface{}
 	err = json.Unmarshal([]byte(jsonStr), &tabularData)
 	assert.NoError(t, err)
+	assert.NotNil(t, tabularData)
 
-	columns := tabularData["columns"].([]interface{})
-	rows := tabularData["rows"].([]interface{})
+	// Add safety checks for the map keys
+	firstColumnsInterface, hasFirstColumns := tabularData["columns"]
+	assert.True(t, hasFirstColumns, "columns key should exist")
+	assert.NotNil(t, firstColumnsInterface, "columns should not be nil")
+
+	firstRowsInterface, hasFirstRows := tabularData["rows"]
+	assert.True(t, hasFirstRows, "rows key should exist")
+	assert.NotNil(t, firstRowsInterface, "rows should not be nil")
+
+	columns := firstColumnsInterface.([]interface{})
+	rows := firstRowsInterface.([]interface{})
 
 	assert.Equal(t, "id", columns[0])
 	assert.Equal(t, "col1", columns[1])
@@ -209,52 +224,82 @@ func TestGetData(t *testing.T) {
 	assert.Equal(t, "id", allColumns[0])
 	assert.Equal(t, "col1", allColumns[1])
 	assert.Equal(t, "col2", allColumns[2])
-	assert.Len(t, allRows, 2)
+	assert.Len(t, allRows, 5) // Now we have 5 rows
 
 	// Verify the structure matches the expected tabular format
+	assert.NotNil(t, allRows)
 	row1 := allRows[0].([]interface{})
 	row2 := allRows[1].([]interface{})
+	row3 := allRows[2].([]interface{})
+	row4 := allRows[3].([]interface{})
+	row5 := allRows[4].([]interface{})
+	assert.NotNil(t, row1)
+	assert.NotNil(t, row2)
+	assert.NotNil(t, row3)
+	assert.NotNil(t, row4)
+	assert.NotNil(t, row5)
 	assert.Equal(t, "val1", row1[1])      // First row, col1
 	assert.Equal(t, float64(10), row1[2]) // First row, col2 (JSON numbers are float64)
 	assert.Equal(t, "val2", row2[1])      // Second row, col1
 	assert.Equal(t, float64(20), row2[2]) // Second row, col2
+	assert.Equal(t, "val3", row3[1])      // Third row, col1
+	assert.Equal(t, float64(30), row3[2]) // Third row, col2
+	assert.Equal(t, "val4", row4[1])      // Fourth row, col1
+	assert.Equal(t, float64(40), row4[2]) // Fourth row, col2
+	assert.Equal(t, "val5", row5[1])      // Fifth row, col1
+	assert.Equal(t, float64(50), row5[2]) // Fifth row, col2
 
-	// Test column selection
-	selectedColumnsData, err := repo.GetData(context.Background(), tableName, nil, "col1", "col2")
+	// Test field selection
+	selectedFieldsData, err := repo.GetData(context.Background(), tableName, nil, "col1", "col2")
 	assert.NoError(t, err)
-	assert.NotNil(t, selectedColumnsData)
+	assert.NotNil(t, selectedFieldsData)
 
-	// Unmarshal the selected columns data
+	// Unmarshal the selected fields data
 	var selectedStructValue structpb.Struct
-	err = selectedColumnsData.UnmarshalTo(&selectedStructValue)
+	err = selectedFieldsData.UnmarshalTo(&selectedStructValue)
 	assert.NoError(t, err)
 
 	selectedJsonStr := selectedStructValue.Fields["data"].GetStringValue()
 	assert.NotEmpty(t, selectedJsonStr)
 
-	// Parse the JSON for selected columns
+	// Parse the JSON for selected fields
 	var selectedTabularData map[string]interface{}
 	err = json.Unmarshal([]byte(selectedJsonStr), &selectedTabularData)
 	assert.NoError(t, err)
 
-	selectedColumns := selectedTabularData["columns"].([]interface{})
+	selectedFields := selectedTabularData["columns"].([]interface{})
 	selectedRows := selectedTabularData["rows"].([]interface{})
 
-	// Verify only selected columns are returned
-	assert.Len(t, selectedColumns, 2)
-	assert.Equal(t, "col1", selectedColumns[0])
-	assert.Equal(t, "col2", selectedColumns[1])
-	assert.Len(t, selectedRows, 2)
+	// Verify only selected fields are returned
+	assert.Len(t, selectedFields, 2)
+	assert.Equal(t, "col1", selectedFields[0])
+	assert.Equal(t, "col2", selectedFields[1])
+	assert.Len(t, selectedRows, 5) // We have 5 rows in total
 
 	// Verify the data
+	assert.NotNil(t, selectedRows)
 	selectedRow1 := selectedRows[0].([]interface{})
 	selectedRow2 := selectedRows[1].([]interface{})
+	selectedRow3 := selectedRows[2].([]interface{})
+	selectedRow4 := selectedRows[3].([]interface{})
+	selectedRow5 := selectedRows[4].([]interface{})
+	assert.NotNil(t, selectedRow1)
+	assert.NotNil(t, selectedRow2)
+	assert.NotNil(t, selectedRow3)
+	assert.NotNil(t, selectedRow4)
+	assert.NotNil(t, selectedRow5)
 	assert.Equal(t, "val1", selectedRow1[0])      // First row, col1
 	assert.Equal(t, float64(10), selectedRow1[1]) // First row, col2
 	assert.Equal(t, "val2", selectedRow2[0])      // Second row, col1
 	assert.Equal(t, float64(20), selectedRow2[1]) // Second row, col2
+	assert.Equal(t, "val3", selectedRow3[0])      // Third row, col1
+	assert.Equal(t, float64(30), selectedRow3[1]) // Third row, col2
+	assert.Equal(t, "val4", selectedRow4[0])      // Fourth row, col1
+	assert.Equal(t, float64(40), selectedRow4[1]) // Fourth row, col2
+	assert.Equal(t, "val5", selectedRow5[0])      // Fifth row, col1
+	assert.Equal(t, float64(50), selectedRow5[1]) // Fifth row, col2
 
-	// Test column selection with filters
+	// Test field selection with filters
 	filteredSelectedData, err := repo.GetData(context.Background(), tableName, filters, "col1")
 	assert.NoError(t, err)
 	assert.NotNil(t, filteredSelectedData)
@@ -272,14 +317,139 @@ func TestGetData(t *testing.T) {
 	err = json.Unmarshal([]byte(filteredSelectedJsonStr), &filteredSelectedTabularData)
 	assert.NoError(t, err)
 
-	filteredSelectedColumns := filteredSelectedTabularData["columns"].([]interface{})
+	filteredSelectedFields := filteredSelectedTabularData["columns"].([]interface{})
 	filteredSelectedRows := filteredSelectedTabularData["rows"].([]interface{})
 
-	// Verify only selected column is returned with filter
-	assert.Len(t, filteredSelectedColumns, 1)
-	assert.Equal(t, "col1", filteredSelectedColumns[0])
+	// Verify only selected field is returned with filter
+	assert.Len(t, filteredSelectedFields, 1)
+	assert.Equal(t, "col1", filteredSelectedFields[0])
 	assert.Len(t, filteredSelectedRows, 1)
-	assert.Equal(t, "val2", filteredSelectedRows[0].([]interface{})[0]) // Filtered row, col1
+	assert.NotNil(t, filteredSelectedRows)
+	filteredSelectedRow := filteredSelectedRows[0].([]interface{})
+	assert.NotNil(t, filteredSelectedRow)
+	assert.Equal(t, "val2", filteredSelectedRow[0]) // Filtered row, col1
+
+	// Test multiple filters
+	multipleFilters := map[string]interface{}{
+		"col1": "val3",
+		"col2": 30,
+	}
+	multipleFilteredData, err := repo.GetData(context.Background(), tableName, multipleFilters)
+	assert.NoError(t, err)
+	assert.NotNil(t, multipleFilteredData)
+
+	// Unmarshal the multiple filtered data
+	var multipleFilteredStructValue structpb.Struct
+	err = multipleFilteredData.UnmarshalTo(&multipleFilteredStructValue)
+	assert.NoError(t, err)
+
+	multipleFilteredJsonStr := multipleFilteredStructValue.Fields["data"].GetStringValue()
+	assert.NotEmpty(t, multipleFilteredJsonStr)
+
+	// Parse the JSON for multiple filtered data
+	var multipleFilteredTabularData map[string]interface{}
+	err = json.Unmarshal([]byte(multipleFilteredJsonStr), &multipleFilteredTabularData)
+	assert.NoError(t, err)
+
+	multipleFilteredFields := multipleFilteredTabularData["columns"].([]interface{})
+	multipleFilteredRows := multipleFilteredTabularData["rows"].([]interface{})
+
+	// Verify multiple filters work correctly
+	assert.Len(t, multipleFilteredFields, 3) // id, col1, col2
+	assert.Len(t, multipleFilteredRows, 1)
+	assert.NotNil(t, multipleFilteredRows)
+	multipleFilteredRow := multipleFilteredRows[0].([]interface{})
+	assert.NotNil(t, multipleFilteredRow)
+	assert.Equal(t, "val3", multipleFilteredRow[1])      // col1
+	assert.Equal(t, float64(30), multipleFilteredRow[2]) // col2
+
+	// Test filter that should return no results
+	noResultsFilter := map[string]interface{}{
+		"col1": "nonexistent",
+	}
+	noResultsData, err := repo.GetData(context.Background(), tableName, noResultsFilter)
+	assert.NoError(t, err)
+	assert.NotNil(t, noResultsData)
+
+	// Unmarshal the no results data
+	var noResultsStructValue structpb.Struct
+	err = noResultsData.UnmarshalTo(&noResultsStructValue)
+	assert.NoError(t, err)
+
+	noResultsJsonStr := noResultsStructValue.Fields["data"].GetStringValue()
+	assert.NotEmpty(t, noResultsJsonStr)
+
+	// Parse the JSON for no results data
+	var noResultsTabularData map[string]interface{}
+	err = json.Unmarshal([]byte(noResultsJsonStr), &noResultsTabularData)
+	assert.NoError(t, err)
+	assert.NotNil(t, noResultsTabularData)
+
+	// Add safety checks for the map keys
+	noResultsColumnsInterface, hasNoResultsColumns := noResultsTabularData["columns"]
+	assert.True(t, hasNoResultsColumns, "columns key should exist")
+	assert.NotNil(t, noResultsColumnsInterface, "columns should not be nil")
+
+	noResultsRowsInterface, hasNoResultsRows := noResultsTabularData["rows"]
+	assert.True(t, hasNoResultsRows, "rows key should exist")
+
+	// Handle the case where no results returns null instead of empty array
+	var noResultsRows []interface{}
+	if noResultsRowsInterface == nil {
+		noResultsRows = []interface{}{} // Convert null to empty array
+	} else {
+		noResultsRows = noResultsRowsInterface.([]interface{})
+	}
+
+	noResultsFields := noResultsColumnsInterface.([]interface{})
+
+	// Verify no results filter returns empty result set
+	assert.Len(t, noResultsFields, 3) // id, col1, col2
+	assert.Len(t, noResultsRows, 0)   // No rows should match
+	assert.NotNil(t, noResultsRows)   // Should be empty array, not nil
+
+	// Test numeric filter
+	numericFilter := map[string]interface{}{
+		"col2": 50,
+	}
+	numericFilteredData, err := repo.GetData(context.Background(), tableName, numericFilter)
+	assert.NoError(t, err)
+	assert.NotNil(t, numericFilteredData)
+
+	// Unmarshal the numeric filtered data
+	var numericFilteredStructValue structpb.Struct
+	err = numericFilteredData.UnmarshalTo(&numericFilteredStructValue)
+	assert.NoError(t, err)
+
+	numericFilteredJsonStr := numericFilteredStructValue.Fields["data"].GetStringValue()
+	assert.NotEmpty(t, numericFilteredJsonStr)
+
+	// Parse the JSON for numeric filtered data
+	var numericFilteredTabularData map[string]interface{}
+	err = json.Unmarshal([]byte(numericFilteredJsonStr), &numericFilteredTabularData)
+	assert.NoError(t, err)
+	assert.NotNil(t, numericFilteredTabularData)
+
+	// Add safety checks for the map keys
+	numericFilteredColumnsInterface, hasNumericFilteredColumns := numericFilteredTabularData["columns"]
+	assert.True(t, hasNumericFilteredColumns, "columns key should exist")
+	assert.NotNil(t, numericFilteredColumnsInterface, "columns should not be nil")
+
+	numericFilteredRowsInterface, hasNumericFilteredRows := numericFilteredTabularData["rows"]
+	assert.True(t, hasNumericFilteredRows, "rows key should exist")
+	assert.NotNil(t, numericFilteredRowsInterface, "rows should not be nil")
+
+	numericFilteredFields := numericFilteredColumnsInterface.([]interface{})
+	numericFilteredRows := numericFilteredRowsInterface.([]interface{})
+
+	// Verify numeric filter works correctly
+	assert.Len(t, numericFilteredFields, 3) // id, col1, col2
+	assert.Len(t, numericFilteredRows, 1)
+	assert.NotNil(t, numericFilteredRows)
+	numericFilteredRow := numericFilteredRows[0].([]interface{})
+	assert.NotNil(t, numericFilteredRow)
+	assert.Equal(t, "val5", numericFilteredRow[1])      // col1
+	assert.Equal(t, float64(50), numericFilteredRow[2]) // col2
 }
 
 func TestGetDataTabularFormat(t *testing.T) {
