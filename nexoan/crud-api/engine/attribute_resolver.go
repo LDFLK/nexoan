@@ -81,6 +81,11 @@ func (p *EntityAttributeProcessor) GetResolver(storageType storageinference.Stor
 
 // ProcessEntityAttributes processes all attributes in an Entity
 func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string) error {
+	return p.ProcessEntityAttributesWithOptions(ctx, entity, operation, nil)
+}
+
+// ProcessEntityAttributesWithOptions processes all attributes in an Entity with optional operation options
+func (p *EntityAttributeProcessor) ProcessEntityAttributesWithOptions(ctx context.Context, entity *pb.Entity, operation string, options *Options) error {
 	if entity == nil || entity.Attributes == nil {
 		return nil
 	}
@@ -118,7 +123,24 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			}
 
 			// Execute the appropriate operation
-			result := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value)
+			var operationOptions *Options
+			if operation == "read" {
+				// Use provided options or default to empty filters
+				if options != nil {
+					operationOptions = options
+				} else {
+					operationOptions = &Options{
+						ReadOptions: &ReadOptions{
+							Filters: make(map[string]interface{}),
+							Fields:  []string{}, // Empty means all fields
+						},
+					}
+				}
+			} else {
+				// For non-read operations, pass the options as-is
+				operationOptions = options
+			}
+			result := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value, operationOptions)
 			if !result.Success {
 				return fmt.Errorf("error executing %s operation for attribute %s: %v", operation, attrName, result.Error)
 			}
@@ -202,7 +224,77 @@ func (p *EntityAttributeProcessor) determineStorageType(anyValue *anypb.Any) (st
 
 // executeOperation executes the appropriate CRUD operation
 // Returns a Result object containing operation-specific data and status
-func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolver AttributeResolver, operation, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+// Options contains operation-specific options for all CRUD operations
+type Options struct {
+	// Read operation options
+	ReadOptions *ReadOptions
+
+	// Create operation options
+	CreateOptions *CreateOptions
+
+	// Update operation options
+	UpdateOptions *UpdateOptions
+
+	// Delete operation options
+	DeleteOptions *DeleteOptions
+}
+
+// ReadOptions contains options for read operations
+type ReadOptions struct {
+	Filters map[string]interface{}
+	Fields  []string
+}
+
+// CreateOptions contains options for create operations
+type CreateOptions struct {
+	// Future: validation options, conflict resolution, etc.
+}
+
+// UpdateOptions contains options for update operations
+type UpdateOptions struct {
+	// Future: partial updates, conflict resolution, etc.
+}
+
+// DeleteOptions contains options for delete operations
+type DeleteOptions struct {
+	// Future: cascade delete, soft delete, etc.
+}
+
+// Helper functions to create options for different operations
+
+// NewReadOptions creates options for read operations
+func NewReadOptions(filters map[string]interface{}, fields ...string) *Options {
+	return &Options{
+		ReadOptions: &ReadOptions{
+			Filters: filters,
+			Fields:  fields,
+		},
+	}
+}
+
+// NewCreateOptions creates options for create operations
+func NewCreateOptions(createOpts *CreateOptions) *Options {
+	return &Options{
+		CreateOptions: createOpts,
+	}
+}
+
+// NewUpdateOptions creates options for update operations
+func NewUpdateOptions(updateOpts *UpdateOptions) *Options {
+	return &Options{
+		UpdateOptions: updateOpts,
+	}
+}
+
+// NewDeleteOptions creates options for delete operations
+func NewDeleteOptions(deleteOpts *DeleteOptions) *Options {
+	return &Options{
+		DeleteOptions: deleteOpts,
+	}
+}
+
+// executeOperation executes the appropriate operation on the given resolver
+func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolver AttributeResolver, operation, entityID, attrName string, value *pb.TimeBasedValue, options *Options) *Result {
 	if resolver == nil {
 		return &Result{
 			Data:    nil,
@@ -213,15 +305,24 @@ func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolve
 
 	switch operation {
 	case "create":
+		// TODO: Use CreateOptions when implemented
 		return resolver.CreateResolve(ctx, entityID, attrName, value)
 	case "read":
-		// For read operations, pass empty filters by default
-		// In the future, this could be made configurable
-		filters := make(map[string]interface{})
-		return resolver.ReadResolve(ctx, entityID, attrName, filters)
+		// Use provided options or default to empty filters
+		var filters map[string]interface{}
+		var fields []string
+		if options != nil && options.ReadOptions != nil {
+			filters = options.ReadOptions.Filters
+			fields = options.ReadOptions.Fields
+		} else {
+			filters = make(map[string]interface{})
+		}
+		return resolver.ReadResolve(ctx, entityID, attrName, filters, fields...)
 	case "update":
+		// TODO: Use UpdateOptions when implemented
 		return resolver.UpdateResolve(ctx, entityID, attrName, value)
 	case "delete":
+		// TODO: Use DeleteOptions when implemented
 		return resolver.DeleteResolve(ctx, entityID, attrName, value)
 	default:
 		return &Result{
