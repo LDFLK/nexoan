@@ -146,19 +146,23 @@ func TestGraphMetadataIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test create operation - this should create graph metadata
-	err = processor.ProcessEntityAttributes(ctx, entity, "create")
+	options := getOptionsForOperation("create")
+	err = processor.ProcessEntityAttributes(ctx, entity, "create", options)
 	assert.NoError(t, err)
 
 	// Test read operation - this should verify graph metadata
-	err = processor.ProcessEntityAttributes(ctx, entity, "read")
+	options = getOptionsForOperation("read")
+	err = processor.ProcessEntityAttributes(ctx, entity, "read", options)
 	assert.NoError(t, err)
 
 	// Test update operation - this should update graph metadata
-	err = processor.ProcessEntityAttributes(ctx, entity, "update")
+	options = getOptionsForOperation("update")
+	err = processor.ProcessEntityAttributes(ctx, entity, "update", options)
 	assert.NoError(t, err)
 
 	// Test delete operation - this should delete graph metadata
-	err = processor.ProcessEntityAttributes(ctx, entity, "delete")
+	options = getOptionsForOperation("delete")
+	err = processor.ProcessEntityAttributes(ctx, entity, "delete", options)
 	assert.NoError(t, err)
 }
 

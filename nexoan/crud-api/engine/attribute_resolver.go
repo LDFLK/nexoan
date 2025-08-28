@@ -79,13 +79,8 @@ func (p *EntityAttributeProcessor) GetResolver(storageType storageinference.Stor
 	return resolver, exists
 }
 
-// ProcessEntityAttributes processes all attributes in an Entity
-func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string) error {
-	return p.ProcessEntityAttributesWithOptions(ctx, entity, operation, nil)
-}
-
-// ProcessEntityAttributesWithOptions processes all attributes in an Entity with optional operation options
-func (p *EntityAttributeProcessor) ProcessEntityAttributesWithOptions(ctx context.Context, entity *pb.Entity, operation string, options *Options) error {
+// ProcessEntityAttributes processes all attributes in an Entity with operation options
+func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string, options *Options) error {
 	if entity == nil || entity.Attributes == nil {
 		return nil
 	}

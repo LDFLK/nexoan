@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"lk/datafoundation/crud-api/commons"
-	"lk/datafoundation/crud-api/commons/db"
+	dbcommons "lk/datafoundation/crud-api/commons/db"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"lk/datafoundation/crud-api/pkg/schema"
 	"lk/datafoundation/crud-api/pkg/storageinference"
@@ -70,6 +70,20 @@ func saveEntityToDatabase(ctx context.Context, entity *pb.Entity) error {
 	return nil
 }
 
+// getOptionsForOperation returns appropriate options for each operation type
+func getOptionsForOperation(operation string) *Options {
+	switch operation {
+	case "read":
+		return NewReadOptions(make(map[string]interface{}), []string{}...)
+	case "create", "update", "delete":
+		// For now, return nil options for these operations
+		// In the future, we can add specific options
+		return nil
+	default:
+		return nil
+	}
+}
+
 // TestEntityWithGraphDataOnly tests an entity containing only graph data
 func TestEntityWithGraphDataOnly(t *testing.T) {
 	ctx := context.Background()
@@ -103,7 +117,8 @@ func TestEntityWithGraphDataOnly(t *testing.T) {
 	operations := []string{"create"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -138,7 +153,8 @@ func TestEntityWithTabularDataOnly(t *testing.T) {
 	operations := []string{"create"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -182,7 +198,8 @@ func TestEntityWithDocumentDataOnly(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -236,7 +253,8 @@ func TestEntityWithMixedDataTypes(t *testing.T) {
 	operations := []string{"create"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -282,7 +300,8 @@ func TestComplexGraphEntity(t *testing.T) {
 	operations := []string{"create"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -318,7 +337,8 @@ func TestComplexTabularEntity(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -382,7 +402,8 @@ func TestComplexDocumentEntity(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -440,7 +461,8 @@ func TestEntityWithMultipleAttributesOfSameType(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -516,7 +538,8 @@ func TestEmptyEntity(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, entity, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, entity, operation, options)
 			assert.NoError(t, err)
 		})
 	}
@@ -531,7 +554,8 @@ func TestNilEntity(t *testing.T) {
 	operations := []string{"create", "read", "update", "delete"}
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
-			err := processor.ProcessEntityAttributes(ctx, nil, operation)
+			options := getOptionsForOperation(operation)
+			err := processor.ProcessEntityAttributes(ctx, nil, operation, options)
 			assert.NoError(t, err) // Should handle nil gracefully
 		})
 	}
@@ -550,7 +574,8 @@ func TestInvalidOperation(t *testing.T) {
 	processor := NewEntityAttributeProcessor()
 	ctx := context.Background()
 
-	err = processor.ProcessEntityAttributes(ctx, entity, "invalid_operation")
+	options := getOptionsForOperation("invalid_operation")
+	err = processor.ProcessEntityAttributes(ctx, entity, "invalid_operation", options)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown operation")
 }
@@ -571,7 +596,8 @@ func TestUnsupportedStorageType(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should not error, but should log a warning and skip the attribute
-	err = processor.ProcessEntityAttributes(ctx, entity, "create")
+	options := getOptionsForOperation("create")
+	err = processor.ProcessEntityAttributes(ctx, entity, "create", options)
 	assert.NoError(t, err) // Should handle gracefully
 }
 
@@ -600,6 +626,7 @@ func TestBasicFunctionality(t *testing.T) {
 	err = saveEntityToDatabase(ctx, entity)
 	assert.NoError(t, err)
 
-	err = processor.ProcessEntityAttributes(ctx, entity, "create")
+	options := getOptionsForOperation("create")
+	err = processor.ProcessEntityAttributes(ctx, entity, "create", options)
 	assert.NoError(t, err)
 }
