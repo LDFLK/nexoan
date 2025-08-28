@@ -358,7 +358,7 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 }
 
 // handleTabularData processes tabular data attributes
-func HandleTabularData(ctx context.Context, repo *PostgresRepository, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
+func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
 	// Generate table name
 	tableName := fmt.Sprintf("attr_%s_%s", sanitizeIdentifier(entityID), sanitizeIdentifier(attrName))
 
@@ -607,7 +607,7 @@ func GetSchemaOfTable(ctx context.Context, repo *PostgresRepository, tableName s
 }
 
 // GetData retrieves data from a table with optional filters.
-func GetData(ctx context.Context, repo *PostgresRepository, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
 	// Base query
 	query := fmt.Sprintf("SELECT * FROM %s", sanitizeIdentifier(tableName))
 

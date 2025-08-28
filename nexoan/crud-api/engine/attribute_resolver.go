@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
-	"lk/datafoundation/crud-api/pkg/storageinference"
+	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
 
 	"time"
 
@@ -254,6 +254,8 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 	// - Validate tabular structure (columns and rows)
 	// - Create or update database table
 	// - Insert data rows
+	// TODO: startDate and endDate must be stored in somewhere in the tabular database.
+	//  this will be useful for schema evolution setup.
 	startDate := value.StartTime
 	endDate := value.EndTime
 
@@ -265,7 +267,19 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 
 	fmt.Printf("Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n", attrName, entityID, startDate, endDate)
 
-	
+	// repo, err := commons.GetPostgresRepository(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get Postgres repository: %v", err)
+	// }
+	// schemaInfo, err := schema.GenerateSchema(value.Value)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to generate schema: %v", err)
+	// }
+
+	// err = repo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to handle tabular data: %v", err)
+	// }
 
 	return nil
 }
@@ -276,6 +290,15 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 	// - Retrieve rows and columns
 	// - Return tabular structure
 	fmt.Printf("Reading tabular attribute %s for entity %s\n", attrName, entityID)
+
+	// repo, err := commons.GetPostgresRepository(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get Postgres repository: %v", err)
+	// }
+
+	// TODO: call the data handler to get the data
+	// repo.GetData(ctx, entityID, attrName, value)
+
 	return nil
 }
 

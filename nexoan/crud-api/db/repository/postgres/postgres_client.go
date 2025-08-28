@@ -213,11 +213,6 @@ func (r *PostgresRepository) InsertTabularData(ctx context.Context, tableName st
 	return nil
 }
 
-// GetData retrieves data from a table with optional filters.
-func (r *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
-	return GetData(ctx, r, tableName, filters)
-}
-
 // GetTableList retrieves a list of attribute tables for a given entity ID.
 func (r *PostgresRepository) GetTableList(ctx context.Context, entityID string) ([]string, error) {
 	return GetTableList(ctx, r, entityID)

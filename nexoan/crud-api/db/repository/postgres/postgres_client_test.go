@@ -432,7 +432,7 @@ func TestInsertSampleData(t *testing.T) {
 			assert.NoError(t, err, "Failed to generate schema")
 
 			// Handle attributes (this will create table and insert data)
-			err = HandleTabularData(ctx, repo, tt.entityID, tt.attrName, timeBasedValue, schemaInfo)
+			err = repo.HandleTabularData(ctx, tt.entityID, tt.attrName, timeBasedValue, schemaInfo)
 			assert.NoError(t, err, "Failed to handle attributes")
 
 			// Verify table exists

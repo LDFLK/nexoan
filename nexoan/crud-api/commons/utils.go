@@ -14,6 +14,7 @@ import (
 	"lk/datafoundation/crud-api/db/config"
 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
+	postgresrepository "lk/datafoundation/crud-api/db/repository/postgres"
 
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -193,4 +194,26 @@ func GetNeo4jRepository(ctx context.Context) (*neo4jrepository.Neo4jRepository, 
 func GetMongoRepository(ctx context.Context) *mongorepository.MongoRepository {
 	cfg := GetMongoConfig()
 	return mongorepository.NewMongoRepository(ctx, cfg)
+}
+
+// GetPostgresConfig creates a PostgresConfig from environment variables
+func GetPostgresConfig() postgresrepository.Config {
+	return postgresrepository.Config{
+		Host:     os.Getenv("POSTGRES_HOST"),
+		Port:     os.Getenv("POSTGRES_PORT"),
+		User:     os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		DBName:   os.Getenv("POSTGRES_DB"),
+		SSLMode:  os.Getenv("POSTGRES_SSL_MODE"),
+	}
+}
+
+// GetPostgresRepository retrieves a Postgres repository
+func GetPostgresRepository(ctx context.Context) (*postgresrepository.PostgresRepository, error) {
+	cfg := GetPostgresConfig()
+	repo, err := postgresrepository.NewPostgresRepository(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("[Commons] failed to create Postgres repository: %w", err)
+	}
+	return repo, nil
 }

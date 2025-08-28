@@ -155,13 +155,13 @@ func TestGetData(t *testing.T) {
 
 	// Get data with a filter
 	filters := map[string]interface{}{"col2": 20}
-	data, err := GetData(context.Background(), repo, tableName, filters)
+	data, err := repo.GetData(context.Background(), tableName, filters)
 	assert.NoError(t, err)
 	assert.Len(t, data, 1)
 	assert.Equal(t, "val2", data[0]["col1"])
 
 	// Get all data (no filter)
-	allData, err := GetData(context.Background(), repo, tableName, nil)
+	allData, err := repo.GetData(context.Background(), tableName, nil)
 	assert.NoError(t, err)
 	assert.Len(t, allData, 2)
 }

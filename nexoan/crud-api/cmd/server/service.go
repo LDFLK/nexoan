@@ -100,7 +100,7 @@ func (s *Server) handleAttributes(ctx context.Context, entityID string, attribut
 
 			if schemaInfo.StorageType == storageinference.TabularData {
 				// Handle tabular data
-				if err := postgres.HandleTabularData(ctx, s.postgresRepo, entityID, attrName, value, schemaInfo); err != nil {
+				if err := s.postgresRepo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo); err != nil {
 					return fmt.Errorf("error handling tabular data for attribute %s: %v", attrName, err)
 				}
 			} else {
