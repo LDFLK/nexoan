@@ -496,6 +496,11 @@ func schemaToColumns(schemaInfo *schema.SchemaInfo) []Column {
 	var columns []Column
 
 	for fieldName, field := range schemaInfo.Fields {
+		// Skip "id" columns as they conflict with the auto-generated primary key
+		if strings.ToLower(fieldName) == "id" {
+			continue
+		}
+
 		var colType string
 		switch field.TypeInfo.Type {
 		case typeinference.IntType:

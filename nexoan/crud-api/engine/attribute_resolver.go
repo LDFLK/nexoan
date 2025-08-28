@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
+	commons "lk/datafoundation/crud-api/commons"
+	schema "lk/datafoundation/crud-api/pkg/schema"
 	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
 
 	"time"
@@ -267,19 +269,25 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 
 	fmt.Printf("Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n", attrName, entityID, startDate, endDate)
 
-	// repo, err := commons.GetPostgresRepository(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get Postgres repository: %v", err)
-	// }
-	// schemaInfo, err := schema.GenerateSchema(value.Value)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to generate schema: %v", err)
-	// }
+	repo, err := commons.GetPostgresRepository(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get Postgres repository: %v", err)
+	}
 
-	// err = repo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to handle tabular data: %v", err)
-	// }
+	// Initialize database tables if they don't exist
+	if err := repo.InitializeTables(ctx); err != nil {
+		return fmt.Errorf("failed to initialize database tables: %v", err)
+	}
+
+	schemaInfo, err := schema.GenerateSchema(value.Value)
+	if err != nil {
+		return fmt.Errorf("failed to generate schema: %v", err)
+	}
+
+	err = repo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo)
+	if err != nil {
+		return fmt.Errorf("failed to handle tabular data: %v", err)
+	}
 
 	return nil
 }
