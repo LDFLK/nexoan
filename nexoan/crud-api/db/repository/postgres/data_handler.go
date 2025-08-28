@@ -10,7 +10,6 @@ import (
 
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"lk/datafoundation/crud-api/pkg/schema"
-	"lk/datafoundation/crud-api/pkg/storageinference"
 	"lk/datafoundation/crud-api/pkg/typeinference"
 
 	"google.golang.org/protobuf/types/known/anypb"
@@ -80,43 +79,8 @@ func UnmarshalEntityAttributes(attributes map[string]*anypb.Any) (map[string]int
 	return result, nil
 }
 
-// generateSchema generates schema information for a value
-func generateSchema(value *anypb.Any) (*schema.SchemaInfo, error) {
-	// Generate schema directly from the Any value
-	schemaGenerator := schema.NewSchemaGenerator()
-	return schemaGenerator.GenerateSchema(value)
-}
-
-// logSchemaInfo logs schema information in a readable format
-func logSchemaInfo(schemaInfo *schema.SchemaInfo) {
-	if schemaInfo == nil {
-		log.Printf("Schema is nil")
-		return
-	}
-
-	// Log the schema information
-	log.Printf("Schema: StorageType=%v, TypeInfo=%v",
-		schemaInfo.StorageType,
-		schemaInfo.TypeInfo)
-
-	// Convert schema to JSON for logging
-	schemaJSON, err := schema.SchemaInfoToJSON(schemaInfo)
-	if err != nil {
-		log.Printf("Failed to convert schema to JSON: %v", err)
-		return
-	}
-
-	// Marshal to pretty JSON for better readability
-	prettyJSON, err := json.MarshalIndent(schemaJSON, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal schema to JSON: %v", err)
-		return
-	}
-
-	log.Printf("Schema JSON:\n%s", string(prettyJSON))
-}
-
 // isTabularData checks if the data has a valid tabular structure
+// TODO: See if this is needed or else remove it. ,
 func isTabularData(value *anypb.Any) (bool, *structpb.Struct, error) {
 	// Try to unmarshal as struct
 	var dataStruct structpb.Struct
@@ -182,7 +146,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 	for _, col := range columnsList.Values {
 		colName := col.GetStringValue()
 		columnTypes[colName] = typeinference.TypeInfo{
-			Type: typeinference.StringType, // Default to string
+			Type:       typeinference.StringType, // Default to string
 			IsNullable: false,
 		}
 	}
@@ -215,7 +179,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 				default:
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				}
@@ -231,14 +195,14 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 					// If current string is not a datetime, convert to string
 					if !isDateTime(str) {
 						columnTypes[colName] = typeinference.TypeInfo{
-							Type: typeinference.StringType,
+							Type:       typeinference.StringType,
 							IsNullable: true,
 						}
 					}
 				default:
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				}
@@ -246,7 +210,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 				if currentType.Type != typeinference.BoolType && currentType.Type != typeinference.StringType {
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				} else if currentType.Type == typeinference.StringType {
@@ -255,7 +219,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 			default:
 				// Unknown type, convert to string
 				columnTypes[colName] = typeinference.TypeInfo{
-					Type: typeinference.StringType,
+					Type:       typeinference.StringType,
 					IsNullable: true,
 				}
 			}
@@ -288,47 +252,6 @@ func isDateTime(val string) bool {
 	}
 
 	return false
-}
-
-// HandleAttributes handles the attributes for an entity
-func HandleAttributes(ctx context.Context, repo *PostgresRepository, entityID string, attributes map[string]*pb.TimeBasedValueList) error {
-	if attributes == nil {
-		return nil
-	}
-
-	// Process each attribute
-	for attrName, timeBasedValueList := range attributes {
-		if timeBasedValueList == nil {
-			continue
-		}
-
-		// Process each time-based value
-		for _, value := range timeBasedValueList.Values {
-			if value == nil || value.Value == nil {
-				continue
-			}
-
-			// Generate schema for the value
-			schemaInfo, err := generateSchema(value.Value)
-			if err != nil {
-				return fmt.Errorf("error generating schema for attribute %s: %v", attrName, err)
-			}
-
-			// Log schema information for debugging
-			logSchemaInfo(schemaInfo)
-
-			if schemaInfo.StorageType == storageinference.TabularData {
-				// Handle tabular data
-				if err := handleTabularData(ctx, repo, entityID, attrName, value, schemaInfo); err != nil {
-					return fmt.Errorf("error handling tabular data for attribute %s: %v", attrName, err)
-				}
-			} else {
-				fmt.Printf("Attribute is not a tabular value skipping processing storage type :%s", schemaInfo.StorageType)
-			}
-		}
-	}
-
-	return nil
 }
 
 // validateDataAgainstSchema validates that the data matches the schema
@@ -435,7 +358,7 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 }
 
 // handleTabularData processes tabular data attributes
-func handleTabularData(ctx context.Context, repo *PostgresRepository, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
+func HandleTabularData(ctx context.Context, repo *PostgresRepository, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
 	// Generate table name
 	tableName := fmt.Sprintf("attr_%s_%s", sanitizeIdentifier(entityID), sanitizeIdentifier(attrName))
 

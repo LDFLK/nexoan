@@ -3,6 +3,7 @@ package schema
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -386,4 +387,40 @@ func validateTabularValue(value interface{}, schema *SchemaInfo) error {
 	}
 
 	return nil
+}
+
+// generateSchema generates schema information for a value
+func GenerateSchema(value *anypb.Any) (*SchemaInfo, error) {
+	// Generate schema directly from the Any value
+	schemaGenerator := NewSchemaGenerator()
+	return schemaGenerator.GenerateSchema(value)
+}
+
+// logSchemaInfo logs schema information in a readable format
+func LogSchemaInfo(schemaInfo *SchemaInfo) {
+	if schemaInfo == nil {
+		log.Printf("Schema is nil")
+		return
+	}
+
+	// Log the schema information
+	log.Printf("Schema: StorageType=%v, TypeInfo=%v",
+		schemaInfo.StorageType,
+		schemaInfo.TypeInfo)
+
+	// Convert schema to JSON for logging
+	schemaJSON, err := SchemaInfoToJSON(schemaInfo)
+	if err != nil {
+		log.Printf("Failed to convert schema to JSON: %v", err)
+		return
+	}
+
+	// Marshal to pretty JSON for better readability
+	prettyJSON, err := json.MarshalIndent(schemaJSON, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal schema to JSON: %v", err)
+		return
+	}
+
+	log.Printf("Schema JSON:\n%s", string(prettyJSON))
 }

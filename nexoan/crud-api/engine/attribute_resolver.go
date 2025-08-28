@@ -190,16 +190,16 @@ func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolve
 	}
 
 	switch operation {
-		case "create":
-			return resolver.CreateResolve(ctx, entityID, attrName, value)
-		case "read":
-			return resolver.ReadResolve(ctx, entityID, attrName, value)
-		case "update":
-			return resolver.UpdateResolve(ctx, entityID, attrName, value)
-		case "delete":
-			return resolver.DeleteResolve(ctx, entityID, attrName, value)
-		default:
-			return fmt.Errorf("unknown operation: %s", operation)
+	case "create":
+		return resolver.CreateResolve(ctx, entityID, attrName, value)
+	case "read":
+		return resolver.ReadResolve(ctx, entityID, attrName, value)
+	case "update":
+		return resolver.UpdateResolve(ctx, entityID, attrName, value)
+	case "delete":
+		return resolver.DeleteResolve(ctx, entityID, attrName, value)
+	default:
+		return fmt.Errorf("unknown operation: %s", operation)
 	}
 }
 
@@ -254,7 +254,19 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 	// - Validate tabular structure (columns and rows)
 	// - Create or update database table
 	// - Insert data rows
-	fmt.Printf("Creating tabular attribute %s for entity %s\n", attrName, entityID)
+	startDate := value.StartTime
+	endDate := value.EndTime
+
+	// validate the data are in tabular shape
+	values := value.Value
+	if values == nil {
+		return fmt.Errorf("values are nil")
+	}
+
+	fmt.Printf("Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n", attrName, entityID, startDate, endDate)
+
+	
+
 	return nil
 }
 

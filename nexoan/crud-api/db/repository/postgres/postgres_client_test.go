@@ -9,6 +9,7 @@ import (
 
 	"lk/datafoundation/crud-api/pkg/typeinference"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
+	schema "lk/datafoundation/crud-api/pkg/schema"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -427,15 +428,11 @@ func TestInsertSampleData(t *testing.T) {
 				Value:     dataStruct,
 			}
 
-			// Create attribute list
-			attributes := map[string]*pb.TimeBasedValueList{
-				tt.attrName: {
-					Values: []*pb.TimeBasedValue{timeBasedValue},
-				},
-			}
+			schemaInfo, err := schema.GenerateSchema(dataStruct)
+			assert.NoError(t, err, "Failed to generate schema")
 
 			// Handle attributes (this will create table and insert data)
-			err = HandleAttributes(ctx, repo, tt.entityID, attributes)
+			err = HandleTabularData(ctx, repo, tt.entityID, tt.attrName, timeBasedValue, schemaInfo)
 			assert.NoError(t, err, "Failed to handle attributes")
 
 			// Verify table exists
