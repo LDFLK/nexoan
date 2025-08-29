@@ -155,7 +155,7 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 
 	success, err := neo4jRepository.HandleGraphEntityCreation(ctx, attributeNode)
 	if !success {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating graph entity: %v", err)
+		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating attributeNode as a graph entity: %v", err)
 		return err
 	}
 
@@ -164,7 +164,7 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 	// create the relationship between the entity and the attribute
 	err = neo4jRepository.HandleGraphRelationshipsUpdate(ctx, parentNode)
 	if err != nil {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating relationship: %v", err)
+		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating relationship between entity and attribute: %v", err)
 		return err
 	}
 

@@ -13,8 +13,7 @@ import (
 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
 	postgres "lk/datafoundation/crud-api/db/repository/postgres"
-	schema "lk/datafoundation/crud-api/pkg/schema"
-	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
+	engine "lk/datafoundation/crud-api/engine"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -63,8 +62,8 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 	}
 
 	// Handle attributes
-	// This is the place where we should call the attribute resolver
-	err = s.handleAttributes(ctx, req.Id, req.Attributes)
+	processor := engine.NewEntityAttributeProcessor()
+	err = processor.ProcessEntityAttributes(ctx, req, "create", nil)
 	if err != nil {
 		log.Printf("[server.CreateEntity] Error handling attributes: %v", err)
 		return nil, err
@@ -72,43 +71,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 		log.Printf("[server.CreateEntity] Successfully handled attributes for entity: %s", req.Id)
 	}
 
-	// Return the complete entity including attributes
 	return req, nil
-}
-
-func (s *Server) handleAttributes(ctx context.Context, entityID string, attributes map[string]*pb.TimeBasedValueList) error {
-	// This is the place where we should call the attribute resolver
-	for attrName, timeBasedValueList := range attributes {
-		if timeBasedValueList == nil {
-			continue
-		}
-
-		// Process each time-based value
-		for _, value := range timeBasedValueList.Values {
-			if value == nil || value.Value == nil {
-				continue
-			}
-
-			// Generate schema for the value
-			schemaInfo, err := schema.GenerateSchema(value.Value)
-			if err != nil {
-				return fmt.Errorf("error generating schema for attribute %s: %v", attrName, err)
-			}
-
-			// Log schema information for debugging
-			schema.LogSchemaInfo(schemaInfo)
-
-			if schemaInfo.StorageType == storageinference.TabularData {
-				// Handle tabular data
-				if err := s.postgresRepo.HandleTabularData(ctx, entityID, attrName, value, schemaInfo); err != nil {
-					return fmt.Errorf("error handling tabular data for attribute %s: %v", attrName, err)
-				}
-			} else {
-				fmt.Printf("Attribute is not a tabular value skipping processing storage type :%s", schemaInfo.StorageType)
-			}
-		}
-	}
-	return nil
 }
 
 // ReadEntity retrieves an entity's metadata
@@ -197,7 +160,6 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 		case "attributes":
 			// TODO: Implement attribute fetching when available
 			log.Printf("Attribute fetching not yet implemented")
-			// Attributes map is already initialized
 
 		case "kind", "name", "created", "terminated":
 			// These fields are already fetched at the start
