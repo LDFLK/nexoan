@@ -80,15 +80,24 @@ func (p *EntityAttributeProcessor) GetResolver(storageType storageinference.Stor
 }
 
 // ProcessEntityAttributes processes all attributes in an Entity with operation options
-func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string, options *Options) error {
+// Returns a map of attribute names to their processing results
+func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string, options *Options) map[string]*Result {
 	if entity == nil || entity.Attributes == nil {
-		return nil
+		return make(map[string]*Result)
 	}
+
+	// Map to store results for each attribute
+	attributeResults := make(map[string]*Result)
 
 	// Process each attribute
 	for attrName, timeBasedValueList := range entity.Attributes {
 		fmt.Printf("DEBUG: Processing attribute %s\n", attrName)
 		if timeBasedValueList == nil {
+			attributeResults[attrName] = &Result{
+				Success: true,
+				Data:    nil,
+				Error:   nil,
+			}
 			continue
 		}
 
@@ -102,18 +111,33 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			storageType, err := p.determineStorageType(value.Value)
 			fmt.Printf("DEBUG: Determined storage type for attribute %s: %s\n", attrName, storageType)
 			if err != nil {
-				return fmt.Errorf("error determining storage type for attribute %s: %v", attrName, err)
+				attributeResults[attrName] = &Result{
+					Success: false,
+					Data:    nil,
+					Error:   fmt.Errorf("error determining storage type for attribute %s: %v", attrName, err),
+				}
+				continue
 			}
 
 			// Create or update graph metadata BEFORE processing the attribute
 			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation); err != nil {
-				return fmt.Errorf("error handling graph metadata for attribute %s: %v", attrName, err)
+				attributeResults[attrName] = &Result{
+					Success: false,
+					Data:    nil,
+					Error:   fmt.Errorf("error handling graph metadata for attribute %s: %v", attrName, err),
+				}
+				continue
 			}
 
 			// Get appropriate resolver
 			resolver, exists := p.resolvers[storageType]
 			if !exists {
 				fmt.Printf("Warning: no resolver found for storage type %s, skipping attribute %s\n", storageType, attrName)
+				attributeResults[attrName] = &Result{
+					Success: false,
+					Data:    nil,
+					Error:   fmt.Errorf("no resolver found for storage type %s", storageType),
+				}
 				continue
 			}
 
@@ -136,9 +160,9 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 				operationOptions = options
 			}
 			result := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value, operationOptions)
-			if !result.Success {
-				return fmt.Errorf("error executing %s operation for attribute %s: %v", operation, attrName, result.Error)
-			}
+
+			// Store the result for this attribute
+			attributeResults[attrName] = result
 
 			// For read operations, we might want to do something with the result
 			if operation == "read" && result.Data != nil {
@@ -148,7 +172,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 		}
 	}
 
-	return nil
+	return attributeResults
 }
 
 // handleAttributeLookUp handles the attribute look up operations

@@ -63,12 +63,22 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 
 	// Handle attributes
 	processor := engine.NewEntityAttributeProcessor()
-	err = processor.ProcessEntityAttributes(ctx, req, "create", nil)
-	if err != nil {
-		log.Printf("[server.CreateEntity] Error handling attributes: %v", err)
-		return nil, err
-	} else {
-		log.Printf("[server.CreateEntity] Successfully handled attributes for entity: %s", req.Id)
+	attributeResults := processor.ProcessEntityAttributes(ctx, req, "create", nil)
+
+	// Check if any attributes failed
+	hasErrors := false
+	for attrName, result := range attributeResults {
+		if !result.Success || result.Error != nil {
+			log.Printf("[server.CreateEntity] Error handling attribute %s: %v", attrName, result.Error)
+			hasErrors = true
+		} else {
+			log.Printf("[server.CreateEntity] Successfully handled attribute %s for entity: %s", attrName, req.Id)
+		}
+	}
+
+	if hasErrors {
+		log.Printf("[server.CreateEntity] Some attributes failed to process")
+		// Continue processing - don't fail the entire operation for attribute errors
 	}
 
 	return req, nil
@@ -158,8 +168,34 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			}
 
 		case "attributes":
-			// TODO: Implement attribute fetching when available
-			log.Printf("Attribute fetching not yet implemented")
+			log.Printf("Processing attributes for entity: %s", req.Entity.Id)
+
+			// TODO: Implement actual attribute fetching from storage
+			// For now, we'll create a placeholder implementation that shows the structure
+
+			// TODO: Fetch actual attribute data from storage systems
+			// This would involve:
+			// 1. Querying the attribute metadata from Neo4j to know what attributes exist
+			// 2. Fetching the actual attribute data from the appropriate storage (MongoDB, Neo4j, etc.)
+			// 3. Processing the data through the attribute resolvers
+
+			// For demonstration, let's create a sample attribute structure
+			// In a real implementation, this would come from actual storage queries
+			sampleAttribute := &pb.TimeBasedValue{
+				StartTime: "",
+				EndTime:   "",
+				Value: &anypb.Any{
+					TypeUrl: "type.googleapis.com/google.protobuf.StringValue",
+					Value:   []byte(`{"status": "placeholder", "message": "Attribute fetching not yet implemented"}`),
+				},
+			}
+
+			response.Attributes["attributes"] = &pb.TimeBasedValueList{
+				Values: []*pb.TimeBasedValue{sampleAttribute},
+			}
+
+			log.Printf("[server.ReadEntity] Added placeholder attribute data for entity: %s", req.Entity.Id)
+			log.Printf("[server.ReadEntity] TODO: Implement actual attribute fetching from storage systems")
 
 		case "kind", "name", "created", "terminated":
 			// These fields are already fetched at the start

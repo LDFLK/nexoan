@@ -147,23 +147,43 @@ func TestGraphMetadataIntegration(t *testing.T) {
 
 	// Test create operation - this should create graph metadata
 	options := getOptionsForOperation("create")
-	err = processor.ProcessEntityAttributes(ctx, entity, "create", options)
-	assert.NoError(t, err)
+	attributeResults := processor.ProcessEntityAttributes(ctx, entity, "create", options)
+
+	// Check that all attributes were processed successfully
+	for attrName, result := range attributeResults {
+		assert.True(t, result.Success, "Attribute %s should be processed successfully in create operation", attrName)
+		assert.NoError(t, result.Error, "Attribute %s should not have errors in create operation", attrName)
+	}
 
 	// Test read operation - this should verify graph metadata
 	options = getOptionsForOperation("read")
-	err = processor.ProcessEntityAttributes(ctx, entity, "read", options)
-	assert.NoError(t, err)
+	attributeResults = processor.ProcessEntityAttributes(ctx, entity, "read", options)
+
+	// Check that all attributes were processed successfully
+	for attrName, result := range attributeResults {
+		assert.True(t, result.Success, "Attribute %s should be processed successfully in read operation", attrName)
+		assert.NoError(t, result.Error, "Attribute %s should not have errors in read operation", attrName)
+	}
 
 	// Test update operation - this should update graph metadata
 	options = getOptionsForOperation("update")
-	err = processor.ProcessEntityAttributes(ctx, entity, "update", options)
-	assert.NoError(t, err)
+	attributeResults = processor.ProcessEntityAttributes(ctx, entity, "update", options)
+
+	// Check that all attributes were processed successfully
+	for attrName, result := range attributeResults {
+		assert.True(t, result.Success, "Attribute %s should be processed successfully in update operation", attrName)
+		assert.NoError(t, result.Error, "Attribute %s should not have errors in update operation", attrName)
+	}
 
 	// Test delete operation - this should delete graph metadata
 	options = getOptionsForOperation("delete")
-	err = processor.ProcessEntityAttributes(ctx, entity, "delete", options)
-	assert.NoError(t, err)
+	attributeResults = processor.ProcessEntityAttributes(ctx, entity, "delete", options)
+
+	// Check that all attributes were processed successfully
+	for attrName, result := range attributeResults {
+		assert.True(t, result.Success, "Attribute %s should be processed successfully in delete operation", attrName)
+		assert.NoError(t, result.Error, "Attribute %s should not have errors in delete operation", attrName)
+	}
 }
 
 // TestAttributeMetadataStructure tests the AttributeMetadata structure
