@@ -602,6 +602,7 @@ type TabularData struct {
 
 // GetData retrieves data from a table with optional field selection and filters, returns it as pb.Any with JSON-formatted tabular data.
 func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, fields ...string) (*anypb.Any, error) {
+	log.Printf("DEBUG: GetData: tableName=%s, \t\nfilters=%v, \t\nfields=%v", tableName, filters, fields)
 	// Build the SELECT clause
 	var selectClause string
 	if len(fields) > 0 {

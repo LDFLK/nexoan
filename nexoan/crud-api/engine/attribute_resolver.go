@@ -499,7 +499,7 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 	// - Query database table
 	// - Retrieve rows and columns
 	// - Return tabular structure
-	fmt.Printf("Reading tabular attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
+	fmt.Printf("[TabularAttributeResolver.ReadResolve] Reading tabular attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
 
 	repo, err := dbcommons.GetPostgresRepository(ctx)
 	if err != nil {

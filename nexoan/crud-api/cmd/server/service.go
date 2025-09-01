@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Server implements the CrudService
@@ -172,12 +173,17 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 
 			// TODO: Fetch the actual entity with attributes from storage
 			// For now, create a minimal entity with test attributes to demonstrate the conversion
-			
+
 			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
 
 			// Use the EntityAttributeProcessor to read and process attributes
 			processor := engine.NewEntityAttributeProcessor()
-			readOptions := engine.NewReadOptions(make(map[string]interface{}), []string{}...)
+
+			// Extract fields from the request attributes based on storage type
+			fields := extractFieldsFromAttributes(req.Entity.Attributes)
+			log.Printf("Extracted fields from attributes: %v", fields)
+
+			readOptions := engine.NewReadOptions(make(map[string]interface{}), fields...)
 
 			// Process the entity with attributes to get the results map
 			attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "read", readOptions)
@@ -348,6 +354,117 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 	return &pb.EntityList{
 		Entities: entities,
 	}, nil
+}
+
+// extractFieldsFromAttributes extracts field names from entity attributes based on storage type
+func extractFieldsFromAttributes(attributes map[string]*pb.TimeBasedValueList) []string {
+	var fields []string
+
+	for attrName, attrValueList := range attributes {
+		if attrValueList == nil || len(attrValueList.Values) == 0 {
+			continue
+		}
+
+		// Get the first value to determine storage type
+		value := attrValueList.Values[0]
+		if value == nil || value.Value == nil {
+			continue
+		}
+
+		// Determine storage type and extract fields accordingly
+		storageType, err := determineStorageTypeFromValue(value.Value)
+		if err != nil {
+			log.Printf("Warning: could not determine storage type for attribute %s: %v", attrName, err)
+			continue
+		}
+
+		switch storageType {
+		case "tabular":
+			// For tabular data, extract columns from the attribute value
+			if columns, err := extractColumnsFromTabularAttribute(value.Value); err == nil {
+				fields = append(fields, columns...)
+			} else {
+				log.Printf("Warning: could not extract columns from tabular attribute %s: %v", attrName, err)
+			}
+		case "graph":
+			// TODO: Handle graph data fields
+			log.Printf("Graph data fields extraction not implemented yet for attribute %s", attrName)
+		case "map":
+			// TODO: Handle document/map data fields
+			log.Printf("Document data fields extraction not implemented yet for attribute %s", attrName)
+		default:
+			log.Printf("Unknown storage type %s for attribute %s", storageType, attrName)
+		}
+	}
+
+	return fields
+}
+
+// determineStorageTypeFromValue determines the storage type from a protobuf Any value
+func determineStorageTypeFromValue(anyValue *anypb.Any) (string, error) {
+	// Unpack the Any value to get the underlying message
+	message, err := anyValue.UnmarshalNew()
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal Any value: %v", err)
+	}
+
+	// Check if it's a struct
+	if structValue, ok := message.(*structpb.Struct); ok {
+		// Check for tabular structure (has both "columns" and "rows" fields)
+		if _, hasColumns := structValue.Fields["columns"]; hasColumns {
+			if _, hasRows := structValue.Fields["rows"]; hasRows {
+				return "tabular", nil
+			}
+		}
+
+		// Check for graph structure (has both "nodes" and "edges" fields)
+		if _, hasNodes := structValue.Fields["nodes"]; hasNodes {
+			if _, hasEdges := structValue.Fields["edges"]; hasEdges {
+				return "graph", nil
+			}
+		}
+
+		// If it has fields but not the specific structures above, treat as map/document
+		if len(structValue.Fields) > 0 {
+			return "map", nil
+		}
+	}
+
+	return "unknown", nil
+}
+
+// extractColumnsFromTabularAttribute extracts column names from a tabular attribute value
+func extractColumnsFromTabularAttribute(anyValue *anypb.Any) ([]string, error) {
+	// Unpack the Any value to get the underlying message
+	message, err := anyValue.UnmarshalNew()
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Any value: %v", err)
+	}
+
+	// Check if it's a struct
+	structValue, ok := message.(*structpb.Struct)
+	if !ok {
+		return nil, fmt.Errorf("expected struct value")
+	}
+
+	// Get the columns field
+	columnsField, exists := structValue.Fields["columns"]
+	if !exists {
+		return nil, fmt.Errorf("no columns field found")
+	}
+
+	// Extract column names from the list value
+	listValue := columnsField.GetListValue()
+	if listValue == nil {
+		return nil, fmt.Errorf("columns field is not a list")
+	}
+
+	columns := make([]string, len(listValue.Values))
+	for i, col := range listValue.Values {
+		columns[i] = col.GetStringValue()
+	}
+
+	return columns, nil
 }
 
 // Start the gRPC server
