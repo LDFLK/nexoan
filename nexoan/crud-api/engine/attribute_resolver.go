@@ -8,6 +8,7 @@ import (
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	schema "lk/datafoundation/crud-api/pkg/schema"
 	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
+	"log"
 
 	"time"
 
@@ -82,6 +83,7 @@ func (p *EntityAttributeProcessor) GetResolver(storageType storageinference.Stor
 // ProcessEntityAttributes processes all attributes in an Entity with operation options
 // Returns a map of attribute names to their processing results
 func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string, options *Options) map[string]*Result {
+	log.Printf("Processing entity attributes at [processor.ProcessEntityAttributes] [operation: %s] [entity: %+v]", operation, entity)
 	if entity == nil || entity.Attributes == nil {
 		return make(map[string]*Result)
 	}
@@ -91,7 +93,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 
 	// Process each attribute
 	for attrName, timeBasedValueList := range entity.Attributes {
-		fmt.Printf("DEBUG: Processing attribute %s\n", attrName)
+		fmt.Printf("DEBUG: Processing attribute[%s] %s\n", operation, attrName)
 		if timeBasedValueList == nil {
 			attributeResults[attrName] = &Result{
 				Success: true,
@@ -107,9 +109,11 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 				continue
 			}
 
+			log.Printf("DEBUG: Processing time-based value for attribute %s: %+v", attrName, value)
+
 			// Determine storage type
 			storageType, err := p.determineStorageType(value.Value)
-			fmt.Printf("DEBUG: Determined storage type for attribute %s: %s\n", attrName, storageType)
+			fmt.Printf("DEBUG: Determined storage type[%s] for attribute %s: %s\n", operation, attrName, storageType)
 			if err != nil {
 				attributeResults[attrName] = &Result{
 					Success: false,
@@ -219,11 +223,13 @@ func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, en
 		}
 
 	case "read":
-		// For read operations, we might want to verify the attribute exists in the graph
-		// This is optional but can be useful for validation
-		_, err := p.graphManager.GetAttribute(ctx, entityID, attrName)
+		// For read operations, retrieve the attribute metadata from the graph
+		attributeMetadata, err := p.graphManager.GetAttribute(ctx, entityID, attrName)
 		if err != nil {
 			fmt.Printf("Warning: attribute %s not found in graph metadata for entity %s\n", attrName, entityID)
+		} else if attributeMetadata != nil {
+			// Store the retrieved metadata for potential use
+			fmt.Printf("DEBUG: Retrieved attribute metadata for %s: %+v\n", attrName, attributeMetadata)
 		}
 	}
 
@@ -325,9 +331,11 @@ func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolve
 	switch operation {
 	case "create":
 		// TODO: Use CreateOptions when implemented
+		log.Printf("Creating attribute %s for entity %s\n", attrName, entityID)
 		return resolver.CreateResolve(ctx, entityID, attrName, value)
 	case "read":
 		// Use provided options or default to empty filters
+		log.Printf("Reading attribute %s for entity %s\n", attrName, entityID)
 		var filters map[string]interface{}
 		var fields []string
 		if options != nil && options.ReadOptions != nil {
@@ -338,9 +346,11 @@ func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolve
 		}
 		return resolver.ReadResolve(ctx, entityID, attrName, filters, fields...)
 	case "update":
+		log.Printf("Updating attribute %s for entity %s\n", attrName, entityID)
 		// TODO: Use UpdateOptions when implemented
 		return resolver.UpdateResolve(ctx, entityID, attrName, value)
 	case "delete":
+		log.Printf("Deleting attribute %s for entity %s\n", attrName, entityID)
 		// TODO: Use DeleteOptions when implemented
 		return resolver.DeleteResolve(ctx, entityID, attrName, value)
 	default:
@@ -502,6 +512,7 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 
 	// Get the table name for this attribute
 	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
+	log.Printf("[TabularAttributeResolver.ReadResolve] tableName: %s", tableName)
 
 	// Use the GetData method from the repository to retrieve data with filters and fields
 	anyData, err := repo.GetData(ctx, tableName, filters, fields...)

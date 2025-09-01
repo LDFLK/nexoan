@@ -293,6 +293,7 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 
 	// Convert storage type string to StorageType enum
 	storageType := commons.ConvertStorageTypeStringToEnum(storageTypeStr)
+	log.Printf("[GraphMetadataManager.GetAttribute] storageType: %s", storageType)
 
 	// Get creation time from the attribute entity
 	_, _, createdTimeStr, _, err := neo4jRepository.GetGraphEntity(ctx, targetAttributeID)

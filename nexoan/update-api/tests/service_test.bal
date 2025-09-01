@@ -33,6 +33,18 @@ function unwrapAny(pbAny:Any anyValue) returns string|error {
     return pbAny:unpack(anyValue, string);
 }
 
+// Helper function to unpack Any values to JSON/Struct
+function unwrapAnyToJson(pbAny:Any anyValue) returns json|error {
+    // Try to unpack as string first
+    string|error stringValue = pbAny:unpack(anyValue, string);
+    if stringValue is string {
+        return stringValue;
+    }
+    
+    // If string unpacking fails, return the string representation as a fallback
+    return anyValue.toString();
+}
+
 // Helper function to convert JSON to protobuf Any value
 function jsonToAny(json data) returns pbAny:Any|error {
     if data is int {
@@ -72,7 +84,7 @@ function jsonToAny(json data) returns pbAny:Any|error {
         };
         return pbAny:pack(structMap);
     } else if data is map<json> {
-        // For objects, just pack them directly
+        // For objects, pack directly as structured data instead of converting to string
         return pbAny:pack(data);
     } else {
         return error("Unsupported data type: " + data.toString());
@@ -535,7 +547,7 @@ function testCreateMinimalGraphEntity() returns error? {
     
     // Verify empty collections
     test:assertEquals(readEntityResponse.metadata.length(), 0, "Metadata should be empty");
-    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes should be empty");
+    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes default value should be empty");
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
@@ -621,7 +633,7 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     
     // Verify empty collections
     test:assertEquals(readEntityResponse.metadata.length(), 0, "Metadata should be empty");
-    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes should be empty");
+    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes default value should be empty");
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
@@ -1843,8 +1855,128 @@ function testEntityWithNestedMapValues() returns error? {
     return;
 }
 
+//
 
 
 
 
 
+
+
+@test:Config {}
+function testEntityWithTabularAttributes() returns error? {
+    // Initialize the client
+    CrudServiceClient ep = check new (testCrudServiceUrl);
+    
+    // Test data setup
+    string testId = "test-tabular-entity-1";
+    
+    // Create tabular data structure
+    json tabularData = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [
+            [1, "John Doe", 30, "Engineering", 75000.50],
+            [2, "Jane Smith", 25, "Marketing", 65000.00],
+            [3, "Bob Wilson", 35, "Sales", 85000.75],
+            [4, "Alice Brown", 28, "Engineering", 70000.25],
+            [5, "Charlie Davis", 32, "Finance", 80000.00]
+        ]
+    };
+
+    // Convert JSON to protobuf Any values
+    pbAny:Any tabularDataAny = check jsonToAny(tabularData);
+
+    Entity createEntityRequest = {
+        id: testId,
+        kind: {
+            major: "test",
+            minor: "tabular-attributes"
+        },
+        created: "2024-01-01T00:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2024-01-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("test-tabular-entity")
+        },
+        metadata: [
+            {
+                key: "test_metadata",
+                value: check pbAny:pack("tabular_test_value")
+            }
+        ],
+        attributes: [
+            {
+                key: "employee_data",
+                value: {
+                    values: [
+                        {
+                            startTime: "2024-01-01T00:00:00Z",
+                            endTime: "",
+                            value: tabularDataAny
+                        }
+                    ]
+                }
+            }
+        ],
+        relationships: []
+    };
+
+    // Create entity via gRPC
+    Entity createEntityResponse = check ep->CreateEntity(createEntityRequest);
+    io:println("Entity created with ID: " + createEntityResponse.id);
+    test:assertTrue(createEntityResponse.id != "", "Entity should be created successfully");
+    test:assertEquals(createEntityResponse.id, testId, "Entity ID should match");
+
+    json tabularDataFilter = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [[]]
+    };
+
+    pbAny:Any tabularDataFilterAny = check jsonToAny(tabularDataFilter);
+    
+    // Read entity to verify attributes
+    ReadEntityRequest readEntityRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "employee_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: tabularDataFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
+        output: ["metadata", "attributes", "relationships"]
+    };
+    Entity readEntityResponse = check ep->ReadEntity(readEntityRequest);
+    
+    // Verify the response
+    test:assertTrue(readEntityResponse.id != "", "Entity should be found");
+    test:assertEquals(readEntityResponse.id, testId, "Entity ID should match");
+    
+    // Verify attributes are present
+    test:assertTrue(readEntityResponse.attributes.length() > 0, "Entity should have attributes");
+    // Clean up
+    Empty _ = check ep->DeleteEntity({id: testId});
+    io:println("Test entity with tabular attributes deleted");
+    
+    return;
+}

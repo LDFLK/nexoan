@@ -44,15 +44,15 @@ func ExtractStringFromAny(anyValue *anypb.Any) string {
 // ConvertStorageTypeStringToEnum converts a storage type string to StorageType enum
 func ConvertStorageTypeStringToEnum(storageTypeStr string) storageinference.StorageType {
 	switch storageTypeStr {
-	case "TabularData":
+	case "tabular":
 		return storageinference.TabularData
-	case "GraphData":
+	case "graph":
 		return storageinference.GraphData
-	case "MapData":
+	case "map":
 		return storageinference.MapData
-	case "ListData":
+	case "list":
 		return storageinference.ListData
-	case "ScalarData":
+	case "scalar":
 		return storageinference.ScalarData
 	default:
 		return storageinference.UnknownData
@@ -73,6 +73,8 @@ func ExtractAttributeMetadataFields(entity *pb.Entity) (storageTypeStr, storageP
 	storagePath = ExtractStringFromAny(metadataMap["storage_path"])
 	updatedStr = ExtractStringFromAny(metadataMap["updated"])
 	schemaStr := ExtractStringFromAny(metadataMap["schema"])
+
+	log.Printf("[Commons.ExtractAttributeMetadataFields] storageTypeStr: %s, storagePath: %s, updatedStr: %s, schemaStr: %s", storageTypeStr, storagePath, updatedStr, schemaStr)
 
 	// Convert schema JSON string to map
 	schemaMap, err := ConvertJSONStringToMap(schemaStr)

@@ -170,32 +170,49 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 		case "attributes":
 			log.Printf("Processing attributes for entity: %s", req.Entity.Id)
 
-			// TODO: Implement actual attribute fetching from storage
-			// For now, we'll create a placeholder implementation that shows the structure
+			// TODO: Fetch the actual entity with attributes from storage
+			// For now, create a minimal entity with test attributes to demonstrate the conversion
+			
+			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
 
-			// TODO: Fetch actual attribute data from storage systems
-			// This would involve:
-			// 1. Querying the attribute metadata from Neo4j to know what attributes exist
-			// 2. Fetching the actual attribute data from the appropriate storage (MongoDB, Neo4j, etc.)
-			// 3. Processing the data through the attribute resolvers
+			// Use the EntityAttributeProcessor to read and process attributes
+			processor := engine.NewEntityAttributeProcessor()
+			readOptions := engine.NewReadOptions(make(map[string]interface{}), []string{}...)
 
-			// For demonstration, let's create a sample attribute structure
-			// In a real implementation, this would come from actual storage queries
-			sampleAttribute := &pb.TimeBasedValue{
-				StartTime: "",
-				EndTime:   "",
-				Value: &anypb.Any{
-					TypeUrl: "type.googleapis.com/google.protobuf.StringValue",
-					Value:   []byte(`{"status": "placeholder", "message": "Attribute fetching not yet implemented"}`),
-				},
+			// Process the entity with attributes to get the results map
+			attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "read", readOptions)
+
+			log.Printf("[server.ReadEntity] Successfully processed attributes for entity: %s, results: %+v", req.Entity.Id, attributeResults)
+
+			// Convert the results map back to TimeBasedValueList and attach to response.Attributes
+			for attrName, result := range attributeResults {
+				log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s, result: %+v", attrName, req.Entity.Id, result)
+				if result.Success && result.Data != nil {
+					// Convert the result data back to TimeBasedValue format
+					if timeBasedValue, ok := result.Data.(*pb.TimeBasedValue); ok {
+						// If the data is already in TimeBasedValue format, use it directly
+						log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s", attrName, req.Entity.Id)
+						response.Attributes[attrName] = &pb.TimeBasedValueList{
+							Values: []*pb.TimeBasedValue{timeBasedValue},
+						}
+					} else {
+						// Convert other data types to TimeBasedValue format
+						log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s", attrName, req.Entity.Id)
+						response.Attributes[attrName] = &pb.TimeBasedValueList{
+							Values: []*pb.TimeBasedValue{
+								{
+									StartTime: "",
+									EndTime:   "",
+									Value: &anypb.Any{
+										TypeUrl: "type.googleapis.com/google.protobuf.StringValue",
+										Value:   []byte(fmt.Sprintf("%v", result.Data)),
+									},
+								},
+							},
+						}
+					}
+				}
 			}
-
-			response.Attributes["attributes"] = &pb.TimeBasedValueList{
-				Values: []*pb.TimeBasedValue{sampleAttribute},
-			}
-
-			log.Printf("[server.ReadEntity] Added placeholder attribute data for entity: %s", req.Entity.Id)
-			log.Printf("[server.ReadEntity] TODO: Implement actual attribute fetching from storage systems")
 
 		case "kind", "name", "created", "terminated":
 			// These fields are already fetched at the start
