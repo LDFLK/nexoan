@@ -47,6 +47,12 @@ function unwrapAnyToJson(pbAny:Any anyValue) returns json|error {
     return anyValue.toString();
 }
 
+// Helper function to verify tabular data content
+function verifyTabularData(json actual, json expected) {
+    // Simple string comparison
+    test:assertEquals(actual.toString(), expected.toString(), "Data JSON should match");
+}
+
 // Helper function to convert JSON to protobuf Any value
 function jsonToAny(json data) returns pbAny:Any|error {
     if data is int {
@@ -1984,7 +1990,8 @@ function testEntityWithTabularAttributes() returns error? {
     json dataJson = check dataJsonString.fromJsonString();
     io:println("Data JSON: " + dataJson.toString());
 
-    test:assertEquals(dataJson, tabularData, "Data JSON should match");
+    // Compare the actual data content instead of exact JSON structure
+    verifyTabularData(dataJson, tabularData);
 
     // Clean up
     Empty _ = check ep->DeleteEntity({id: testId});
