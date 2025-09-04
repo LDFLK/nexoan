@@ -14,6 +14,8 @@ string testCrudServiceUrl = crudServiceUrlEnv ?: "http://0.0.0.0:50051";
 // Construct URLs using string concatenation
 string testUpdateServiceUrl = "http://" + testUpdateHostname + ":" + testUpdatePort;
 
+type JsonObject map<anydata>;
+
 // Before Suite Function
 @test:BeforeSuite
 function beforeSuiteFunc() {
@@ -1855,13 +1857,6 @@ function testEntityWithNestedMapValues() returns error? {
     return;
 }
 
-//
-
-
-
-
-
-
 
 @test:Config {}
 function testEntityWithTabularAttributes() returns error? {
@@ -1872,14 +1867,15 @@ function testEntityWithTabularAttributes() returns error? {
     string testId = "test-tabular-entity-1";
     
     // Create tabular data structure
+    // TODO: https://github.com/LDFLK/nexoan/issues/284
     json tabularData = {
         "columns": ["id", "name", "age", "department", "salary"],
         "rows": [
             [1, "John Doe", 30, "Engineering", 75000.50],
-            [2, "Jane Smith", 25, "Marketing", 65000.00],
+            [2, "Jane Smith", 25, "Marketing", 65000],
             [3, "Bob Wilson", 35, "Sales", 85000.75],
             [4, "Alice Brown", 28, "Engineering", 70000.25],
-            [5, "Charlie Davis", 32, "Finance", 80000.00]
+            [5, "Charlie Davis", 32, "Finance", 80000]
         ]
     };
 
@@ -1971,12 +1967,28 @@ function testEntityWithTabularAttributes() returns error? {
     // Verify the response
     test:assertTrue(readEntityResponse.id != "", "Entity should be found");
     test:assertEquals(readEntityResponse.id, testId, "Entity ID should match");
-    
+
     // Verify attributes are present
     test:assertTrue(readEntityResponse.attributes.length() > 0, "Entity should have attributes");
+
+    var attributeValue = readEntityResponse.attributes[0].value.values[0].value;
+
+    JsonObject attributeValueJson = check pbAny:unpack(attributeValue);
+    io:println("Attribute value JSON: " + attributeValueJson.toString());
+
+    // Extract the nested data field
+    string dataJsonString = <string>attributeValueJson["data"];
+    io:println("Data JSON string: " + dataJsonString);
+
+    // Parse the nested JSON string to get the actual tabular data
+    json dataJson = check dataJsonString.fromJsonString();
+    io:println("Data JSON: " + dataJson.toString());
+
+    test:assertEquals(dataJson, tabularData, "Data JSON should match");
+
     // Clean up
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test entity with tabular attributes deleted");
-    
+
     return;
 }
