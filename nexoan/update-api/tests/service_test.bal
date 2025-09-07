@@ -1870,7 +1870,7 @@ function testEntityWithTabularAttributes() returns error? {
     CrudServiceClient ep = check new (testCrudServiceUrl);
     
     // Test data setup
-    string testId = "test-tabular-entity-1";
+    string testId = "ID-MIN-A";
     
     // Create tabular data structure
     // TODO: https://github.com/LDFLK/nexoan/issues/284
@@ -1891,20 +1891,20 @@ function testEntityWithTabularAttributes() returns error? {
     Entity createEntityRequest = {
         id: testId,
         kind: {
-            major: "test",
-            minor: "tabular-attributes"
+            major: "Organization",
+            minor: "Minister"
         },
-        created: "2024-01-01T00:00:00Z",
+        created: "2025-03-01T00:00:00Z",
         terminated: "",
         name: {
-            startTime: "2024-01-01T00:00:00Z",
+            startTime: "2025-03-01T00:00:00Z",
             endTime: "",
-            value: check pbAny:pack("test-tabular-entity")
+            value: check pbAny:pack("Minister of Health")
         },
         metadata: [
             {
-                key: "test_metadata",
-                value: check pbAny:pack("tabular_test_value")
+                key: "minister_of_health_metadata",
+                value: check pbAny:pack("tabular_minister_of_health_test_value")
             }
         ],
         attributes: [
@@ -1913,7 +1913,7 @@ function testEntityWithTabularAttributes() returns error? {
                 value: {
                     values: [
                         {
-                            startTime: "2024-01-01T00:00:00Z",
+                            startTime: "2025-03-01T00:00:00Z",
                             endTime: "",
                             value: tabularDataAny
                         }

@@ -52,6 +52,7 @@ type AttributeMetadata struct {
 	StoragePath   string // Path/location in the specific storage system
 	Created       time.Time
 	Updated       time.Time
+	EndTime       time.Time
 	Schema        map[string]interface{} // Schema information
 }
 
@@ -126,8 +127,8 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 			Minor: string(metadata.StorageType),
 		},
 		Name:          commons.CreateTimeBasedValue(metadata.Created.Format(time.RFC3339), "", metadata.AttributeName),
-		Created:       metadata.Created.Format(time.RFC3339),
-		Terminated:    "",
+		Created:       metadata.Created.Format(time.RFC3339), // contains the data object's time relation with the world
+		Terminated:    "",                                    // TODO: Implement invalidating a dataset for a specific time range
 		Metadata:      MakeMetadataOfAttributeMetadata(metadata),
 		Attributes:    make(map[string]*pb.TimeBasedValueList),
 		Relationships: make(map[string]*pb.Relationship),
@@ -218,7 +219,7 @@ func MakeRelationshipFromAttributeMetadata(metadata *AttributeMetadata) *pb.Rela
 		RelatedEntityId: metadata.AttributeID,
 		Name:            IS_ATTRIBUTE_RELATIONSHIP,
 		StartTime:       metadata.Created.Format(time.RFC3339),
-		EndTime:         "",
+		EndTime:         "", // TODO: Implement invalidating a relationship for a specific time range
 		Direction:       IS_ATTRIBUTE_RELATIONSHIP_DIRECTION,
 	}
 }

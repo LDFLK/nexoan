@@ -124,7 +124,8 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			}
 
 			// Create or update graph metadata BEFORE processing the attribute
-			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation); err != nil {
+			createdTime, _ := time.Parse(time.RFC3339, entity.Created)
+			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation, createdTime); err != nil {
 				attributeResults[attrName] = &Result{
 					Success: false,
 					Data:    nil,
@@ -184,7 +185,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 // It creates the attribute look up metadata and the attribute node in the graph.
 // It also creates the IS_ATTRIBUTE relationship between the entity and the attribute.
 // It also creates the attribute metadata in the document database.
-func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, entityID, attrName string, storageType storageinference.StorageType, operation string) error {
+func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, entityID, attrName string, storageType storageinference.StorageType, operation string, startTime time.Time) error {
 	// Generate attribute metadata
 	fmt.Printf("DEBUG: Handling graph metadata for attribute %s\n", attrName)
 	attributeID := GenerateAttributeID(entityID, attrName)
@@ -196,15 +197,17 @@ func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, en
 		AttributeName: attrName,
 		StorageType:   storageType,
 		StoragePath:   storagePath,
+		Created:       startTime,
 		Updated:       time.Now(),
 		Schema:        make(map[string]interface{}), // TODO: Extract schema from value
 	}
+
+	// Note: endTime parameter is optional and available for future use if needed
 
 	switch operation {
 	case "create":
 		// Create attribute node in graph
 		if err := p.graphManager.CreateAttribute(ctx, metadata); err != nil {
-			metadata.Created = time.Now()
 			return fmt.Errorf("failed to create attribute node: %v", err)
 		}
 
