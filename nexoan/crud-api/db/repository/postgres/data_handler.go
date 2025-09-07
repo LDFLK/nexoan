@@ -688,6 +688,8 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 		return nil, fmt.Errorf("error marshaling tabular data to JSON: %v", err)
 	}
 
+	log.Printf("DEBUG: [DataHandler.GetData] jsonData: %s", string(jsonData))
+
 	// Create a struct with the JSON string
 	structValue, err := structpb.NewStruct(map[string]interface{}{
 		"data": string(jsonData),

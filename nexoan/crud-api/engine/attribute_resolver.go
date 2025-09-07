@@ -95,6 +95,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 	for attrName, timeBasedValueList := range entity.Attributes {
 		fmt.Printf("DEBUG: Processing attribute[%s] %s\n", operation, attrName)
 		if timeBasedValueList == nil {
+			log.Printf("DEBUG: Time-based value list is nil for attribute %s", attrName)
 			attributeResults[attrName] = &Result{
 				Success: true,
 				Data:    nil,
@@ -102,6 +103,8 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			}
 			continue
 		}
+
+		log.Printf("DEBUG: Time-based value list is not nil for attribute %s, length: %d", attrName, len(timeBasedValueList.Values))
 
 		// Process each time-based value
 		for _, value := range timeBasedValueList.Values {
@@ -124,8 +127,10 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			}
 
 			// Create or update graph metadata BEFORE processing the attribute
-			createdTime, _ := time.Parse(time.RFC3339, entity.Created)
-			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation, createdTime); err != nil {
+			// NOTE: for the attribute the timestamp is always the value carried at the attribute level
+			// not the entity level. The entity level timestamp is used for the entity itself.
+			attributeStartTime, _ := time.Parse(time.RFC3339, value.StartTime)
+			if err := p.handleAttributeLookUp(ctx, entity.Id, attrName, storageType, operation, attributeStartTime); err != nil {
 				attributeResults[attrName] = &Result{
 					Success: false,
 					Data:    nil,
@@ -150,6 +155,8 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			var operationOptions *Options
 			if operation == "read" {
 				// Use provided options or default to empty filters
+				// TODO: Limitation in multi-value attribute reads. 
+				// FIXME: https://github.com/LDFLK/nexoan/issues/285
 				if options != nil {
 					operationOptions = options
 				} else {
@@ -165,6 +172,8 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 				operationOptions = options
 			}
 			result := p.executeOperation(ctx, resolver, operation, entity.Id, attrName, value, operationOptions)
+
+			log.Printf("DEBUG: Result for attribute %s: %+v", attrName, result)
 
 			// Store the result for this attribute
 			attributeResults[attrName] = result

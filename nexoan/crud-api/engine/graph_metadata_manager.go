@@ -391,7 +391,6 @@ func (g *GraphMetadataManager) ListAttributes(ctx context.Context, entityID stri
 func (g *GraphMetadataManager) UpdateAttribute(ctx context.Context, metadata *AttributeMetadata) error {
 	// TODO: Implement Neo4j or graph database connection
 	// This would update the attribute node properties
-
 	fmt.Printf("Updating attribute metadata: Entity=%s, Attribute=%s\n", metadata.EntityID, metadata.AttributeName)
 
 	return nil

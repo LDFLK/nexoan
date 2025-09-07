@@ -265,6 +265,32 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 		// Continue processing despite error
 	}
 
+	// Handle attributes
+	processor := engine.NewEntityAttributeProcessor()
+	// Note that in the perspective of the attribute this is a creation operation
+	// The entity is already there but here the attribute is set later. 
+	// There is no alignment of update operation with the attribute.
+	// TODO: https://github.com/LDFLK/nexoan/issues/286
+	attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "create", nil)
+
+	// Check if any attributes failed
+	hasErrors := false
+	for attrName, result := range attributeResults {
+		if !result.Success || result.Error != nil {
+			log.Printf("[server.CreateEntity] Error handling attribute %s: %v", attrName, result.Error)
+			hasErrors = true
+		} else {
+			log.Printf("[server.CreateEntity] Successfully handled attribute %s for entity: %s", attrName, req.Id)
+		}
+	}
+
+	if hasErrors {
+		log.Printf("[server.CreateEntity] Some attributes failed to process")
+		// Continue processing - don't fail the entire operation for attribute errors
+	}
+
+	// Prepare the Update Response
+
 	// Read entity data from Neo4j to include in response
 	kind, name, created, terminated, _ := s.neo4jRepo.GetGraphEntity(ctx, updateEntityID)
 
@@ -357,6 +383,8 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 }
 
 // extractFieldsFromAttributes extracts field names from entity attributes based on storage type
+// TODO: Limitation in multi-value attribute reads. 
+// FIXME: https://github.com/LDFLK/nexoan/issues/285
 func extractFieldsFromAttributes(attributes map[string]*pb.TimeBasedValueList) []string {
 	var fields []string
 
