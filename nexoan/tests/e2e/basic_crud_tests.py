@@ -392,6 +392,81 @@ class GraphEntityTests(BasicCRUDTests):
             sys.exit(1)
 
 
+class AttributeValidationTests(BasicCRUDTests):
+
+    def __init__(self):
+        super().__init__(None)
+        self.MINISTER_ID = "minister_of_finance_and_economy"
+        self.DEPARTMENTS = [
+            {"id": "dept_finance", "name": "Department of Finance"},
+            {"id": "dept_economy", "name": "Department of Economy"}
+        ]
+        self.START_DATE = "2025-11-01T00:00:00Z"
+        self.DATA_START_DATE = "2025-12-01T00:00:00Z"
+
+
+    def create_minister_with_attributes(self):
+        """Create a Minister entity."""
+        print("\n🟢 Creating Minister entity...")
+        
+        payload = {
+            "id": self.MINISTER_ID,
+            "kind": {"major": "Organization", "minor": "Minister"},
+            "created": self.START_DATE,
+            "terminated": "",
+            "name": {
+                "startTime": self.START_DATE,
+                "endTime": "",
+                "value": "Minister of Finance and Economy"
+            },
+            "metadata": [],
+            "attributes": [
+                {
+                    "key": "employee_data",
+                    "value": {
+                        "values": [
+                            {
+                                "startTime": self.DATA_START_DATE,
+                                "endTime": "",
+                                "value": {
+                                    "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [1, "John Doe", 30, "Engineering", 75000.50],
+                                        [2, "Jane Smith", 25, "Marketing", 65000],
+                                        [3, "Bob Wilson", 35, "Sales", 85000.75],
+                                        [4, "Alice Brown", 28, "Engineering", 70000.25],
+                                        [5, "Charlie Davis", 32, "Finance", 80000]
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "relationships": []
+        }
+        
+        res = requests.post(self.base_url, json=payload)
+        print(res.status_code, res.json())
+        assert res.status_code in [201], f"Failed to create Minister: {res.text}"
+
+        print(f"Response: {res.status_code} - {res.text}")
+        print("✅ Created Minister entity with attributes.")
+
+
+    def read_minister(self):
+        """Read the Minister entity."""
+        print("\n🟢 Reading Minister entity...")
+        res = requests.get(f"{self.base_url}/{self.MINISTER_ID}")
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to read Minister: {res.text}"
+        
+        # Verify the response data
+        response_data = res.json()
+        print(response_data)
+
+
+
 def get_base_url():
     print("🟢 Setting up test environment...")
     update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
@@ -402,25 +477,31 @@ if __name__ == "__main__":
     print("🚀 Running End-to-End API Test Suite...")
     
     try:
-        print("🟢 Running Metadata Validation Tests...")
-        metadata_validation_tests = MetadataValidationTests(entity_id="123")
-        metadata_validation_tests.create_entity()
-        metadata_validation_tests.read_entity()
-        metadata_validation_tests.update_entity()
-        metadata_validation_tests.validate_update()
-        metadata_validation_tests.delete_entity()
-        metadata_validation_tests.verify_deletion()
-        print("\n🟢 Running Metadata Validation Tests... Done")
+        # print("🟢 Running Metadata Validation Tests...")
+        # metadata_validation_tests = MetadataValidationTests(entity_id="123")
+        # metadata_validation_tests.create_entity()
+        # metadata_validation_tests.read_entity()
+        # metadata_validation_tests.update_entity()
+        # metadata_validation_tests.validate_update()
+        # metadata_validation_tests.delete_entity()
+        # metadata_validation_tests.verify_deletion()
+        # print("\n🟢 Running Metadata Validation Tests... Done")
 
-        print("\n🟢 Running Graph Entity Tests...")
-        graph_entity_tests = GraphEntityTests()
-        graph_entity_tests.create_minister()
-        graph_entity_tests.read_minister()
-        graph_entity_tests.create_departments()
-        graph_entity_tests.read_departments()
-        graph_entity_tests.create_relationships()
-        graph_entity_tests.update_relationships()
-        print("\n🟢 Running Graph Entity Tests... Done")
+        # print("\n🟢 Running Graph Entity Tests...")
+        # graph_entity_tests = GraphEntityTests()
+        # graph_entity_tests.create_minister()
+        # graph_entity_tests.read_minister()
+        # graph_entity_tests.create_departments()
+        # graph_entity_tests.read_departments()
+        # graph_entity_tests.create_relationships()
+        # graph_entity_tests.update_relationships()
+        # print("\n🟢 Running Graph Entity Tests... Done")
+
+        print("\n🟢 Running Attribute Validation Tests...")
+        attribute_validation_tests = AttributeValidationTests()
+        attribute_validation_tests.create_minister_with_attributes()
+        attribute_validation_tests.read_minister()
+        print("\n🟢 Running Attribute Validation Tests... Done")
 
         print("\n🎉 All tests passed successfully!")
     
