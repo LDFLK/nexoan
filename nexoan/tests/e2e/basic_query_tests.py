@@ -1924,52 +1924,52 @@ if __name__ == "__main__":
         test_attribute_lookup()
         print("Testing update entity attribute...")
         test_update_entity_attribute()
-        # print("Testing metadata lookup...")
-        # test_metadata_lookup()
+        print("Testing metadata lookup...")
+        test_metadata_lookup()
         
-        # # Run government organization search tests
-        # create_government_entities()
-        # test_search_without_major_kind_or_id()
-        # test_search_by_kind_major()
-        # test_search_by_kind_minor()
-        # test_search_by_name()
-        # test_search_by_created_date()
+        # Run government organization search tests
+        create_government_entities()
+        test_search_without_major_kind_or_id()
+        test_search_by_kind_major()
+        test_search_by_kind_minor()
+        test_search_by_name()
+        test_search_by_created_date()
         
-        # # Run ID-based search tests
-        # test_search_by_id()
-        # test_search_by_id_not_found()
-        # test_search_by_id_with_other_filters()
+        # Run ID-based search tests
+        test_search_by_id()
+        test_search_by_id_not_found()
+        test_search_by_id_with_other_filters()
         
-        # # Run combined filter tests
-        # test_search_by_name_and_kind()
-        # test_search_by_kind_and_created_date()
-        # test_search_by_name_kind_and_created_date()
-        # test_search_by_name_partial_match()
+        # Run combined filter tests
+        test_search_by_name_and_kind()
+        test_search_by_kind_and_created_date()
+        test_search_by_name_kind_and_created_date()
+        test_search_by_name_partial_match()
         
-        # # Run terminated date filter tests
-        # test_search_by_terminated_date()
-        # test_search_by_active_entities()
-        # test_search_by_kind_and_terminated()
-        # test_search_by_name_kind_and_terminated()
+        # Run terminated date filter tests
+        test_search_by_terminated_date()
+        test_search_by_active_entities()
+        test_search_by_kind_and_terminated()
+        test_search_by_name_kind_and_terminated()
         
-        # # Run relationship filter tests
-        # test_relations_no_filters()
-        # test_relations_filter_by_name()
-        # test_relations_filter_by_related_entity_id()
-        # test_relations_filter_by_start_time()
-        # test_relations_filter_by_end_time()
-        # test_relations_filter_by_multiple_fields()
-        # test_relations_filter_nonexistent()
-        # test_relations_filter_by_active_at()
-        # test_relations_filter_by_active_at_and_name()
-        # test_relations_filter_by_active_at_and_related_entity_id()
-        # test_relations_filter_by_active_at_and_direction()
-        # test_relations_filter_by_active_at_and_name_and_direction()
-        # test_relations_filter_by_active_at_and_time_range_invalid()
-        # test_gov_relations_filter_by_active_at_and_direction()
-        # test_minister_relations_filter_by_active_at_and_direction()
-        # test_department_relations_filter_by_active_at_and_direction()
-        # test_minister_relations_filter_by_active_at_only()
+        # Run relationship filter tests
+        test_relations_no_filters()
+        test_relations_filter_by_name()
+        test_relations_filter_by_related_entity_id()
+        test_relations_filter_by_start_time()
+        test_relations_filter_by_end_time()
+        test_relations_filter_by_multiple_fields()
+        test_relations_filter_nonexistent()
+        test_relations_filter_by_active_at()
+        test_relations_filter_by_active_at_and_name()
+        test_relations_filter_by_active_at_and_related_entity_id()
+        test_relations_filter_by_active_at_and_direction()
+        test_relations_filter_by_active_at_and_name_and_direction()
+        test_relations_filter_by_active_at_and_time_range_invalid()
+        test_gov_relations_filter_by_active_at_and_direction()
+        test_minister_relations_filter_by_active_at_and_direction()
+        test_department_relations_filter_by_active_at_and_direction()
+        test_minister_relations_filter_by_active_at_only()
         
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:
