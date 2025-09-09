@@ -4,6 +4,9 @@ import sys
 import os
 from datetime import datetime, timezone
 import pandas as pd
+import binascii
+from google.protobuf.wrappers_pb2 import StringValue
+
 
 def get_service_urls():
     query_service_url = os.getenv('QUERY_SERVICE_URL', 'http://0.0.0.0:8081')
@@ -146,6 +149,41 @@ def display_tabular_data_with_pandas(data, attribute_name, show_summary=True):
     except Exception as e:
         print(f"    ❌ Failed to create pandas DataFrame: {e}")
         return None
+
+
+def decode_attribute_any_value(json_str: str) -> str:
+    # TODO: Please check why the existing decode_protobuf_any_value is not working for attribute entities
+    """
+    Decode a JSON representation of a protobuf Any containing a StringValue.
+    Example input:
+    {"typeUrl":"type.googleapis.com/google.protobuf.StringValue",
+     "value":"706572736F6E616C5F696E666F726D6174696F6E"}
+    """
+    data = json.loads(json_str)
+
+    # Extract fields
+    type_url = data["typeUrl"]
+    hex_value = data["value"]
+
+    if type_url != "type.googleapis.com/google.protobuf.StringValue":
+        raise ValueError(f"Unsupported typeUrl: {type_url}")
+
+    # Convert hex string -> raw bytes
+    raw_bytes = binascii.unhexlify(hex_value)
+    
+    # The hex data appears to be the actual string content, not a protobuf message
+    # Try to decode it directly as UTF-8
+    try:
+        return raw_bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        # If that fails, try parsing as protobuf
+        try:
+            sv = StringValue()
+            sv.ParseFromString(raw_bytes)
+            return sv.value
+        except:
+            # If all else fails, return the hex value
+            return hex_value
 
 
 def decode_protobuf_any_value(any_value):
@@ -824,6 +862,57 @@ def test_orgchart_query():
     return True
 
 
+def test_get_attributes_of_one_minister():
+    """Test getting all attributes for a minister by querying attribute entities."""
+    print("=" * 50)
+    print("\n📊 Testing Minister Attributes...")
+    print("=" * 50)
+    
+    entity_id = "minister-tech-001"
+    url = f"{QUERY_API_URL}/{entity_id}/relations"
+    payload = {"name": "IS_ATTRIBUTE"}
+    res = requests.post(url, json=payload)
+    assert res.status_code == 200, f"Failed to get relationships: {res.text}"
+    body = res.json()
+    print("✅ Minister relationships of type IS_ATTRIBUTE:", json.dumps(body, indent=2))
+    
+    # Extract relatedEntityIds from the relationships
+    if isinstance(body, list):
+        attribute_entity_ids = []
+        for relationship in body:
+            if 'relatedEntityId' in relationship:
+                attribute_entity_ids.append(relationship['relatedEntityId'])
+                print(f"  🔍 Found attribute entity: {relationship['relatedEntityId']}")
+        
+        print(f"\n📋 Found {len(attribute_entity_ids)} attribute entities")
+        
+        # Query each attribute entity using search endpoint
+        for attr_entity_id in attribute_entity_ids:
+            print(f"\n  🔍 Querying attribute entity: {attr_entity_id}")
+            search_url = f"{QUERY_API_URL}/search"
+            search_payload = {"id": attr_entity_id}
+            
+            search_res = requests.post(search_url, json=search_payload)
+            if search_res.status_code == 200:
+                attr_body = search_res.json()["body"]
+
+                print(f"  ✅ Successfully retrieved attribute entity data")
+                
+                # Just print what's in the object
+                print(f"  📊 Attribute entity data: {json.dumps(attr_body, indent=2)}")
+                name = attr_body[0]["name"]
+                print(f"  ✅ Attribute Name: {decode_attribute_any_value(name)}")
+
+            else:
+                print(f"  ❌ Failed to query attribute entity {attr_entity_id}: {search_res.status_code}")
+                return False
+    else:
+        print("  ⚠️ Unexpected response structure for relationships")
+        return False
+    
+    return True
+
+
 def test_one_minister_attributes_with_pandas():
     """Test getting all attributes for a minister and display them with pandas."""
     print("=" * 50)
@@ -910,37 +999,48 @@ if __name__ == "__main__":
     if creation_success:
         # Test basic querying
         query_success = test_orgchart_query()
-        
-        if query_success:
-            # Test all attributes with pandas display
-            minister_attributes_success = test_one_minister_attributes_with_pandas()
-            
-            if minister_attributes_success:
-                print("\n🎉 All organizational chart tests with pandas passed!")
-                print("=" * 50)
-                print("📊 Test Summary:")
-                print("  ✅ Entity Creation: 3 Ministers + 6 Departments")
-                print("  ✅ Basic Queries: Minister and Department queries")
-                print("  ✅ Attribute Queries: Individual attribute retrieval")
-                print("  ✅ Pandas Display: Tabular data visualization and analysis")
-            else:
-                print("\n❌ Minister attributes display tests failed!")
 
-            department_attributes_success = test_one_department_attributes_with_pandas()
+        if query_success:
+
+            relations_success = test_get_attributes_of_one_minister()
             
-            if department_attributes_success:
-                print("\n🎉 All organizational chart tests with pandas passed!")
-                print("=" * 50)
-                print("📊 Test Summary:")
-                print("  ✅ Entity Creation: 3 Ministers + 6 Departments")
-                print("  ✅ Basic Queries: Minister and Department queries")
-                print("  ✅ Attribute Queries: Individual attribute retrieval")
-                print("  ✅ Pandas Display: Tabular data visualization and analysis")
-                sys.exit(0)
+            if relations_success:
+                print("\n🎉 All relatons !")
             else:
-                print("\n❌ Department attributes display tests failed!")
+                print("\n❌ Minister relationships of type IS_ATTRIBUTE failed!")
+        
+            if relations_success:
+                # Test all attributes with pandas display
+                minister_attributes_success = test_one_minister_attributes_with_pandas()
+                
+                if minister_attributes_success:
+                    print("\n🎉 All organizational chart tests with pandas passed!")
+                    print("=" * 50)
+                    print("📊 Test Summary:")
+                    print("  ✅ Entity Creation: 3 Ministers + 6 Departments")
+                    print("  ✅ Basic Queries: Minister and Department queries")
+                    print("  ✅ Attribute Queries: Individual attribute retrieval")
+                    print("  ✅ Pandas Display: Tabular data visualization and analysis")
+                else:
+                    print("\n❌ Minister attributes display tests failed!")
+
+                department_attributes_success = test_one_department_attributes_with_pandas()
+                
+                if department_attributes_success:
+                    print("\n🎉 All organizational chart tests with pandas passed!")
+                    print("=" * 50)
+                    print("📊 Test Summary:")
+                    print("  ✅ Entity Creation: 3 Ministers + 6 Departments")
+                    print("  ✅ Basic Queries: Minister and Department queries")
+                    print("  ✅ Attribute Queries: Individual attribute retrieval")
+                    print("  ✅ Pandas Display: Tabular data visualization and analysis")
+                    sys.exit(0)
+                else:
+                    print("\n❌ Department attributes display tests failed!")
+            else:
+                print("\n❌ Basic query tests failed!")
         else:
-            print("\n❌ Basic query tests failed!")
+            print("\n❌ Relations tests failed!")
 
     else:
         print("\n❌ Creation tests failed!")
