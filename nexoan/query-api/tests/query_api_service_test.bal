@@ -9,6 +9,8 @@ function beforeSuiteFunc() {
     io:println("Starting query API service tests!");
 }
 
+type JsonObject map<anydata>;
+
 // Helper function to get CRUD service URL
 function getCrudServiceUrl() returns string|error {
     io:println("Getting CRUD service URL");
@@ -34,14 +36,99 @@ function unwrapAny(pbAny:Any anyValue) returns string|error {
     return pbAny:unpack(anyValue, string);
 }
 
+// Helper function to convert decimal values to float for protobuf compatibility
+// Note that this is a temporary solution to convert decimal values to float for protobuf compatibility.
+// It is not a permanent solution and should be removed when the protobuf library is updated to support decimal values.
+// FIXME: https://github.com/LDFLK/nexoan/issues/287
+function convertDecimalToFloat(json data) returns json {
+    if data is decimal {
+        // Convert decimal to float for protobuf compatibility
+        return <float>data;
+    } else if data is json[] {
+        // Handle arrays - recursively convert each element
+        json[] convertedArray = [];
+        foreach var item in data {
+            convertedArray.push(convertDecimalToFloat(item));
+        }
+        return convertedArray;
+    } else if data is map<json> {
+        // Handle maps - recursively convert each value
+        map<json> convertedMap = {};
+        foreach var [key, value] in data.entries() {
+            convertedMap[key] = convertDecimalToFloat(value);
+        }
+        return convertedMap;
+    } else {
+        // For other types (int, string, boolean, etc.), return as-is
+        return data;
+    }
+}
+
+// Helper function to convert JSON to protobuf Any value
+function convertJsonToAny(json data) returns pbAny:Any|error {
+    // First, convert any decimal values to float for protobuf compatibility
+    // FIXME: https://github.com/LDFLK/nexoan/issues/287
+    json convertedData = convertDecimalToFloat(data);
+    
+    if convertedData is int {
+        // For integer values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is float {
+        // For float values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is string {
+        // For string values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is boolean {
+        // For boolean values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is () {
+        // For null values
+        map<json> structMap = {
+            "null_value": ()
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is json[] {
+        // For arrays, wrap in a list_value structure
+        map<json> structMap = {
+            "values": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is map<json> {
+        // For objects, pack directly as structured data instead of converting to string
+        return pbAny:pack(convertedData);
+    } else {
+        return error("Unsupported data type: " + convertedData.toString());
+    }
+}
+
+// Helper function to verify tabular data content
+function verifyTabularData(json actual, json expected) {
+    // Simple string comparison
+    test:assertEquals(actual.toString(), expected.toString(), "Data JSON should match");
+}
+
 // Test entity attribute retrieval
 @test:Config {
     groups: ["entity", "attribute"],
-    enable: false // TODO: Re-enable once attribute saving is implemented and the API supports complete entity updates
+    enable: true
 }
 function testEntityAttributeRetrieval() returns error? {
     // TODO: Implement this test once the Data handling layer is written
     // Initialize the client
+    io:println("[query_api_service_test.bal][testEntityAttributeRetrieval]");
     string|error crudUrl = getCrudServiceUrl();
     if crudUrl is error {
         return crudUrl;
@@ -49,90 +136,129 @@ function testEntityAttributeRetrieval() returns error? {
     CrudServiceClient ep = check new (crudUrl);
     
     // Test data setup
-    string testId = "test-entity-attribute";
-    string attributeName = "temperature";
-    string attributeValue = "25.5";
-    
-    // First create an entity with the attribute
-    // Create entity with attributes first
-    TimeBasedValue tbv = {
-        startTime: "2023-01-01T00:00:00Z",
-        endTime: "2023-01-02T00:00:00Z",
-        value: check pbAny:pack(attributeValue)
+    string testId = "ABC Pvt Ltd";
+    string attributeName = "employee_data";
+    json attributeValue = {
+        "columns": ["emp_id", "name", "salary", "join_date", "is_active"],
+        "rows": [
+            [1001, "John Doe", 75000.50, "2024-01-15T09:00:00Z", true],
+            [1002, "Jane Smith", 82000.75, "2024-02-01T09:00:00Z", true],
+            [1003, "Bob Wilson", 65000.25, "2024-03-01T09:00:00Z", false],
+            [1004, "Alice Brown", 70000.25, "2024-04-01T09:00:00Z", true],
+            [1005, "Charlie Davis", 80000, "2024-05-01T09:00:00Z", true]
+        ]
     };
+
+    pbAny:Any attributeValueAny = check convertJsonToAny(attributeValue);
     
-    TimeBasedValueList tbvList = {
-        values: [tbv]
-    };
-    
-    record {|string key; TimeBasedValueList value;|}[] attributes = [];
-    attributes.push({key: attributeName, value: tbvList});
-    
-    Entity entity = {
+    Entity createEntityRequest = {
         id: testId,
         kind: {
-            major: "test",
-            minor: "attribute"
+            major: "Organization",
+            minor: "Private Limited"
         },
-        created: "2023-01-01",
+        created: "2025-02-01T00:00:00Z",
         terminated: "",
-        attributes: attributes
-    };
-    
-    // Create entity
-    Entity createResponse = check ep->CreateEntity(entity);
-    io:println("Created entity with ID: " + createResponse.id);
-    
-    // Now read the entity with the specific attribute filter
-    Entity attributeFilter = {
-        id: testId,
+        name: {
+            startTime: "2025-02-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("ABC Pvt Ltd")
+        },
+        metadata: [
+            {
+                key: "abc_pvt_ltd_metadata",
+                value: check pbAny:pack("tabular_abc_pvt_ltd_test_value")
+            }
+        ],
         attributes: [
             {
-                key: attributeName,
+                key: "employee_data",
                 value: {
                     values: [
                         {
-                            startTime: "2023-01-01T00:00:00Z",
-                            endTime: "2023-01-02T00:00:00Z",
-                            value: check pbAny:pack("")
+                            startTime: "2025-04-01T00:00:00Z",
+                            endTime: "",
+                            value: attributeValueAny
                         }
                     ]
                 }
             }
-        ]
+        ],
+        relationships: []
     };
     
-    ReadEntityRequest readRequest = {
-        entity: attributeFilter,
+    // Create entity
+    Entity createResponse = check ep->CreateEntity(createEntityRequest);
+    io:println("Created entity with ID: " + createResponse.id);
+
+    json attributeValueFilter = {
+        "columns": ["emp_id", "name", "salary"],
+        "rows": [[]]
+    };
+
+    pbAny:Any attributeValueFilterAny = check convertJsonToAny(attributeValueFilter);
+    
+    // Now read the entity with the specific attribute filter
+    ReadEntityRequest readEntityRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "employee_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: attributeValueFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
         output: ["attributes"]
     };
     
-    Entity|error readResponse = ep->ReadEntity(readRequest);
+    Entity readResponse = check ep->ReadEntity(readEntityRequest);
     
-    if readResponse is error {
-        io:println("[DEBUG] gRPC error: " + readResponse.toString());
-        return;
-    }
-    
-    // Verify the attribute was retrieved correctly
-    boolean foundAttribute = false;
-    foreach var attrEntry in readResponse.attributes {
-        if attrEntry.key == attributeName {
-            TimeBasedValueList retrievedList = attrEntry.value;
-            
-            if retrievedList.values.length() > 0 {
-                TimeBasedValue retrievedValue = retrievedList.values[0];
-                string|error unwrapped = unwrapAny(retrievedValue.value);
-                
-                if unwrapped is string {
-                    test:assertEquals(unwrapped, attributeValue, "Attribute value mismatch");
-                    foundAttribute = true;
-                }
-            }
-        }
-    }
-    
-    test:assertTrue(foundAttribute, "Expected attribute not found");
+    test:assertEquals(readResponse.attributes.length(), 1, "Should return exactly one attribute");
+    test:assertEquals(readResponse.attributes[0].key, attributeName, "Attribute key should match");
+
+    var retrievedAttributeValue = readResponse.attributes[0].value.values[0].value;
+    JsonObject attributeValueJson = check pbAny:unpack(retrievedAttributeValue);
+    io:println("Retrieved attribute value JSON: " + attributeValueJson.toString());
+
+    json expectedValueJson = {
+        "columns": ["emp_id", "name", "salary"],
+        "rows": [
+            [1001, "John Doe", 75000.50],
+            [1002, "Jane Smith", 82000.75],
+            [1003, "Bob Wilson", 65000.25],
+            [1004, "Alice Brown", 70000.25],
+            [1005, "Charlie Davis", 80000]
+        ]
+    };
+
+    // Extract the nested data field
+    string dataJsonString = <string>attributeValueJson["data"];
+    io:println("Data JSON string: " + dataJsonString);
+
+    // Parse the nested JSON string to get the actual tabular data
+    json actualValueJson = check dataJsonString.fromJsonString();
+    io:println("Data JSON: " + actualValueJson.toString());
+
+    verifyTabularData(actualValueJson, expectedValueJson);
     
     // Clean up
     EntityId deleteRequest = {id: testId};

@@ -61,8 +61,6 @@ function convertDecimalToFloat(json data) returns json {
 
 // Helper function to convert JSON to protobuf Any value
 function convertJsonToAny(json data) returns pbAny:Any|error {
-    io:println(">>>>> convertJsonToAny data: ");
-    
     // First, convert any decimal values to float for protobuf compatibility
     // FIXME: https://github.com/LDFLK/nexoan/issues/287
     json convertedData = convertDecimalToFloat(data);
@@ -105,8 +103,6 @@ function convertJsonToAny(json data) returns pbAny:Any|error {
         return pbAny:pack(structMap);
     } else if convertedData is map<json> {
         // For objects, pack directly as structured data instead of converting to string
-        io:println(">>>>> convertedData: ", convertedData);
-        io:println(">>>>> convertedData type: ", typeof convertedData);
         return pbAny:pack(convertedData);
     } else {
         return error("Unsupported data type: " + convertedData.toString());
@@ -233,18 +229,14 @@ function convertJsonToEntity(json jsonPayload) returns Entity|error {
     
     if jsonPayload.attributes != () {
         if jsonPayload?.attributes is json[] {
-            io:println(">>>>> jsonPayload.attributes[json.array]: ", jsonPayload.attributes);
             json[] attributesJsonArray = <json[]>check jsonPayload.attributes;
             foreach json item in attributesJsonArray {
                 string key = (check item.key).toString();
-                io:println(">>>>> key: ", key);
                 // Add safe type checking for value
                 json valueJson = check item.value;
-                io:println(">>>>> valueJson: ", valueJson);
                 TimeBasedValue[] timeBasedValues = [];
                 
                 if valueJson is json[] {
-                    io:println(">>>>> valueJson[json.array]: ", valueJson);
                     json[] valuesJson = <json[]>valueJson;
                     foreach json valueItem in valuesJson {
                         TimeBasedValue tbv = {
@@ -255,26 +247,15 @@ function convertJsonToEntity(json jsonPayload) returns Entity|error {
                         timeBasedValues.push(tbv);
                     }
                 } else {
-                    io:println(">>>>> valueJson[json.object]: ", valueJson);
-                    io:println(">>>>> valueJson[json.object] type: ", typeof valueJson);
                     // Handle the case when value is not an array (could be a single object)
                     // Create a single TimeBasedValue object
-                    io:println(">>>>> valueJson[json.object]: valueJson.values: ", valueJson.values, typeof valueJson.values);
                     json[] valuesJson = <json[]>check valueJson.values;
 
                     foreach json valueItem in valuesJson {
-                        io:println(">>>>> valueItem[json.object]: ", valueItem);
-                        io:println(">>>>> valueItem[json.object] type: ", typeof valueItem);
-                        
                         string startTime = valueItem?.startTime is () ? "" : (check valueItem.startTime).toString();
                         string endTime = valueItem?.endTime is () ? "" : (check valueItem.endTime).toString();
                         json value = valueItem?.value is () ? "" : (check valueItem.value).toJson();
                         // Access specific keys for tabular data
-                        io:println(">>>>> startTime: ", startTime);
-                        io:println(">>>>> endTime: ", endTime);
-                        io:println(">>>>> value (tabular data): ", value);
-                        io:println(">>>>> valueAsJson type: ", typeof value);
-
                         pbAny:Any tbvValue = check convertJsonToAny(value);
                         
                         TimeBasedValue tbv = {
@@ -293,18 +274,14 @@ function convertJsonToEntity(json jsonPayload) returns Entity|error {
                 attributesArray.push({key: key, value: tbvList});
             }
         } else if jsonPayload?.attributes is map<json> {
-            io:println(">>>>> jsonPayload.attributes[map<json>]: ", jsonPayload.attributes);
             map<json> attributesMap = <map<json>>check jsonPayload.attributes;
             foreach var [key, val] in attributesMap.entries() {
-                io:println(">>>>> key: ", key);
-                io:println(">>>>> val: ", val);
                 TimeBasedValue[] timeBasedValues = [];
                 
                 // Add safe type checking for val
                 if val is json[] {
                     json[] valuesJson = <json[]>val;
                     foreach json valueItem in valuesJson {
-                        io:println(">>>>> valueItem: ", valueItem);
                         TimeBasedValue tbv = {
                             startTime: (check valueItem.startTime).toString(),
                             endTime: valueItem?.endTime is () ? "" : (check valueItem.endTime).toString(),
