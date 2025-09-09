@@ -774,7 +774,7 @@ def test_attribute_fields_combinations():
             },
             "expected_fields": ["id", "name", "salary"],
             "min_rows": 5
-        }
+        },
     ]
 
     for test_case in test_cases:
@@ -802,6 +802,89 @@ def test_attribute_fields_combinations():
                 print(f"    ⚠️ No 'value' field in response for {test_case['name']}")
         else:
             print(f"    ❌ Failed: {test_case['name']} - {res.status_code} - {res.text}")
+
+
+def test_update_entity_attribute():
+    """Test different field combinations for attribute retrieval."""
+    print("\n🔍 Testing Update Entity Attribute...")
+
+    payload_child_1 = {
+        "id": RELATED_ID_1,
+        "attributes": [
+            {
+                "key": "financial_data",
+                "value": {
+                    "values": [
+                        {
+                            "startTime": "2024-08-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "department", "bonus"],
+                                "rows": [
+                                    [1, "Engineering", 10000.50],
+                                    [2, "Marketing", 65000],
+                                    [3, "Sales", 15000.75],
+                                    [4, "Engineering", 20000.25],
+                                    [5, "Finance", 25000]
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    res = requests.put(f"{UPDATE_API_URL}/{RELATED_ID_1}", json=payload_child_1, headers={"Content-Type": "application/json"})
+    assert res.status_code == 201 or res.status_code == 200, f"Failed to update entity: {res.text}"
+    print("✅ Updated first related entity.")
+
+    base_url = f"{QUERY_API_URL}/{RELATED_ID_1}/attributes/financial_data"
+    # Test cases with different field combinations
+    test_cases = [
+        # {
+        #     "name": "All fields (default)",
+        #     "params": {},
+        #     "expected_fields": ["id", "name", "age", "department", "salary"],
+        #     "min_rows": 5
+        # },
+        {
+            "name": "With time range",
+            "params": {
+                "startTime": "2024-01-01T00:00:00Z",
+                "fields": ["department", "bonus"]
+            },
+            "expected_fields": ["department", "bonus"],
+            "min_rows": 5
+        },
+    ]
+
+    for test_case in test_cases:
+        print(f"  📋 Testing: {test_case['name']}")
+        res = requests.get(base_url, params=test_case["params"])
+
+        if res.status_code == 200:
+            data = res.json()
+            print(f"    ✅ Success: {test_case['name']}")
+
+            # Decode and validate the response
+            if 'value' in data:
+                value = data['value']
+                decoded_data = decode_protobuf_any_value(value)
+
+                try:
+                    assert_tabular_data(decoded_data,
+                                      expected_columns=test_case['expected_fields'],
+                                      field_filter=test_case['expected_fields'],
+                                      min_rows=test_case['min_rows'])
+                    print(f"    ✅ Validation passed for {test_case['name']}")
+                except AssertionError as e:
+                    print(f"    ❌ Validation failed for {test_case['name']}: {e}")
+            else:
+                print(f"    ⚠️ No 'value' field in response for {test_case['name']}")
+        else:
+            print(f"    ❌ Failed: {test_case['name']} - {res.status_code} - {res.text}")
+
 
 def test_attribute_lookup():
     """Test retrieving attributes via the query API."""
@@ -1808,6 +1891,8 @@ if __name__ == "__main__":
         test_attribute_fields_combinations()
         print("Testing attribute lookup...")
         test_attribute_lookup()
+        print("Testing update entity attribute...")
+        test_update_entity_attribute()
         # print("Testing metadata lookup...")
         # test_metadata_lookup()
         

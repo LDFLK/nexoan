@@ -225,7 +225,7 @@ func MakeRelationshipFromAttributeMetadata(metadata *AttributeMetadata) *pb.Rela
 }
 
 // GetAttributeMetadata retrieves metadata for an attribute
-func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string, attributeName string) (*AttributeMetadata, error) {
+func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string, attributeName string, startTime time.Time) (*AttributeMetadata, error) {
 	fmt.Printf("Getting attribute metadata: EntityID=%s, AttributeName=%s\n", entityID, attributeName)
 
 	neo4jRepository, err := dbcommons.GetNeo4jRepository(ctx)
@@ -235,7 +235,7 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	}
 
 	// Get all IS_ATTRIBUTE relationships for the entity
-	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION}, "")
+	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION, "startTime": startTime.Format(time.RFC3339)}, "")
 	if err != nil {
 		log.Printf("[GraphMetadataManager.GetAttribute] Error getting relationships: %v", err)
 		return nil, err

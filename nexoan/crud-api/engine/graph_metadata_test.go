@@ -19,6 +19,8 @@ func TestGraphMetadataManager(t *testing.T) {
 
 	parentEntityID := "engine-test-entity-1"
 
+	createdTime := time.Now()
+
 	// Test creating attribute metadata
 	metadata := &AttributeMetadata{
 		EntityID:      parentEntityID,
@@ -26,8 +28,8 @@ func TestGraphMetadataManager(t *testing.T) {
 		AttributeName: "test-attribute",
 		StorageType:   storageinference.TabularData,
 		StoragePath:   "tables/attr_test-entity-1_test-attribute",
-		Created:       time.Now(),
-		Updated:       time.Now(),
+		Created:       createdTime,
+		Updated:       createdTime,
 		Schema: map[string]interface{}{
 			"columns": []string{"id", "name"},
 			"types":   []string{"int", "string"},
@@ -46,7 +48,7 @@ func TestGraphMetadataManager(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test getting attribute metadata
-	retrievedMetadata, err := manager.GetAttribute(ctx, metadata.EntityID, metadata.AttributeName)
+	retrievedMetadata, err := manager.GetAttribute(ctx, metadata.EntityID, metadata.AttributeName, createdTime)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedMetadata)
 	assert.Equal(t, metadata.EntityID, retrievedMetadata.EntityID)
