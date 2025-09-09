@@ -19,6 +19,38 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+// filterInternalColumns removes internal columns that shouldn't be returned to the client by default
+// unless they are explicitly requested in the fields parameter
+func filterInternalColumns(columns []string, requestedFields []string) ([]string, []int) {
+	var filteredColumns []string
+	var columnIndices []int
+
+	// Define internal columns that should be filtered out by default
+	internalColumns := map[string]bool{
+		"created_at":          true,
+		"entity_attribute_id": true,
+		// Note: "id" is NOT filtered out as it's user data
+	}
+
+	// Create a set of requested fields for quick lookup
+	requestedFieldsSet := make(map[string]bool)
+	for _, field := range requestedFields {
+		requestedFieldsSet[field] = true
+	}
+
+	for i, column := range columns {
+		// Keep the column if:
+		// 1. It's not an internal column, OR
+		// 2. It's an internal column but was explicitly requested
+		if !internalColumns[column] || requestedFieldsSet[column] {
+			filteredColumns = append(filteredColumns, column)
+			columnIndices = append(columnIndices, i)
+		}
+	}
+
+	return filteredColumns, columnIndices
+}
+
 // UnmarshalAnyToString attempts to unmarshal an Any protobuf message to a string value
 func UnmarshalAnyToString(anyValue *anypb.Any) (string, error) {
 	if anyValue == nil {
@@ -606,6 +638,7 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 	// Build the SELECT clause
 	var selectClause string
 	if len(fields) > 0 {
+		log.Printf("DEBUG: [DataHandler.GetData] selectClause: %v", fields)
 		// Sanitize and quote field names
 		sanitizedFields := make([]string, len(fields))
 		for i, field := range fields {
@@ -613,11 +646,15 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 		}
 		selectClause = strings.Join(sanitizedFields, ", ")
 	} else {
+		log.Printf("DEBUG: [DataHandler.GetData] selectClause: *")
 		selectClause = "*"
 	}
 
+	log.Printf("DEBUG: [DataHandler.GetData] selectClause: %s", selectClause)
 	// Base query
 	query := fmt.Sprintf("SELECT %s FROM %s", selectClause, commons.SanitizeIdentifier(tableName))
+
+	log.Printf("DEBUG: [DataHandler.GetData] query: %s", query)
 
 	var args []interface{}
 	var whereClauses []string
@@ -647,6 +684,38 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 		return nil, fmt.Errorf("error getting columns from %s: %v", tableName, err)
 	}
 
+	// Filter out internal columns that shouldn't be returned by default
+	// unless they are explicitly requested in the fields parameter
+	filteredColumns, columnIndices := filterInternalColumns(resultColumns, fields)
+	log.Printf("DEBUG: [DataHandler.GetData] Original columns: %v", resultColumns)
+	log.Printf("DEBUG: [DataHandler.GetData] Filtered columns: %v", filteredColumns)
+	log.Printf("DEBUG: [DataHandler.GetData] Column indices to keep: %v", columnIndices)
+
+	// Log which internal columns were filtered out or included
+	internalColumns := map[string]bool{
+		"created_at":          true,
+		"entity_attribute_id": true,
+	}
+	for _, column := range resultColumns {
+		if internalColumns[column] {
+			if len(columnIndices) > 0 && columnIndices[len(columnIndices)-1] >= 0 {
+				// Check if this column is in the filtered columns
+				found := false
+				for _, filteredCol := range filteredColumns {
+					if filteredCol == column {
+						found = true
+						break
+					}
+				}
+				if found {
+					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' included (explicitly requested)", column)
+				} else {
+					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' filtered out (not requested)", column)
+				}
+			}
+		}
+	}
+
 	var tabularRows [][]interface{}
 	for rows.Next() {
 		rowValues := make([]interface{}, len(resultColumns))
@@ -659,9 +728,10 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 			return nil, fmt.Errorf("error scanning row: %v", err)
 		}
 
-		// Convert row values to interface{} slice
-		row := make([]interface{}, len(resultColumns))
-		for i, val := range rowValues {
+		// Convert row values to interface{} slice, but only include filtered columns
+		row := make([]interface{}, len(filteredColumns))
+		for i, colIndex := range columnIndices {
+			val := rowValues[colIndex]
 			// Handle byte slices (common for text, json, etc.)
 			if b, ok := val.([]byte); ok {
 				row[i] = string(b)
@@ -678,7 +748,7 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 
 	// Create the tabular data structure
 	tabularData := map[string]interface{}{
-		"columns": resultColumns,
+		"columns": filteredColumns,
 		"rows":    tabularRows,
 	}
 

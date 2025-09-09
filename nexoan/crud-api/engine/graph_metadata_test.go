@@ -127,7 +127,7 @@ func TestGraphMetadataIntegration(t *testing.T) {
 	// Create an entity with mixed data types
 	entity, err := createEntityWithAttributes("engine-id-integration-test-entity-1", "integration-test-entity-1", map[string]string{
 		"tabular_data": `{
-			"columns": ["e_id", "name"],
+			"columns": ["id", "name"],
 			"rows": [[1, "John"], [2, "Jane"]]
 		}`,
 		"graph_data": `{

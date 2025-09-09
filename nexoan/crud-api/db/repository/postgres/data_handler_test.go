@@ -452,6 +452,100 @@ func TestGetData(t *testing.T) {
 	assert.Equal(t, float64(50), numericFilteredRow[2]) // col2
 }
 
+func TestInternalColumnFiltering(t *testing.T) {
+	repo := setupTestDB(t)
+
+	// Use unique table name for this test
+	tableName := fmt.Sprintf("test_internal_filtering_%d", time.Now().UnixNano())
+
+	// Create a table with internal columns
+	_, err := repo.DB().Exec(fmt.Sprintf(`
+		CREATE TABLE %s (
+			id SERIAL PRIMARY KEY,
+			name TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			entity_attribute_id TEXT
+		)
+	`, tableName))
+	assert.NoError(t, err)
+
+	// Insert test data
+	_, err = repo.DB().Exec(fmt.Sprintf(`
+		INSERT INTO %s (name, entity_attribute_id) VALUES 
+		('John Doe', 'attr_123'),
+		('Jane Smith', 'attr_456')
+	`, tableName))
+	assert.NoError(t, err)
+
+	// Test 1: Get all data without specifying fields (should filter out internal columns)
+	allData, err := repo.GetData(context.Background(), tableName, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, allData)
+
+	// Unmarshal and check columns
+	var structValue structpb.Struct
+	err = allData.UnmarshalTo(&structValue)
+	assert.NoError(t, err)
+
+	jsonStr := structValue.Fields["data"].GetStringValue()
+	var tabularData map[string]interface{}
+	err = json.Unmarshal([]byte(jsonStr), &tabularData)
+	assert.NoError(t, err)
+
+	columns := tabularData["columns"].([]interface{})
+	rows := tabularData["rows"].([]interface{})
+
+	// Should only have id and name (internal columns filtered out)
+	assert.Len(t, columns, 2)
+	assert.Equal(t, "id", columns[0])
+	assert.Equal(t, "name", columns[1])
+	assert.Len(t, rows, 2)
+
+	// Test 2: Explicitly request internal columns (should include them)
+	internalData, err := repo.GetData(context.Background(), tableName, nil, "id", "name", "created_at", "entity_attribute_id")
+	assert.NoError(t, err)
+	assert.NotNil(t, internalData)
+
+	err = internalData.UnmarshalTo(&structValue)
+	assert.NoError(t, err)
+
+	jsonStr = structValue.Fields["data"].GetStringValue()
+	err = json.Unmarshal([]byte(jsonStr), &tabularData)
+	assert.NoError(t, err)
+
+	columns = tabularData["columns"].([]interface{})
+	rows = tabularData["rows"].([]interface{})
+
+	// Should have all 4 columns including internal ones
+	assert.Len(t, columns, 4)
+	assert.Equal(t, "id", columns[0])
+	assert.Equal(t, "name", columns[1])
+	assert.Equal(t, "created_at", columns[2])
+	assert.Equal(t, "entity_attribute_id", columns[3])
+	assert.Len(t, rows, 2)
+
+	// Test 3: Request only internal columns
+	onlyInternalData, err := repo.GetData(context.Background(), tableName, nil, "created_at", "entity_attribute_id")
+	assert.NoError(t, err)
+	assert.NotNil(t, onlyInternalData)
+
+	err = onlyInternalData.UnmarshalTo(&structValue)
+	assert.NoError(t, err)
+
+	jsonStr = structValue.Fields["data"].GetStringValue()
+	err = json.Unmarshal([]byte(jsonStr), &tabularData)
+	assert.NoError(t, err)
+
+	columns = tabularData["columns"].([]interface{})
+	rows = tabularData["rows"].([]interface{})
+
+	// Should have only the requested internal columns
+	assert.Len(t, columns, 2)
+	assert.Equal(t, "created_at", columns[0])
+	assert.Equal(t, "entity_attribute_id", columns[1])
+	assert.Len(t, rows, 2)
+}
+
 func TestGetDataTabularFormat(t *testing.T) {
 	repo := setupTestDB(t)
 

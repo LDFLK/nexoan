@@ -21,6 +21,7 @@ ENTITY_ID = "query-test-entity"
 RELATED_ID_1 = "query-related-entity-1"
 RELATED_ID_2 = "query-related-entity-2"
 RELATED_ID_3 = "query-related-entity-3"
+RELATED_ID_4 = "query-related-entity-4"
 
 # Constants for government organization test
 GOVERNMENT_ID = "gov-lk-001"
@@ -580,7 +581,7 @@ def create_entity_for_query():
                             "startTime": "2024-11-01T00:00:00Z",
                             "endTime": "",
                             "value": {
-                                "columns": ["id", "name", "age", "department", "salary"],
+                                "columns": ["e_id", "name", "age", "department", "salary"],
                                 "rows": [
                                     [1, "John Doe", 30, "Engineering", 75000.50],
                                     [2, "Jane Smith", 25, "Marketing", 65000],
@@ -665,7 +666,7 @@ def create_entity_for_query():
                             "startTime": "2024-11-01T00:00:00Z",
                             "endTime": "",
                             "value": {
-                                "columns": ["id", "name", "age", "department", "salary"],
+                                "columns": ["e_id", "name", "age", "department", "salary"],
                                 "rows": [
                                     [1, "John Doe", 30, "Engineering", 75000.50],
                                     [2, "Jane Smith", 25, "Marketing", 65000],
@@ -742,16 +743,16 @@ def test_attribute_fields_combinations():
 
     # Test cases with different field combinations
     test_cases = [
-        # {
-        #     "name": "All fields (default)",
-        #     "params": {},
-        #     "expected_fields": ["id", "name", "age", "department", "salary"],
-        #     "min_rows": 5
-        # },
+        {
+            "name": "All fields (default)",
+            "params": {"fields": []},
+            "expected_fields": ["id", "e_id", "name", "age", "department", "salary"],
+            "min_rows": 5
+        },
         {
             "name": "ID and name only",
-            "params": {"fields": ["id", "name"]},
-            "expected_fields": ["id", "name"],
+            "params": {"fields": ["e_id", "name"]},
+            "expected_fields": ["e_id", "name"],
             "min_rows": 5
         },
         {
@@ -770,9 +771,9 @@ def test_attribute_fields_combinations():
             "name": "With time range",
             "params": {
                 "startTime": "2024-01-01T00:00:00Z",
-                "fields": ["id", "name", "salary"]
+                "fields": ["e_id", "name", "salary"]
             },
-            "expected_fields": ["id", "name", "salary"],
+            "expected_fields": ["e_id", "name", "salary"],
             "min_rows": 5
         },
     ]
@@ -808,18 +809,44 @@ def test_update_entity_attribute():
     """Test different field combinations for attribute retrieval."""
     print("\n🔍 Testing Update Entity Attribute...")
 
-    payload_child_1 = {
-        "id": RELATED_ID_1,
+    attribute_name = "financial_data"
+
+    create_payload = {
+        "id": RELATED_ID_4,
+        "kind": {"major": "test", "minor": "child"},
+        "created": "2024-07-01T00:00:00Z",
+        "terminated": "",
+        "name": {
+            "startTime": "2024-07-01T00:00:00Z",
+            "endTime": "",
+            "value": "Query Test Entity Child 4"
+        },
+        "metadata": [
+            {"key": "source", "value": "unit-test-4"},
+            {"key": "env", "value": "test-4"}
+        ],
+        "attributes": [
+        ],
+        "relationships": [
+        ]
+    }
+
+    res = requests.post(UPDATE_API_URL, json=create_payload)
+    assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
+    print("✅ Created first related entity.")
+
+    update_payload = {
+        "id": RELATED_ID_4,
         "attributes": [
             {
-                "key": "financial_data",
+                "key": attribute_name,
                 "value": {
                     "values": [
                         {
                             "startTime": "2024-08-01T00:00:00Z",
                             "endTime": "",
                             "value": {
-                                "columns": ["id", "department", "bonus"],
+                                "columns": ["e_id", "department", "bonus"],
                                 "rows": [
                                     [1, "Engineering", 10000.50],
                                     [2, "Marketing", 65000],
@@ -835,19 +862,21 @@ def test_update_entity_attribute():
         ]
     }
 
-    res = requests.put(f"{UPDATE_API_URL}/{RELATED_ID_1}", json=payload_child_1, headers={"Content-Type": "application/json"})
+    res = requests.put(f"{UPDATE_API_URL}/{RELATED_ID_4}", json=update_payload, headers={"Content-Type": "application/json"})
     assert res.status_code == 201 or res.status_code == 200, f"Failed to update entity: {res.text}"
     print("✅ Updated first related entity.")
 
-    base_url = f"{QUERY_API_URL}/{RELATED_ID_1}/attributes/financial_data"
+    base_url = f"{QUERY_API_URL}/{RELATED_ID_4}/attributes/{attribute_name}"
     # Test cases with different field combinations
+    # FIXME: NOTE THAT THE ID FIELD IS THE PRIMARY KEY THIS IS RETURNED WHEN WE ASK FOR ALL FIELDS
+    #   THIS MAY NEED TO BE FIXED IN THE FUTURE. 
     test_cases = [
-        # {
-        #     "name": "All fields (default)",
-        #     "params": {},
-        #     "expected_fields": ["id", "name", "age", "department", "salary"],
-        #     "min_rows": 5
-        # },
+        {
+            "name": "All fields (default)",
+            "params": {"fields": []},
+            "expected_fields": ["id", "e_id", "department", "bonus"],
+            "min_rows": 5
+        },
         {
             "name": "With time range",
             "params": {
@@ -893,30 +922,32 @@ def test_attribute_lookup():
     # Test 1: Get all fields (default behavior)
     print("  📋 Testing all fields retrieval...")
     url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
-    res = requests.get(url)
+    fields = []
+    params = {"fields": fields}
+    res = requests.get(url, params=params)
     
-    # if res.status_code == 200:
-    #     data = res.json()
-    #     print(f"    ✅ Retrieved all fields: {data}")
+    if res.status_code == 200:
+        data = res.json()
+        print(f"    ✅ Retrieved all fields: {data}")
         
-    #     # Decode and validate the protobuf value
-    #     if 'value' in data:
-    #         value = data['value']
-    #         decoded_data = decode_protobuf_any_value(value)
-    #         print(f"    ✅ Decoded data: {decoded_data}")
+        # Decode and validate the protobuf value
+        if 'value' in data:
+            value = data['value']
+            decoded_data = decode_protobuf_any_value(value)
+            print(f"    ✅ Decoded data: {decoded_data}")
             
-    #         # Validate tabular data structure
-    #         try:
-    #             assert_tabular_data(decoded_data, 
-    #                               expected_columns=["id", "name", "age", "department", "salary"],
-    #                               min_rows=5)
-    #             print("    ✅ All fields validation passed")
-    #         except AssertionError as e:
-    #             print(f"    ❌ All fields validation failed: {e}")
-    #     else:
-    #         print("    ⚠️ No 'value' field found in response")
-    # else:
-    #     print(f"    ❌ Failed to get all fields: {res.status_code} - {res.text}")
+            # Validate tabular data structure
+            try:
+                assert_tabular_data(decoded_data, 
+                                  expected_columns=["id", "e_id", "name", "age", "department", "salary"],
+                                  min_rows=5)
+                print("    ✅ All fields validation passed")
+            except AssertionError as e:
+                print(f"    ❌ All fields validation failed: {e}")
+        else:
+            print("    ⚠️ No 'value' field found in response")
+    else:
+        print(f"    ❌ Failed to get all fields: {res.status_code} - {res.text}")
     
     # Test 2: Get specific fields only
     print("  📋 Testing specific fields retrieval...")

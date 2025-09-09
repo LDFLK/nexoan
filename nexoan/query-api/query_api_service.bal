@@ -134,8 +134,8 @@ service /v1 on ep0 {
     #
     # + return - Attribute value(s) 
     resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime, string[]? fields) returns record {string 'start?; string end?; string value?;}|record {string 'start?; string end?; string value?;}[]|http:NotFound|error {
-        // Set default fields value to ["*"] if not provided
-        string[] fieldsToUse = fields ?: ["*"];
+        // Set default fields value to ["*"] if not provided or if empty array
+        string[] fieldsToUse = (fields == () || fields.length() == 0) ? [] : fields;
 
         // TODO: Pass fieldsToUse to the backend for field filtering
         // This requires updating the ReadEntityRequest protobuf definition
