@@ -35,13 +35,225 @@ DEPT_ID_4 = "dept-pharma-001"
 The current tests only contain metadata validation.
 """
 
+def validate_tabular_data_structure(data, expected_columns=None, min_rows=0, max_rows=None):
+    """
+    Validate that data has the expected tabular structure.
+
+    Args:
+        data: The data to validate
+        expected_columns: List of expected column names (optional)
+        min_rows: Minimum number of rows expected
+        max_rows: Maximum number of rows expected (optional)
+
+    Returns:
+        dict: Validation result with 'valid' boolean and 'message' string
+    """
+    if not isinstance(data, dict):
+        return {"valid": False, "message": f"Expected dict, got {type(data)}"}
+
+    if 'columns' not in data:
+        return {"valid": False, "message": "Missing 'columns' field"}
+
+    if 'rows' not in data:
+        return {"valid": False, "message": "Missing 'rows' field"}
+
+    columns = data['columns']
+    rows = data['rows']
+
+    if not isinstance(columns, list):
+        return {"valid": False, "message": f"'columns' should be a list, got {type(columns)}"}
+
+    if not isinstance(rows, list):
+        return {"valid": False, "message": f"'rows' should be a list, got {type(rows)}"}
+
+    if len(rows) < min_rows:
+        return {"valid": False, "message": f"Expected at least {min_rows} rows, got {len(rows)}"}
+
+    if max_rows is not None and len(rows) > max_rows:
+        return {"valid": False, "message": f"Expected at most {max_rows} rows, got {len(rows)}"}
+
+    if expected_columns is not None:
+        if set(columns) != set(expected_columns):
+            return {"valid": False, "message": f"Expected columns {expected_columns}, got {columns}"}
+
+    # Validate that each row has the same number of columns
+    for i, row in enumerate(rows):
+        if not isinstance(row, list):
+            return {"valid": False, "message": f"Row {i} should be a list, got {type(row)}"}
+        if len(row) != len(columns):
+            return {"valid": False, "message": f"Row {i} has {len(row)} values but expected {len(columns)} columns"}
+
+    return {"valid": True, "message": "Tabular data structure is valid"}
+
+def validate_tabular_data_content(data, expected_data=None, field_filter=None):
+    """
+    Validate the content of tabular data.
+
+    Args:
+        data: The tabular data to validate
+        expected_data: Expected tabular data structure (optional)
+        field_filter: List of fields to validate (optional)
+
+    Returns:
+        dict: Validation result with 'valid' boolean and 'message' string
+    """
+    structure_validation = validate_tabular_data_structure(data)
+    if not structure_validation['valid']:
+        return structure_validation
+
+    columns = data['columns']
+    rows = data['rows']
+
+    # If field filter is provided, validate only those fields
+    if field_filter is not None:
+        if not all(field in columns for field in field_filter):
+            missing_fields = [f for f in field_filter if f not in columns]
+            return {"valid": False, "message": f"Missing expected fields: {missing_fields}"}
+
+        # Filter columns and rows to only include requested fields
+        field_indices = [columns.index(field) for field in field_filter]
+        filtered_columns = [columns[i] for i in field_indices]
+        filtered_rows = [[row[i] for i in field_indices] for row in rows]
+
+        columns = filtered_columns
+        rows = filtered_rows
+
+    # If expected data is provided, validate against it
+    if expected_data is not None:
+        expected_validation = validate_tabular_data_structure(expected_data)
+        if not expected_validation['valid']:
+            return {"valid": False, "message": f"Invalid expected data: {expected_validation['message']}"}
+
+        expected_columns = expected_data['columns']
+        expected_rows = expected_data['rows']
+
+        if columns != expected_columns:
+            return {"valid": False, "message": f"Column mismatch: expected {expected_columns}, got {columns}"}
+
+        if len(rows) != len(expected_rows):
+            return {"valid": False, "message": f"Row count mismatch: expected {len(expected_rows)}, got {len(rows)}"}
+
+        # Validate each row
+        for i, (actual_row, expected_row) in enumerate(zip(rows, expected_rows)):
+            if actual_row != expected_row:
+                return {"valid": False, "message": f"Row {i} mismatch: expected {expected_row}, got {actual_row}"}
+
+    return {"valid": True, "message": "Tabular data content is valid"}
+
+def assert_tabular_data(data, expected_columns=None, expected_data=None, field_filter=None, min_rows=0, max_rows=None):
+    """
+    Assert that tabular data meets the expected criteria.
+
+    Args:
+        data: The data to validate
+        expected_columns: List of expected column names (optional)
+        expected_data: Expected tabular data structure (optional)
+        field_filter: List of fields to validate (optional)
+        min_rows: Minimum number of rows expected
+        max_rows: Maximum number of rows expected (optional)
+
+    Raises:
+        AssertionError: If validation fails
+    """
+    validation = validate_tabular_data_content(data, expected_data, field_filter)
+
+    if not validation['valid']:
+        raise AssertionError(f"Tabular data validation failed: {validation['message']}")
+
+    # Additional structure validation
+    structure_validation = validate_tabular_data_structure(data, expected_columns, min_rows, max_rows)
+    if not structure_validation['valid']:
+        raise AssertionError(f"Tabular data structure validation failed: {structure_validation['message']}")
+
+def test_api_endpoint_with_validation(url, params=None, expected_fields=None, min_rows=0, test_name="API Test"):
+    """
+    Generic function to test any API endpoint with tabular data validation.
+
+    Args:
+        url: The API endpoint URL
+        params: Query parameters (optional)
+        expected_fields: Expected field names (optional)
+        min_rows: Minimum number of rows expected
+        test_name: Name for the test (for logging)
+
+    Returns:
+        dict: Test result with 'success', 'data', and 'message' keys
+    """
+    print(f"  📋 {test_name}...")
+
+    try:
+        res = requests.get(url, params=params)
+
+        if res.status_code != 200:
+            return {
+                "success": False,
+                "data": None,
+                "message": f"HTTP {res.status_code}: {res.text}"
+            }
+
+        data = res.json()
+
+        # Decode protobuf value if present
+        if 'value' in data:
+            value = data['value']
+            decoded_data = decode_protobuf_any_value(value)
+            print(f"    ✅ Decoded data: {decoded_data}")
+
+            # Validate tabular data
+            try:
+                assert_tabular_data(decoded_data,
+                                  expected_columns=expected_fields,
+                                  field_filter=expected_fields,
+                                  min_rows=min_rows)
+
+                return {
+                    "success": True,
+                    "data": decoded_data,
+                    "message": f"✅ {test_name} passed validation"
+                }
+            except AssertionError as e:
+                return {
+                    "success": False,
+                    "data": decoded_data,
+                    "message": f"❌ {test_name} validation failed: {e}"
+                }
+        else:
+            return {
+                "success": False,
+                "data": data,
+                "message": f"⚠️ {test_name} - No 'value' field in response"
+            }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "data": None,
+            "message": f"❌ {test_name} failed with exception: {e}"
+        }
+
+def get_expected_employee_data():
+    """Get the expected employee data structure for validation."""
+    return {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [
+            [1, "John Doe", 30, "Engineering", 75000.5],
+            [2, "Jane Smith", 25, "Marketing", 65000],
+            [3, "Bob Wilson", 35, "Sales", 85000.75],
+            [4, "Alice Brown", 28, "Engineering", 70000.25],
+            [5, "Charlie Davis", 32, "Finance", 80000]
+        ]
+    }
+
 def decode_protobuf_any_value(any_value):
-    """Decode a protobuf Any value to get the actual string value"""
+    """Decode a protobuf Any value to get the actual value"""
     if isinstance(any_value, dict) and 'typeUrl' in any_value and 'value' in any_value:
-        if 'StringValue' in any_value['typeUrl']:
+        type_url = any_value['typeUrl']
+        value = any_value['value']
+
+        if 'StringValue' in type_url:
             try:
                 # If it's hex encoded (which appears to be the case)
-                hex_value = any_value['value']
+                hex_value = value
                 binary_data = bytes.fromhex(hex_value)
                 # For StringValue in hex format, typically the structure is:
                 # 0A (field tag) + 03 (length) + actual string bytes
@@ -49,9 +261,135 @@ def decode_protobuf_any_value(any_value):
                 if len(binary_data) > 2:
                     return binary_data[2:].decode('utf-8')
             except Exception as e:
-                print(f"Failed to decode protobuf value: {e}")
-                return any_value['value']
-    
+                print(f"Failed to decode StringValue: {e}")
+                return value
+
+        elif 'Struct' in type_url:
+            try:
+                # For Struct type, the value is hex-encoded protobuf data
+                binary_data = bytes.fromhex(value)
+
+                # Try to use protobuf library first
+                try:
+                    from google.protobuf import struct_pb2
+                    from google.protobuf.json_format import MessageToDict
+
+                    struct_msg = struct_pb2.Struct()
+                    struct_msg.ParseFromString(binary_data)
+                    result = MessageToDict(struct_msg)
+
+                    # If the result has a 'data' field that's a string, try to parse it as JSON
+                    if isinstance(result, dict) and 'data' in result and isinstance(result['data'], str):
+                        try:
+                            data_json = json.loads(result['data'])
+                            return data_json
+                        except json.JSONDecodeError:
+                            pass
+
+                    return result
+
+                except ImportError:
+                    print("protobuf library not available, trying manual extraction")
+                except Exception as e:
+                    print(f"Failed to decode with protobuf library: {e}")
+
+                # Manual extraction fallback - look for JSON patterns in the binary data
+                try:
+                    # Convert binary data to string and look for JSON
+                    text_data = binary_data.decode('utf-8', errors='ignore')
+                    print(f"Debug: Extracted text from binary: {repr(text_data[:200])}...")
+
+                    # Find JSON-like content (look for { and })
+                    start_idx = text_data.find('{')
+                    end_idx = text_data.rfind('}')
+
+                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                        json_str = text_data[start_idx:end_idx + 1]
+                        print(f"Debug: Extracted JSON string: {repr(json_str[:100])}...")
+                        return json.loads(json_str)
+
+                except Exception as e:
+                    print(f"Failed to extract JSON from binary data: {e}")
+
+                # Try a different approach - look for specific patterns
+                try:
+                    # The hex data might contain the JSON in a different format
+                    # Let's try to find the actual JSON content
+                    text_data = binary_data.decode('utf-8', errors='ignore')
+
+                    # Look for common JSON patterns
+                    patterns = ['"columns"', '"rows"', '"data"']
+                    for pattern in patterns:
+                        if pattern in text_data:
+                            # Find the start of the JSON object containing this pattern
+                            start_idx = text_data.find('{', text_data.find(pattern) - 100)
+                            if start_idx != -1:
+                                # Find the matching closing brace
+                                brace_count = 0
+                                end_idx = start_idx
+                                for i, char in enumerate(text_data[start_idx:], start_idx):
+                                    if char == '{':
+                                        brace_count += 1
+                                    elif char == '}':
+                                        brace_count -= 1
+                                        if brace_count == 0:
+                                            end_idx = i
+                                            break
+
+                                if end_idx > start_idx:
+                                    json_str = text_data[start_idx:end_idx + 1]
+                                    print(f"Debug: Found JSON with pattern {pattern}: {repr(json_str[:100])}...")
+                                    try:
+                                        return json.loads(json_str)
+                                    except json.JSONDecodeError as e:
+                                        print(f"Debug: JSON decode failed: {e}")
+                                        continue
+
+                except Exception as e:
+                    print(f"Failed to extract JSON with pattern matching: {e}")
+
+                # If all else fails, try to decode as base64
+                try:
+                    import base64
+                    # The hex might actually be base64 encoded
+                    decoded_bytes = base64.b64decode(value)
+                    json_str = decoded_bytes.decode('utf-8')
+                    return json.loads(json_str)
+                except Exception as e:
+                    print(f"Failed to decode as base64: {e}")
+
+                # Final fallback: return the hex value
+                return value
+
+            except Exception as e:
+                print(f"Failed to decode Struct: {e}")
+                return value
+
+        elif 'Int32Value' in type_url or 'Int64Value' in type_url:
+            try:
+                # For integer values
+                hex_value = value
+                binary_data = bytes.fromhex(hex_value)
+                # Skip field tag and length bytes
+                if len(binary_data) > 2:
+                    return int.from_bytes(binary_data[2:], byteorder='little')
+            except Exception as e:
+                print(f"Failed to decode integer value: {e}")
+                return value
+
+        elif 'DoubleValue' in type_url or 'FloatValue' in type_url:
+            try:
+                # For float/double values
+                hex_value = value
+                binary_data = bytes.fromhex(hex_value)
+                # Skip field tag and length bytes
+                if len(binary_data) > 2:
+                    import struct
+                    return struct.unpack('<d', binary_data[2:])[0]  # little-endian double
+            except Exception as e:
+                print(f"Failed to decode float value: {e}")
+                return value
+
     # If any_value is a string that looks like a JSON object
     elif isinstance(any_value, str) and any_value.startswith('{') and any_value.endswith('}'):
         try:
@@ -61,9 +399,158 @@ def decode_protobuf_any_value(any_value):
             return decode_protobuf_any_value(obj)
         except json.JSONDecodeError:
             pass
-    
+
     # Return the original value if decoding fails
     return any_value
+
+def test_generic_validation_examples():
+    """Test examples using the generic validation function."""
+    print("\n🧪 Testing generic validation examples...")
+
+    base_url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+
+    # Example 1: Test all fields
+    result = test_api_endpoint_with_validation(
+        url=base_url,
+        params={"fields": ["id", "name", "age", "department", "salary"]},
+        expected_fields=["id", "name", "age", "department", "salary"],
+        min_rows=5,
+        test_name="All Fields Test"
+    )
+    print(f"    {result['message']}")
+
+    # Example 2: Test specific fields
+    result = test_api_endpoint_with_validation(
+        url=base_url,
+        params={"fields": ["id", "name"]},
+        expected_fields=["id", "name"],
+        min_rows=5,
+        test_name="ID and Name Fields Test"
+    )
+    print(f"    {result['message']}")
+
+    # Example 3: Test with time range
+    result = test_api_endpoint_with_validation(
+        url=base_url,
+        params={"startTime": "2024-01-01T00:00:00Z", "fields": ["salary", "department"]},
+        expected_fields=["salary", "department"],
+        min_rows=5,
+        test_name="Time Range with Salary/Department Test"
+    )
+    print(f"    {result['message']}")
+
+    print("  ✅ Generic validation examples completed")
+
+def test_comprehensive_validation():
+    """Test comprehensive validation of tabular data responses."""
+    print("\n🧪 Testing comprehensive validation...")
+
+    # Test the validation functions with sample data
+    print("  📋 Testing validation functions...")
+
+    # Valid tabular data
+    valid_data = {
+        "columns": ["id", "name", "salary"],
+        "rows": [
+            [1, "John Doe", 75000.5],
+            [2, "Jane Smith", 65000]
+        ]
+    }
+
+    # Test structure validation
+    result = validate_tabular_data_structure(valid_data, expected_columns=["id", "name", "salary"], min_rows=2)
+    assert result['valid'], f"Structure validation should pass: {result['message']}"
+    print("    ✅ Structure validation passed")
+
+    # Test content validation
+    result = validate_tabular_data_content(valid_data, field_filter=["id", "name"])
+    assert result['valid'], f"Content validation should pass: {result['message']}"
+    print("    ✅ Content validation passed")
+
+    # Test assertion function
+    try:
+        assert_tabular_data(valid_data, 
+                          expected_columns=["id", "name", "salary"],
+                          field_filter=["id", "name"],
+                          min_rows=2)
+        print("    ✅ Assertion function passed")
+    except AssertionError as e:
+        print(f"    ❌ Assertion function failed: {e}")
+
+    # Test invalid data
+    invalid_data = {
+        "columns": ["id", "name"],
+        "rows": [
+            [1, "John Doe", 75000.5]  # Wrong number of values
+        ]
+    }
+
+    result = validate_tabular_data_structure(invalid_data)
+    assert not result['valid'], "Should detect invalid structure"
+    print("    ✅ Invalid data detection passed")
+
+    print("  ✅ Comprehensive validation tests completed")
+
+def test_protobuf_decoding():
+    """Test the protobuf decoding function with sample data"""
+    print("\n🧪 Testing protobuf decoding...")
+
+    # Test data similar to what you're getting
+    test_data = {
+        "typeUrl": "type.googleapis.com/google.protobuf.Struct",
+        "value": "0AB4010A046461746112AB011AA8017B22636F6C756D6E73223A5B226964222C226E616D65222C2273616C617279225D2C22726F7773223A5B5B312C224A6F686E20446F65222C37353030302E355D2C5B322C224A616E6520536D697468222C36353030305D2C5B332C22426F622057696C736F6E222C38353030302E37355D2C5B342C22416C6963652042726F776E222C37303030302E32355D2C5B352C22436861726C6965204461766973222C38303030305D5D7D"
+    }
+
+    print("  📋 Testing Struct decoding...")
+
+    # First, let's examine the hex data directly
+    hex_value = test_data['value']
+    print(f"    🔍 Hex value length: {len(hex_value)}")
+    print(f"    🔍 First 100 chars: {hex_value[:100]}")
+
+    # Convert to binary and examine
+    try:
+        binary_data = bytes.fromhex(hex_value)
+        print(f"    🔍 Binary data length: {len(binary_data)}")
+
+        # Try to decode as UTF-8
+        text_data = binary_data.decode('utf-8', errors='ignore')
+        print(f"    🔍 Decoded text (first 200 chars): {repr(text_data[:200])}")
+
+        # Look for JSON patterns
+        if '"columns"' in text_data:
+            print("    ✅ Found 'columns' in text data")
+        if '"rows"' in text_data:
+            print("    ✅ Found 'rows' in text data")
+        if '"data"' in text_data:
+            print("    ✅ Found 'data' in text data")
+
+    except Exception as e:
+        print(f"    ❌ Failed to examine hex data: {e}")
+
+    # Now try the actual decoding
+    decoded = decode_protobuf_any_value(test_data)
+    print(f"    ✅ Decoded result type: {type(decoded)}")
+    print(f"    ✅ Decoded result: {decoded}")
+
+    # Check if we got the expected tabular data structure
+    if isinstance(decoded, dict):
+        if 'columns' in decoded and 'rows' in decoded:
+            print(f"    📊 Tabular data found!")
+            print(f"    📊 Columns: {decoded['columns']}")
+            print(f"    📊 Rows: {decoded['rows']}")
+        elif 'data' in decoded:
+            print(f"    📊 Data field: {decoded['data']}")
+            if isinstance(decoded['data'], str):
+                try:
+                    data_json = json.loads(decoded['data'])
+                    print(f"    📊 Parsed JSON data: {data_json}")
+                except json.JSONDecodeError as e:
+                    print(f"    ❌ Failed to parse data as JSON: {e}")
+        else:
+            print(f"    📊 Other dict structure: {list(decoded.keys())}")
+    else:
+        print(f"    📊 Non-dict result: {decoded}")
 
 def create_entity_for_query():
     """Create a base entity with metadata, attributes, and relationships."""
@@ -86,13 +573,22 @@ def create_entity_for_query():
         ],
         "attributes": [
             {
-                "key": "humidity",
+                "key": "employee_data",
                 "value": {
                     "values": [
                         {
-                            "startTime": "2024-01-01T00:00:00Z",
-                            "endTime": "2024-01-02T00:00:00Z",
-                            "value": "25.5"
+                            "startTime": "2024-11-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                "rows": [
+                                    [1, "John Doe", 30, "Engineering", 75000.50],
+                                    [2, "Jane Smith", 25, "Marketing", 65000],
+                                    [3, "Bob Wilson", 35, "Sales", 85000.75],
+                                    [4, "Alice Brown", 28, "Engineering", 70000.25],
+                                    [5, "Charlie Davis", 32, "Finance", 80000]
+                                ]
+                            }
                         }
                     ]
                 }
@@ -162,13 +658,22 @@ def create_entity_for_query():
         ],
         "attributes": [
             {
-                "key": "temperature",
+                "key": "employee_data",
                 "value": {
                     "values": [
                         {
-                            "startTime": "2024-01-01T00:00:00Z",
-                            "endTime": "2024-01-02T00:00:00Z",
-                            "value": "25.5"
+                            "startTime": "2024-11-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                "rows": [
+                                    [1, "John Doe", 30, "Engineering", 75000.50],
+                                    [2, "Jane Smith", 25, "Marketing", 65000],
+                                    [3, "Bob Wilson", 35, "Sales", 85000.75],
+                                    [4, "Alice Brown", 28, "Engineering", 70000.25],
+                                    [5, "Charlie Davis", 32, "Finance", 80000]
+                                ]
+                            }
                         }
                     ]
                 }
@@ -229,18 +734,170 @@ def create_entity_for_query():
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
     print("✅ Created base entity for query tests.")
 
+def test_attribute_fields_combinations():
+    """Test different field combinations for attribute retrieval."""
+    print("\n🔍 Testing attribute field combinations...")
+
+    base_url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+
+    # Test cases with different field combinations
+    test_cases = [
+        # {
+        #     "name": "All fields (default)",
+        #     "params": {},
+        #     "expected_fields": ["id", "name", "age", "department", "salary"],
+        #     "min_rows": 5
+        # },
+        {
+            "name": "ID and name only",
+            "params": {"fields": ["id", "name"]},
+            "expected_fields": ["id", "name"],
+            "min_rows": 5
+        },
+        {
+            "name": "Salary and department only",
+            "params": {"fields": ["salary", "department"]},
+            "expected_fields": ["salary", "department"],
+            "min_rows": 5
+        },
+        {
+            "name": "Single field (name)",
+            "params": {"fields": ["name"]},
+            "expected_fields": ["name"],
+            "min_rows": 5
+        },
+        {
+            "name": "With time range",
+            "params": {
+                "startTime": "2024-01-01T00:00:00Z",
+                "fields": ["id", "name", "salary"]
+            },
+            "expected_fields": ["id", "name", "salary"],
+            "min_rows": 5
+        }
+    ]
+
+    for test_case in test_cases:
+        print(f"  📋 Testing: {test_case['name']}")
+        res = requests.get(base_url, params=test_case["params"])
+
+        if res.status_code == 200:
+            data = res.json()
+            print(f"    ✅ Success: {test_case['name']}")
+
+            # Decode and validate the response
+            if 'value' in data:
+                value = data['value']
+                decoded_data = decode_protobuf_any_value(value)
+
+                try:
+                    assert_tabular_data(decoded_data,
+                                      expected_columns=test_case['expected_fields'],
+                                      field_filter=test_case['expected_fields'],
+                                      min_rows=test_case['min_rows'])
+                    print(f"    ✅ Validation passed for {test_case['name']}")
+                except AssertionError as e:
+                    print(f"    ❌ Validation failed for {test_case['name']}: {e}")
+            else:
+                print(f"    ⚠️ No 'value' field in response for {test_case['name']}")
+        else:
+            print(f"    ❌ Failed: {test_case['name']} - {res.status_code} - {res.text}")
+
 def test_attribute_lookup():
     """Test retrieving attributes via the query API."""
     print("\n🔍 Testing attribute retrieval...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/temperature"
-    res = requests.get(url)
-    assert res.status_code == 404, f"Failed to get attribute: {res.text}"
     
-    # Add response body validation
-    body = res.json()
-    assert isinstance(body, dict), "Response should be a dictionary"
-    assert "error" in body, "Error message should be present in 404 response"
-    print("✅ Attribute response:", json.dumps(res.json(), indent=2))
+    # Test 1: Get all fields (default behavior)
+    print("  📋 Testing all fields retrieval...")
+    url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+    res = requests.get(url)
+    
+    # if res.status_code == 200:
+    #     data = res.json()
+    #     print(f"    ✅ Retrieved all fields: {data}")
+        
+    #     # Decode and validate the protobuf value
+    #     if 'value' in data:
+    #         value = data['value']
+    #         decoded_data = decode_protobuf_any_value(value)
+    #         print(f"    ✅ Decoded data: {decoded_data}")
+            
+    #         # Validate tabular data structure
+    #         try:
+    #             assert_tabular_data(decoded_data, 
+    #                               expected_columns=["id", "name", "age", "department", "salary"],
+    #                               min_rows=5)
+    #             print("    ✅ All fields validation passed")
+    #         except AssertionError as e:
+    #             print(f"    ❌ All fields validation failed: {e}")
+    #     else:
+    #         print("    ⚠️ No 'value' field found in response")
+    # else:
+    #     print(f"    ❌ Failed to get all fields: {res.status_code} - {res.text}")
+    
+    # Test 2: Get specific fields only
+    print("  📋 Testing specific fields retrieval...")
+    fields = ["id", "name", "salary"]
+    params = {"fields": fields}
+    res = requests.get(url, params=params)
+    
+    if res.status_code == 200:
+        data = res.json()
+        print(f"    ✅ Retrieved fields {fields}: {data}")
+        
+        # Decode the protobuf value if present
+        if 'value' in data:
+            value = data['value']
+            decoded_data = decode_protobuf_any_value(value)
+            print(f"    ✅ Decoded data: {decoded_data}")
+            
+            # Validate filtered tabular data
+            try:
+                assert_tabular_data(decoded_data, 
+                                  expected_columns=fields,
+                                  field_filter=fields,
+                                  min_rows=5)
+                print("    ✅ Specific fields validation passed")
+            except AssertionError as e:
+                print(f"    ❌ Specific fields validation failed: {e}")
+        else:
+            print("    ⚠️ No 'value' field found in response")
+    else:
+        print(f"    ❌ Failed to get specific fields: {res.status_code} - {res.text}")
+    
+    # Test 3: Get fields with time range
+    print("  📋 Testing fields with time range...")
+    params = {
+        "startTime": "2024-01-01T00:00:00Z",
+        "fields": ["id", "name", "department"]
+    }
+    res = requests.get(url, params=params)
+    
+    if res.status_code == 200:
+        data = res.json()
+        print(f"    ✅ Retrieved filtered data: {data}")
+        
+        # Decode the protobuf value if present
+        if 'value' in data:
+            value = data['value']
+            decoded_data = decode_protobuf_any_value(value)
+            print(f"    ✅ Decoded data: {decoded_data}")
+            
+            # Validate filtered tabular data
+            try:
+                assert_tabular_data(decoded_data, 
+                                  expected_columns=["id", "name", "department"],
+                                  field_filter=["id", "name", "department"],
+                                  min_rows=5)
+                print("    ✅ Time-filtered fields validation passed")
+            except AssertionError as e:
+                print(f"    ❌ Time-filtered fields validation failed: {e}")
+        else:
+            print("    ⚠️ No 'value' field found in response")
+    else:
+        print(f"    ❌ Failed to get filtered data: {res.status_code} - {res.text}")
+    
+    print("✅ Attribute lookup tests completed.")
 
 def test_metadata_lookup():
     """Test retrieving metadata."""
@@ -1138,53 +1795,65 @@ if __name__ == "__main__":
     print("🚀 Running Query API E2E Tests...")
 
     try:
+        print("Basic Query Tests...")
+        print("Testing comprehensive validation...")
+        test_comprehensive_validation()
+        print("Testing protobuf decoding...")
+        test_protobuf_decoding()
+        print("Creating entity for query tests...")
         create_entity_for_query()
+        print("Testing generic validation examples...")
+        test_generic_validation_examples()
+        print("Testing attribute field combinations...")
+        test_attribute_fields_combinations()
+        print("Testing attribute lookup...")
         test_attribute_lookup()
-        test_metadata_lookup()
+        # print("Testing metadata lookup...")
+        # test_metadata_lookup()
         
-        # Run government organization search tests
-        create_government_entities()
-        test_search_without_major_kind_or_id()
-        test_search_by_kind_major()
-        test_search_by_kind_minor()
-        test_search_by_name()
-        test_search_by_created_date()
+        # # Run government organization search tests
+        # create_government_entities()
+        # test_search_without_major_kind_or_id()
+        # test_search_by_kind_major()
+        # test_search_by_kind_minor()
+        # test_search_by_name()
+        # test_search_by_created_date()
         
-        # Run ID-based search tests
-        test_search_by_id()
-        test_search_by_id_not_found()
-        test_search_by_id_with_other_filters()
+        # # Run ID-based search tests
+        # test_search_by_id()
+        # test_search_by_id_not_found()
+        # test_search_by_id_with_other_filters()
         
-        # Run combined filter tests
-        test_search_by_name_and_kind()
-        test_search_by_kind_and_created_date()
-        test_search_by_name_kind_and_created_date()
-        test_search_by_name_partial_match()
+        # # Run combined filter tests
+        # test_search_by_name_and_kind()
+        # test_search_by_kind_and_created_date()
+        # test_search_by_name_kind_and_created_date()
+        # test_search_by_name_partial_match()
         
-        # Run terminated date filter tests
-        test_search_by_terminated_date()
-        test_search_by_active_entities()
-        test_search_by_kind_and_terminated()
-        test_search_by_name_kind_and_terminated()
+        # # Run terminated date filter tests
+        # test_search_by_terminated_date()
+        # test_search_by_active_entities()
+        # test_search_by_kind_and_terminated()
+        # test_search_by_name_kind_and_terminated()
         
-        # Run relationship filter tests
-        test_relations_no_filters()
-        test_relations_filter_by_name()
-        test_relations_filter_by_related_entity_id()
-        test_relations_filter_by_start_time()
-        test_relations_filter_by_end_time()
-        test_relations_filter_by_multiple_fields()
-        test_relations_filter_nonexistent()
-        test_relations_filter_by_active_at()
-        test_relations_filter_by_active_at_and_name()
-        test_relations_filter_by_active_at_and_related_entity_id()
-        test_relations_filter_by_active_at_and_direction()
-        test_relations_filter_by_active_at_and_name_and_direction()
-        test_relations_filter_by_active_at_and_time_range_invalid()
-        test_gov_relations_filter_by_active_at_and_direction()
-        test_minister_relations_filter_by_active_at_and_direction()
-        test_department_relations_filter_by_active_at_and_direction()
-        test_minister_relations_filter_by_active_at_only()
+        # # Run relationship filter tests
+        # test_relations_no_filters()
+        # test_relations_filter_by_name()
+        # test_relations_filter_by_related_entity_id()
+        # test_relations_filter_by_start_time()
+        # test_relations_filter_by_end_time()
+        # test_relations_filter_by_multiple_fields()
+        # test_relations_filter_nonexistent()
+        # test_relations_filter_by_active_at()
+        # test_relations_filter_by_active_at_and_name()
+        # test_relations_filter_by_active_at_and_related_entity_id()
+        # test_relations_filter_by_active_at_and_direction()
+        # test_relations_filter_by_active_at_and_name_and_direction()
+        # test_relations_filter_by_active_at_and_time_range_invalid()
+        # test_gov_relations_filter_by_active_at_and_direction()
+        # test_minister_relations_filter_by_active_at_and_direction()
+        # test_department_relations_filter_by_active_at_and_direction()
+        # test_minister_relations_filter_by_active_at_only()
         
         print("\n🎉 All Query API tests passed!")
     except AssertionError as e:

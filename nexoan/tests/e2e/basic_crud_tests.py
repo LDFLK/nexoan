@@ -464,7 +464,14 @@ class AttributeValidationTests(BasicCRUDTests):
         # Verify the response data
         response_data = res.json()
         print(response_data)
-
+        assert response_data["id"] == self.MINISTER_ID, f"Expected ID {self.MINISTER_ID}, got {response_data['id']}"
+        assert response_data["kind"]["major"] == "Organization", f"Expected major kind 'Organization', got {response_data['kind']['major']}"
+        assert response_data["kind"]["minor"] == "Minister", f"Expected minor kind 'Minister', got {response_data['kind']['minor']}"
+        assert response_data["created"] == self.START_DATE, f"Expected created date {self.START_DATE}, got {response_data['created']}"
+        # The name value is a protobuf Any that needs to be decoded
+        name_value = response_data["name"]["value"]
+        decoded_name = CrudTestUtils.decode_protobuf_any_value(name_value)
+        assert decoded_name == "Minister of Finance and Economy", f"Expected name 'Minister of Finance and Economy', got {decoded_name}"
 
 
 def get_base_url():
@@ -477,25 +484,25 @@ if __name__ == "__main__":
     print("🚀 Running End-to-End API Test Suite...")
     
     try:
-        # print("🟢 Running Metadata Validation Tests...")
-        # metadata_validation_tests = MetadataValidationTests(entity_id="123")
-        # metadata_validation_tests.create_entity()
-        # metadata_validation_tests.read_entity()
-        # metadata_validation_tests.update_entity()
-        # metadata_validation_tests.validate_update()
-        # metadata_validation_tests.delete_entity()
-        # metadata_validation_tests.verify_deletion()
-        # print("\n🟢 Running Metadata Validation Tests... Done")
+        print("🟢 Running Metadata Validation Tests...")
+        metadata_validation_tests = MetadataValidationTests(entity_id="123")
+        metadata_validation_tests.create_entity()
+        metadata_validation_tests.read_entity()
+        metadata_validation_tests.update_entity()
+        metadata_validation_tests.validate_update()
+        metadata_validation_tests.delete_entity()
+        metadata_validation_tests.verify_deletion()
+        print("\n🟢 Running Metadata Validation Tests... Done")
 
-        # print("\n🟢 Running Graph Entity Tests...")
-        # graph_entity_tests = GraphEntityTests()
-        # graph_entity_tests.create_minister()
-        # graph_entity_tests.read_minister()
-        # graph_entity_tests.create_departments()
-        # graph_entity_tests.read_departments()
-        # graph_entity_tests.create_relationships()
-        # graph_entity_tests.update_relationships()
-        # print("\n🟢 Running Graph Entity Tests... Done")
+        print("\n🟢 Running Graph Entity Tests...")
+        graph_entity_tests = GraphEntityTests()
+        graph_entity_tests.create_minister()
+        graph_entity_tests.read_minister()
+        graph_entity_tests.create_departments()
+        graph_entity_tests.read_departments()
+        graph_entity_tests.create_relationships()
+        graph_entity_tests.update_relationships()
+        print("\n🟢 Running Graph Entity Tests... Done")
 
         print("\n🟢 Running Attribute Validation Tests...")
         attribute_validation_tests = AttributeValidationTests()

@@ -205,6 +205,7 @@ services:
         echo 'Waiting for services to be ready...' &&
         sleep 10 &&
         pip install requests &&
+        pip install protobuf &&
         python3 basic_crud_tests.py &&
         python3 basic_query_tests.py"
 
