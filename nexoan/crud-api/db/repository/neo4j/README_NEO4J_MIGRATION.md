@@ -64,7 +64,7 @@ neo4j-admin database upload neo4j \
 ```
 
 **Important:** Replace the following placeholders with your actual values:
-- `/home/your_username/Documents/neo4j_dump` with the correct path to your local folder with the dump file.
+- `/Users/your_username/Documents/neo4j_dump` with the correct path to your local folder with the dump file.
 - `<neo4j_uri>`,`<neo4j_user>`,`<neo4j_password>` with your actual aura db credentials
 
 ### 5. Verify the Migration
