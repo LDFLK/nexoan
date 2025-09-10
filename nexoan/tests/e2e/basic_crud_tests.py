@@ -403,6 +403,7 @@ class AttributeValidationTests(BasicCRUDTests):
         ]
         self.START_DATE = "2025-11-01T00:00:00Z"
         self.DATA_START_DATE = "2025-12-01T00:00:00Z"
+        self.ATTRIBUTE_NAME = "employee_data"
 
 
     def create_minister_with_attributes(self):
@@ -422,7 +423,7 @@ class AttributeValidationTests(BasicCRUDTests):
             "metadata": [],
             "attributes": [
                 {
-                    "key": "employee_data",
+                    "key": self.ATTRIBUTE_NAME,
                     "value": {
                         "values": [
                             {
@@ -473,6 +474,69 @@ class AttributeValidationTests(BasicCRUDTests):
         decoded_name = CrudTestUtils.decode_protobuf_any_value(name_value)
         assert decoded_name == "Minister of Finance and Economy", f"Expected name 'Minister of Finance and Economy', got {decoded_name}"
 
+    def update_attributes_stage_1(self):
+        """Update the attributes of the Minister entity."""
+        print("\n🟢 Updating attributes stage 1...")
+        update_payload = {
+        "id": self.MINISTER_ID,
+        "attributes": [
+            {
+                "key": self.ATTRIBUTE_NAME,
+                "value": {
+                    "values": [
+                        {
+                            "startTime": "2024-08-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [6, "Peter Parker", 30, "Engineering", 75000.50],
+                                        [7, "Clark Kent", 25, "Media", 65000],
+                                    ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+        res = requests.put(f"{self.base_url}/{self.MINISTER_ID}", json=update_payload, headers={"Content-Type": "application/json"})
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to update attributes: {res.text}"
+        print("✅ Attributes updated.")
+
+
+    def update_attributes_stage_2(self):
+        """Update the attributes of the Minister entity."""
+        print("\n🟢 Updating attributes stage 2...")
+        update_payload = {
+        "id": self.MINISTER_ID,
+        "attributes": [
+            {
+                "key": self.ATTRIBUTE_NAME,
+                "value": {
+                    "values": [
+                        {
+                            "startTime": "2024-08-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [8, "Iris West", 30, "Marketing", 12300.50],
+                                        [9, "Barry Allen", 25, "Sales", 22300.50],
+                                    ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+        res = requests.put(f"{self.base_url}/{self.MINISTER_ID}", json=update_payload, headers={"Content-Type": "application/json"})
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to update attributes: {res.text}"
+        print("✅ Attributes updated.")
+
 
 def get_base_url():
     print("🟢 Setting up test environment...")
@@ -508,6 +572,8 @@ if __name__ == "__main__":
         attribute_validation_tests = AttributeValidationTests()
         attribute_validation_tests.create_minister_with_attributes()
         attribute_validation_tests.read_minister()
+        attribute_validation_tests.update_attributes_stage_1()
+        attribute_validation_tests.update_attributes_stage_2()
         print("\n🟢 Running Attribute Validation Tests... Done")
 
         print("\n🎉 All tests passed successfully!")

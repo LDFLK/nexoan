@@ -113,6 +113,8 @@ func (g *GraphMetadataManager) CreateAttribute(ctx context.Context, metadata *At
 func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, metadata *AttributeMetadata) error {
 	fmt.Printf("Creating attribute look up graph: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
 		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
+	// TODO: Explore a way to update the Look up graph 	
+	// FIXME: https://github.com/LDFLK/nexoan/issues/288
 
 	// create the attribute node in the graph
 	// attribute core data is stored in the graph
@@ -154,13 +156,20 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 		return err
 	}
 
-	success, err := neo4jRepository.HandleGraphEntityCreation(ctx, attributeNode)
-	if !success {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating attributeNode as a graph entity: %v", err)
-		return err
+	// Check if the attribute node already exists
+	existingEntity, err := neo4jRepository.ReadGraphEntity(ctx, metadata.AttributeID)
+	if err == nil && existingEntity != nil {
+		log.Printf("[GraphMetadataManager.CreateAttribute] Attribute node already exists: %s, skipping creation", metadata.AttributeID)
+		// Node already exists, we can still proceed to create/update the relationship
+	} else {
+		// Node doesn't exist, create it
+		success, err := neo4jRepository.HandleGraphEntityCreation(ctx, attributeNode)
+		if !success {
+			log.Printf("[GraphMetadataManager.CreateAttribute] Error creating attributeNode as a graph entity: %v", err)
+			return err
+		}
+		log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute node for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
 	}
-
-	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute node for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
 
 	// create the relationship between the entity and the attribute
 	err = neo4jRepository.HandleGraphRelationshipsUpdate(ctx, parentNode)
@@ -175,13 +184,19 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 	// stored parameters: attribute_id, attribute_name, storage_type, storage_path, updated, schema
 	mongoRepository := dbcommons.GetMongoRepository(ctx)
 
-	_, err = mongoRepository.CreateEntity(ctx, attributeNode)
-	if err != nil {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating attribute metadata: %v", err)
-		return err
+	// Check if the attribute metadata already exists
+	existingMetadata, err := mongoRepository.ReadEntity(ctx, metadata.AttributeID)
+	if err == nil && existingMetadata != nil {
+		log.Printf("[GraphMetadataManager.CreateAttribute] Attribute metadata already exists: %s, skipping creation", metadata.AttributeID)
+	} else {
+		// Metadata doesn't exist, create it
+		_, err = mongoRepository.CreateEntity(ctx, attributeNode)
+		if err != nil {
+			log.Printf("[GraphMetadataManager.CreateAttribute] Error creating attribute metadata: %v", err)
+			return err
+		}
+		log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute metadata for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
 	}
-
-	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute metadata for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
 
 	log.Print("Lookup graph created successfully!")
 
