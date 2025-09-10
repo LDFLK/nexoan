@@ -69,12 +69,4 @@ neo4j-admin database upload neo4j \
 
 ### 5. Verify the Migration
 
-Connect to your Neo4j Aura instance using the Neo4j Browser at:
-```
-https://<your-instance-id>.databases.neo4j.io
-```
-
-Run a query to verify your data is present:
-```cypher
-MATCH (n) RETURN count(n);
-```
+Connect to your Neo4j Aura instance and verify that the new data has been inserted.
