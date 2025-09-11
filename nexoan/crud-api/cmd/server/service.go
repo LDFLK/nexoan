@@ -36,7 +36,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 	// Always save the entity in MongoDB, even if it has no metadata
 	// The HandleMetadata function will only process it if it has metadata
 	// FIXME: https://github.com/LDFLK/nexoan/issues/120
-	err := s.mongoRepo.HandleMetadata(ctx, req.Id, req)
+	err := s.mongoRepo.HandleMetadataCreation(ctx, req.Id, req)
 	if err != nil {
 		log.Printf("[server.CreateEntity] Error saving metadata in MongoDB: %v", err)
 		return nil, err
@@ -241,7 +241,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	var metadata map[string]*anypb.Any
 
 	// Pass the ID and metadata to HandleMetadata
-	err := s.mongoRepo.HandleMetadata(ctx, updateEntityID, updateEntity)
+	err := s.mongoRepo.HandleMetadataUpdate(ctx, updateEntityID, updateEntity)
 	if err != nil {
 		// Log error and continue with empty metadata
 		log.Printf("[server.UpdateEntity] Error updating metadata for entity %s: %v", updateEntityID, err)
