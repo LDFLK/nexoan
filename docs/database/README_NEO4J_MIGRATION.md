@@ -19,9 +19,38 @@ Make sure the neo4j container is stopped before creating the dump.
 
 Find the directory path that's mapped to /data in your neo4j container, this is where the data is stored. 
 
-Run `docker inspect <container_name>` and look for the Source path in the Mounts section.
+Run `docker inspect <container_name>` and look for the `Source` path in the Mounts section.
 
-This will look something like this: `/var/lib/docker/volumes/neo4j_data/_data`
+This will look something like the following: 
+
+If you are using an standalone Docker container built on top of an exisitng neo4j image with volumes named
+`/var/lib/docker/volumes/neo4j_data/_data`
+
+Or if you are using the `docker-compose.yml` to build you will see the volume as `ldfarchitecture_neo4j_data`.
+
+Set this as `NEO4J_CONTAINER_DATA_VOLUME`
+
+```bash
+export NEO4J_CONTAINER_DATA_VOLUME=<path-to-source-path-in-docker>
+```
+
+Also we need to figure out the path where this volume is mounted in the container.
+That is defined in the `Dockerfile` as `NEO4J_dbms_directories_data`.
+
+```bash
+export NEO4J_DBMS_DIRECTORIES_DATA=<path-configured-in-docker>
+```
+
+So you can actually see if the data has been written to this volume via a docker container since this file system is not accessible outside a docker environment and you may have to mount it manually to an image and check.
+
+```bash
+docker run --rm -it \
+  --volume ${NEO4J_CONTAINER_DATA_VOLUME}:/${NEO4J_DBMS_DIRECTORIES_DATA} \
+  alpine:latest \
+  sh
+```
+
+Within this you can check for the data
 
 ### 3. Create a Local Dump Folder
 
@@ -31,10 +60,24 @@ Create a folder on your local machine to store the dump file.
 
 Run the following command to create a dump from your Neo4j Docker container:  
 
+What happen below is we are going to run a temporary container (that's why there is `rm`)
+and mount the volume which has neo4j data which is `NEO4J_CONTAINER_DATA_VOLUME` volume and it
+is mounted to the `/data` folder of this temporary container.
+
+And the following command will create a dump on the `/backups` folder. 
+
+```bash
+neo4j-admin database dump neo4j --to-path=/backups
+```
+
+And since we `--volume=/Users/your_username/Documents/neo4j_dump:/backups ` since that the 
+host system can also access the backup file. 
+
+
 ```bash
 docker run --rm \
---volume=/var/lib/docker/volumes/neo4j_data/_data:/data \
---volume=/Users/your_username/Documents/neo4j_dump:/backups \
+--volume=${NEO4J_CONTAINER_DATA_VOLUME}:/data \
+--volume=${NEO4J_BACKUP_DIR}:/backups \
 neo4j/neo4j-admin:latest \
 neo4j-admin database dump neo4j --to-path=/backups
 ```

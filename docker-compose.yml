@@ -53,6 +53,11 @@ services:
     ports:
       - "7474:7474"  # HTTP (different port to avoid conflict)
       - "7687:7687"  # Bolt (different port to avoid conflict)
+    volumes:
+      - neo4j_data:/neo4j_data
+      - neo4j_logs:/neo4j_logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/neo4j_plugins
     networks:
       - ldf-network
     environment:
@@ -236,5 +241,7 @@ volumes:
   mongodb_data:
   neo4j_data:
   neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
   postgres_data: 
 

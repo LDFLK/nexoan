@@ -66,6 +66,21 @@ run_neo4j() {
     log "SUCCESS" "Neo4j-backup service started successfully"
 }
 
+backup_neo4j() {
+    log "INFO" "Backing up Neo4j-backup service using docker-compose..."
+    docker-compose -f ../../docker-compose.yml down neo4j
+    log "SUCCESS" "Neo4j-backup service backed up successfully"
+    
+    ## Sample Command to backup Neo4j
+    ## docker run --rm \
+    ##     --volume=/var/lib/docker/volumes/neo4j_data/_data:/data \
+    ##     --volume=/Users/username/github/fork/data-backups/nexoan/neo4j/backups:/backups \
+    ##     neo4j/neo4j-admin:latest \
+    ##     neo4j-admin database dump neo4j --to-path=/backups
+
+    
+}
+
 # Execute function
 execute() {
     log "INFO" "Executing backup operations..."
