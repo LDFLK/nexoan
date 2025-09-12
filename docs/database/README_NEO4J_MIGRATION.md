@@ -71,8 +71,7 @@ neo4j-admin database dump neo4j --to-path=/backups
 ```
 
 And since we `--volume=/Users/your_username/Documents/neo4j_dump:/backups ` since that the 
-host system can also access the backup file. 
-
+host system can also access the backup file.
 
 ```bash
 docker run --rm \
@@ -82,15 +81,27 @@ neo4j/neo4j-admin:latest \
 neo4j-admin database dump neo4j --to-path=/backups
 ```
 
-**Important:** Replace the following placeholders with your actual values:
-- `/var/lib/docker/volumes/neo4j_data/_data` with the correct path to the data in your container.
-- `/Users/your_username/Documents/neo4j_dump` with the correct path to your local folder to store the dump file.
-
 ### 4. Verify the Database Dump was created
 
 Navigate to the local folder specified previously and check that a dump file has been created inside.
 
-### 4. Upload the Dump to Neo4j Aura
+### 5. Upload the Dump to the Neo4j Docker (Local)
+
+Stop the container
+
+```bash
+docker compose down neo4j
+```
+
+```bash
+docker run --interactive --tty --rm \
+    --volume=${NEO4J_CONTAINER_DATA_VOLUME}:/data \
+    --volume=${NEO4J_BACKUP_DIR}:/backups \
+    neo4j/neo4j-admin \
+neo4j-admin database load neo4j --from-path=/backups --overwrite-destination=true
+```
+
+### 6. Upload the Dump to Neo4j Aura
 
 Run the following command to upload the dump to your Neo4j Aura instance:
 

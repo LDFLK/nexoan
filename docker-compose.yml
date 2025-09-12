@@ -240,6 +240,7 @@ networks:
 volumes:
   mongodb_data:
   neo4j_data:
+    external: true # To make sure the backup process can do the restore and get mounted externally
   neo4j_logs:
   neo4j_import:
   neo4j_plugins:
