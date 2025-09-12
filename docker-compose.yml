@@ -21,7 +21,7 @@ services:
       retries: 10
       start_period: 60s
 
-  neo4j:
+  neo4j-backup: # deprecated
     platform: linux/amd64
     image: neo4j:5.12.0
     container_name: neo4j
@@ -38,6 +38,25 @@ services:
       - NEO4J_dbms_memory_pagecache_size=1G
       - NEO4J_dbms_memory_heap_initial__size=1G
       - NEO4J_dbms_memory_heap_max__size=1G
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  neo4j:
+    platform: linux/amd64
+    build:
+      context: ./deployment/development/docker/neo4j
+      dockerfile: Dockerfile
+    container_name: neo4j
+    ports:
+      - "7474:7474"  # HTTP (different port to avoid conflict)
+      - "7687:7687"  # Bolt (different port to avoid conflict)
+    networks:
+      - ldf-network
+    environment:
+      - NEO4J_AUTH=neo4j/neo4j123
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
       interval: 30s
