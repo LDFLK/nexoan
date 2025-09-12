@@ -993,8 +993,7 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Test creation
-    # creation_success = test_orgchart_creation()
-    creation_success = True
+    creation_success = test_orgchart_creation()
     
     if creation_success:
         # Test basic querying
