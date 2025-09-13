@@ -14,7 +14,7 @@ jobs:
 
     - name: Build Neo4j Docker image
       run: |
-        docker build -t neo4j-service -f docker/neo4j/Dockerfile.neo4j .
+        docker build -t neo4j-service -f deployment/development/docker/neo4j/Dockerfile .
 
     - name: Run Neo4j container
       run: |
