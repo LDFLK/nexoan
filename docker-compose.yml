@@ -52,12 +52,15 @@ services:
 
   postgres:
     platform: linux/amd64
-    image: postgres:16
+    build:
+      context: ./deployment/development/docker/postgres
+      dockerfile: Dockerfile
     container_name: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - postgres_backup:/var/lib/postgresql/backup
     networks:
       - ldf-network
     environment:
@@ -228,5 +231,6 @@ volumes:
   neo4j_logs:
   neo4j_import:
   neo4j_plugins:
-  postgres_data: 
+  postgres_data:
+  postgres_backup: 
 

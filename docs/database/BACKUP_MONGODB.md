@@ -2,6 +2,37 @@
 
 This guide provides comprehensive instructions for backing up and restoring MongoDB databases in Docker containers.
 
+## Data Backups Repository Structure
+
+Backups are stored in a structured repository following this hierarchy:
+
+```
+data-backups/
+├── README.md
+└── nexoan
+    └── version
+        └── 0.0.1
+            ├── development
+            │   ├── mongodb
+            │   │   └── nexoan.tar.gz
+            │   ├── neo4j
+            │   │   └── neo4j.dump
+            │   └── postgres
+            │       └── nexoan.tar.gz
+            ├── production
+            │   ├── mongodb
+            │   └── neo4j
+            └── staging
+                ├── mongodb
+                └── neo4j
+```
+
+This structure allows for:
+- **Environment separation**: development, staging, production
+- **Database type organization**: mongodb, neo4j, postgres
+- **Version management**: 0.0.1, 0.0.2, etc.
+- **Consistent naming**: All backups follow the same pattern
+
 ## Prerequisites
 
 - Docker installed and running

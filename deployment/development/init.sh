@@ -251,6 +251,149 @@ list_mongodb_backups() {
     fi
 }
 
+# PostgreSQL Backup Functions
+backup_postgres() {
+    log "INFO" "Starting PostgreSQL backup..."
+    source ../../configs/backup.env
+    
+    local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
+    local backup_file="nexoan"
+    
+    # Create backup directory
+    mkdir -p "$backup_dir"
+    
+    log "INFO" "Creating PostgreSQL dump..."
+    echo "POSTGRES_USER: $POSTGRES_USER"
+    echo "POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
+    echo "POSTGRES_DATABASE: $POSTGRES_DATABASE"
+    echo "backup_dir: $backup_dir"
+    echo "backup_file: $backup_file"
+    
+    # Ensure backup directory exists in container
+    log "INFO" "Creating backup directory in container..."
+    docker exec postgres mkdir -p /var/lib/postgresql/backup
+    
+    # Test PostgreSQL connection first
+    log "INFO" "Testing PostgreSQL connection..."
+    if docker exec postgres pg_isready -U postgres > /dev/null 2>&1; then
+        log "SUCCESS" "PostgreSQL connection successful"
+    else
+        log "ERROR" "PostgreSQL connection failed"
+        return 1
+    fi
+    
+    # Check what databases exist
+    log "INFO" "Checking available databases..."
+    docker exec postgres psql -U postgres -c "\l"
+    
+    # Run pg_dump and capture output
+    log "INFO" "Running pg_dump command..."
+    pg_dump_output=$(docker exec postgres pg_dump -U postgres -h localhost -d ${POSTGRES_DATABASE} -f "/var/lib/postgresql/backup/${backup_file}.sql" 2>&1)
+    pg_dump_exit_code=$?
+    
+    log "INFO" "Pg_dump output: $pg_dump_output"
+    log "INFO" "Pg_dump exit code: $pg_dump_exit_code"
+    
+    if [ $pg_dump_exit_code -eq 0 ]; then
+        log "SUCCESS" "PostgreSQL dump command completed"
+        
+        # Check what was actually created
+        log "INFO" "Checking backup directory contents..."
+        docker exec postgres ls -la "/var/lib/postgresql/backup/"
+        
+        # Copy backup from container to host
+        log "INFO" "Copying backup to host..."
+        docker cp "postgres:/var/lib/postgresql/backup/${backup_file}.sql" "$backup_dir/"
+        
+        # Create compressed archive
+        log "INFO" "Creating compressed archive..."
+        cd "$backup_dir"
+        tar -czf "nexoan.tar.gz" "${backup_file}.sql"
+        rm -rf "${backup_file}.sql"
+        
+        # Clean up container backup
+        docker exec postgres rm -rf "/var/lib/postgresql/backup/${backup_file}.sql"
+        
+        log "SUCCESS" "PostgreSQL backup completed: nexoan.tar.gz"
+    else
+        log "ERROR" "PostgreSQL backup failed"
+        return 1
+    fi
+}
+
+# PostgreSQL Restore Functions
+restore_postgres() {
+    log "INFO" "Starting PostgreSQL restore..."
+    source ../../configs/backup.env
+    
+    local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
+    
+    if [ ! -d "$backup_dir" ]; then
+        log "ERROR" "Backup directory not found: $backup_dir"
+        return 1
+    fi
+    
+    log "INFO" "Using backup directory: $backup_dir"
+    
+    # Look for nexoan.tar.gz file
+    local backup_file="$backup_dir/nexoan.tar.gz"
+    
+    if [ ! -f "$backup_file" ]; then
+        log "ERROR" "Backup file not found: $backup_file"
+        return 1
+    fi
+    
+    log "INFO" "Using backup file: $(basename "$backup_file")"
+    
+    # Extract backup file
+    local temp_dir=$(mktemp -d)
+    local backup_name="nexoan.sql"
+    
+    log "INFO" "Extracting backup file..."
+    tar -xzf "$backup_file" -C "$temp_dir"
+    
+    # Copy backup to container
+    log "INFO" "Copying backup to container..."
+    docker cp "$temp_dir/$backup_name" "postgres:/var/lib/postgresql/backup/"
+    
+    # Check what was actually created
+    log "INFO" "Checking backup structure in container..."
+    docker exec postgres ls -la "/var/lib/postgresql/backup/"
+    
+    # Restore database
+    log "INFO" "Restoring PostgreSQL database..."
+    if docker exec postgres psql -U postgres -d ${POSTGRES_DATABASE} -f "/var/lib/postgresql/backup/$backup_name"; then
+        log "SUCCESS" "PostgreSQL restore completed successfully"
+        
+        # Verify what was restored
+        log "INFO" "Verifying restored database..."
+        docker exec postgres psql -U postgres -d ${POSTGRES_DATABASE} -c "\dt"
+        
+        # Clean up
+        docker exec postgres rm -rf "/var/lib/postgresql/backup/$backup_name"
+        rm -rf "$temp_dir"
+        
+    else
+        log "ERROR" "PostgreSQL restore failed"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+}
+
+# List PostgreSQL backups
+list_postgres_backups() {
+    source ../../configs/backup.env
+    local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
+    
+    log "INFO" "PostgreSQL backups in: $backup_dir"
+    
+    if [ -d "$backup_dir" ]; then
+        ls -la "$backup_dir"/*.tar.gz 2>/dev/null || log "WARNING" "No backup files found"
+    else
+        log "WARNING" "Backup directory does not exist: $backup_dir"
+    fi
+}
+
 backup_neo4j() {
     log "INFO" "Backing up Neo4j-backup service using docker-compose..."
     docker-compose -f ../../docker-compose.yml down neo4j
@@ -301,6 +444,15 @@ main() {
         "list_mongodb_backups")
             list_mongodb_backups
             ;;
+        "backup_postgres")
+            backup_postgres
+            ;;
+        "restore_postgres")
+            restore_postgres
+            ;;
+        "list_postgres_backups")
+            list_postgres_backups
+            ;;
         "execute")
             execute
             ;;
@@ -308,12 +460,17 @@ main() {
             finalize
             ;;
         "help"|*)
-            echo "Usage: $0 {setup|setup_neo4j|run_neo4j|backup_mongodb|restore_mongodb|list_mongodb_backups|execute|finalize|help}"
+            echo "Usage: $0 {setup|setup_neo4j|run_neo4j|backup_mongodb|restore_mongodb|list_mongodb_backups|backup_postgres|restore_postgres|list_postgres_backups|execute|finalize|help}"
             echo ""
             echo "MongoDB Commands:"
             echo "  backup_mongodb        - Create MongoDB backup"
-            echo "  restore_mongodb <file> - Restore MongoDB from backup file"
+            echo "  restore_mongodb       - Restore MongoDB from backup"
             echo "  list_mongodb_backups  - List available MongoDB backups"
+            echo ""
+            echo "PostgreSQL Commands:"
+            echo "  backup_postgres       - Create PostgreSQL backup"
+            echo "  restore_postgres      - Restore PostgreSQL from backup"
+            echo "  list_postgres_backups - List available PostgreSQL backups"
             ;;
     esac
 }
