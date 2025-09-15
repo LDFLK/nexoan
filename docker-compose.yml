@@ -190,6 +190,31 @@ services:
       retries: 5
       start_period: 120s
 
+  backup-manager:
+    platform: linux/amd64
+    image: alpine:latest
+    container_name: backup-manager
+    volumes:
+      - ./deployment/development/init.sh:/init.sh:ro
+      - backup_data:/backups
+    networks:
+      - ldf-network
+    environment:
+      - ENVIRONMENT=development
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    command: >
+      sh -c "
+        apk add --no-cache bash curl jq wget unzip &&
+        chmod +x /init.sh &&
+        /init.sh restore_from_github
+      "
+
   e2e:
     platform: linux/amd64
     image: python:3.9-slim
@@ -232,5 +257,6 @@ volumes:
   neo4j_import:
   neo4j_plugins:
   postgres_data:
-  postgres_backup: 
+  postgres_backup:
+  backup_data: # Volume for backup manager
 

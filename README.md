@@ -39,6 +39,31 @@ docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
 
 **Note**: The cleanup service uses the `cleanup` profile, so it won't start automatically with `docker-compose up`.
 
+### 6. Database Backup and Restore
+The system provides comprehensive backup and restore capabilities for all databases.
+
+**Local Backup Management:**
+```bash
+# Create backups
+./deployment/development/init.sh backup_mongodb
+./deployment/development/init.sh backup_postgres
+./deployment/development/init.sh backup_neo4j
+
+# Restore from local backups
+./deployment/development/init.sh restore_mongodb
+./deployment/development/init.sh restore_postgres
+./deployment/development/init.sh restore_neo4j
+```
+
+**GitHub Integration:**
+```bash
+# Restore from GitHub releases
+./deployment/development/init.sh restore_from_github 0.0.1
+./deployment/development/init.sh list_github_versions
+```
+
+For detailed backup and restore documentation, see [Backup Integration Guide](docs/deployment/BACKUP_INTEGRATION.md).
+
 ---
 
 ## Run a sample query with CURL
