@@ -130,8 +130,7 @@ rm -f /var/lib/postgresql/data/postmaster.pid
 
 # Ensure choreo user has proper permissions (volumes may reset ownership)
 log "INFO" "Setting up permissions for choreo user..."
-# Direct ownership change as choreo user
-chown -R 10014:10014 /var/lib/postgresql/backup /var/lib/postgresql/data /var/log/postgresql
+# Set permissions (ownership should already be correct from Dockerfile)
 chmod -R 755 /var/lib/postgresql/backup /var/log/postgresql
 chmod -R 700 /var/lib/postgresql/data
 
