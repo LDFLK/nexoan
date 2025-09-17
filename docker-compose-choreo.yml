@@ -92,6 +92,35 @@ services:
       timeout: 5s
       retries: 5
 
+  heartbeat-choreo:
+    platform: linux/amd64
+    build:
+      context: ./deployment/choreo/development/docker/heartbeat
+      dockerfile: Dockerfile
+    container_name: heartbeat-choreo
+    networks:
+      - choreo-network
+    environment:
+      - NEO4J_URL=http://neo4j-choreo:7474
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j123
+      - POSTGRES_HOST=postgres-choreo
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nexoan
+      - MONGODB_HOST=mongodb-choreo
+      - MONGODB_PORT=27017
+      - MONGODB_USER=admin
+      - MONGODB_PASSWORD=admin123
+      - MONGODB_DB=nexoan
+      - HEARTBEAT_INTERVAL=30
+    depends_on:
+      - neo4j-choreo
+      - mongodb-choreo
+      - postgres-choreo
+    restart: unless-stopped
+
   cleanup-choreo:
     platform: linux/amd64
     build:
