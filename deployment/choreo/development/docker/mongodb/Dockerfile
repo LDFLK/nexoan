@@ -1,17 +1,198 @@
-# MongoDB Server Dockerfile
-FROM mongo:4.4
+# MongoDB Server Dockerfile with GitHub backup restore
+FROM ubuntu:20.04
+
+# Install prerequisites
+RUN apt-get update && apt-get install -y \
+    wget gnupg2 curl apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add MongoDB GPG key and repository for 4.4
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - \
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" > /etc/apt/sources.list.d/mongodb-org-4.4.list
+
+# Install MongoDB 4.4 and additional tools
+RUN apt-get update && apt-get install -y \
+    mongodb-org=4.4.28 \
+    mongodb-org-server=4.4.28 \
+    mongodb-org-shell=4.4.28 \
+    mongodb-org-tools=4.4.28 \
+    wget unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories and set permissions (mongodb user is created by the package)
+RUN mkdir -p /var/lib/mongodb /var/log/mongodb /data/db /data/configdb /data/backup \
+    && chown -R mongodb:root /var/lib/mongodb /var/log/mongodb /data/db /data/configdb /data/backup \
+    && chmod -R 755 /var/lib/mongodb /var/log/mongodb /data/db /data/configdb /data/backup
 
 # Set environment variables
 ENV MONGO_INITDB_ROOT_USERNAME=admin
 ENV MONGO_INITDB_ROOT_PASSWORD=admin123
 ENV MONGO_INITDB_DATABASE=nexoan
 
-# Create additional directories for backups
-RUN mkdir -p /data/backup && \
-    chown -R mongodb:mongodb /data/backup && \
-    chmod -R 755 /data/backup
+# GitHub backup restore configuration
+ENV GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups} \
+    BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1} \
+    BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development} \
+    RESTORE_FROM_GITHUB=true
 
-## Donwload the database dump
+# Create MongoDB configuration
+RUN echo "net:\n\
+  port: 27017\n\
+  bindIp: 0.0.0.0\n\
+storage:\n\
+  dbPath: /data/db\n\
+systemLog:\n\
+  destination: file\n\
+  logAppend: true\n\
+  path: /var/log/mongodb/mongod.log\n\
+processManagement:\n\
+  fork: true\n\
+  pidFilePath: /var/run/mongodb/mongod.pid" > /etc/mongod.conf
+
+# Create additional directories for backups
+RUN mkdir -p /data/backup /var/run/mongodb && \
+    chown -R mongodb:root /data/backup /var/run/mongodb && \
+    chmod -R 755 /data/backup /var/run/mongodb
+
+# Create entrypoint script with GitHub backup restore
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Logging function\n\
+log() {\n\
+    echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $1: $2"\n\
+}\n\
+\n\
+# Function to restore from GitHub backup\n\
+restore_from_github() {\n\
+    local github_repo="${GITHUB_BACKUP_REPO:-LDFLK/data-backups}"\n\
+    local version="${BACKUP_VERSION:-0.0.1}"\n\
+    local environment="${BACKUP_ENVIRONMENT:-development}"\n\
+    \n\
+    log "INFO" "Starting MongoDB GitHub backup restore..."\n\
+    \n\
+    # Create temporary directory for download\n\
+    local temp_dir=$(mktemp -d)\n\
+    local archive_url="https://github.com/$github_repo/archive/refs/tags/$version.zip"\n\
+    local archive_file="$temp_dir/archive.zip"\n\
+    \n\
+    log "INFO" "Downloading backup from: $archive_url"\n\
+    if ! wget -q "$archive_url" -O "$archive_file"; then\n\
+        log "ERROR" "Failed to download backup archive"\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    # Extract the archive\n\
+    if ! unzip -q "$archive_file" -d "$temp_dir"; then\n\
+        log "ERROR" "Failed to extract backup archive"\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    # Find the MongoDB backup file\n\
+    local archive_dir="$temp_dir/data-backups-$version"\n\
+    local mongodb_backup="$archive_dir/nexoan/version/$version/$environment/mongodb/nexoan.tar.gz"\n\
+    \n\
+    if [ ! -f "$mongodb_backup" ]; then\n\
+        log "ERROR" "MongoDB backup file not found: $mongodb_backup"\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    log "INFO" "Found MongoDB backup: $(basename "$mongodb_backup")"\n\
+    \n\
+    # Extract the backup file\n\
+    local backup_extract_dir="$temp_dir/mongodb_restore"\n\
+    mkdir -p "$backup_extract_dir"\n\
+    \n\
+    if ! tar -xzf "$mongodb_backup" -C "$backup_extract_dir"; then\n\
+        log "ERROR" "Failed to extract MongoDB backup"\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    # Check if nexoan database exists in the backup\n\
+    if [ ! -d "$backup_extract_dir/nexoan" ]; then\n\
+        log "ERROR" "nexoan database not found in backup"\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    # Handle nested backup structure\n\
+    local backup_source="$backup_extract_dir/nexoan"\n\
+    if [ -d "$backup_extract_dir/nexoan/nexoan" ]; then\n\
+        log "INFO" "Found nested backup structure, using inner directory"\n\
+        backup_source="$backup_extract_dir/nexoan/nexoan"\n\
+    fi\n\
+    \n\
+    # Copy backup to MongoDB backup directory\n\
+    log "INFO" "Preparing backup for mongorestore..."\n\
+    cp -r "$backup_source" /data/backup/nexoan\n\
+    chown -R mongodb:root /data/backup/nexoan\n\
+    \n\
+    # Clean up any macOS metadata files\n\
+    find /data/backup/nexoan -name "._*" -delete 2>/dev/null || true\n\
+    \n\
+    # Wait for MongoDB to be ready\n\
+    log "INFO" "Waiting for MongoDB to be ready..."\n\
+    for i in {1..30}; do\n\
+        if mongo --eval "db.adminCommand('\''ping'\'')" > /dev/null 2>&1; then\n\
+            log "INFO" "MongoDB is ready!"\n\
+            break\n\
+        fi\n\
+        log "INFO" "Waiting for MongoDB... attempt $i/30"\n\
+        sleep 2\n\
+    done\n\
+    \n\
+    # Restore using mongorestore (following the documentation approach)\n\
+    log "INFO" "Restoring MongoDB database using mongorestore..."\n\
+    if mongorestore --host=localhost:27017 \\\n\
+        --db=nexoan \\\n\
+        --drop \\\n\
+        /data/backup/nexoan; then\n\
+        \n\
+        log "SUCCESS" "MongoDB database restored successfully using mongorestore"\n\
+        # Clean up backup files\n\
+        rm -rf /data/backup/nexoan\n\
+    else\n\
+        log "ERROR" "Failed to restore MongoDB database using mongorestore"\n\
+        rm -rf /data/backup/nexoan\n\
+        rm -rf "$temp_dir"\n\
+        return 1\n\
+    fi\n\
+    \n\
+    rm -rf "$temp_dir"\n\
+    return 0\n\
+}\n\
+\n\
+# Start MongoDB in background first\n\
+log "INFO" "Starting MongoDB in background..."\n\
+mongod --config /etc/mongod.conf\n\
+\n\
+# Wait for MongoDB to start\n\
+sleep 5\n\
+\n\
+# Restore from GitHub if enabled and database doesn'\''t exist\n\
+if [ "${RESTORE_FROM_GITHUB:-false}" = "true" ]; then\n\
+    # Check if nexoan database exists\n\
+    if ! mongo --eval "db.adminCommand('\''listDatabases'\'')" 2>/dev/null | grep -q "nexoan"; then\n\
+        log "INFO" "nexoan database not found, starting GitHub restore..."\n\
+        restore_from_github || log "WARNING" "GitHub restore failed, continuing with empty database"\n\
+    else\n\
+        log "INFO" "nexoan database already exists, skipping restore"\n\
+    fi\n\
+fi\n\
+\n\
+# Stop the background MongoDB and start in foreground\n\
+log "INFO" "Stopping background MongoDB and starting in foreground..."\n\
+mongo --eval "db.adminCommand('\''shutdown'\'')" > /dev/null 2>&1 || true\n\
+sleep 3\n\
+\n\
+# Start MongoDB in foreground (without fork)\n\
+log "INFO" "Starting MongoDB in foreground mode..."\n\
+exec mongod --dbpath /data/db --logpath /var/log/mongodb/mongod.log --bind_ip_all' > /custom-entrypoint.sh \
+    && chmod +x /custom-entrypoint.sh
 
 # Define volumes for data persistence
 VOLUME ["/data/db", "/data/configdb", "/data/backup"]
@@ -23,4 +204,5 @@ EXPOSE 27017
 HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=10 \
     CMD mongo --eval "db.adminCommand('ping')" || exit 1
 
-# Default command (inherited from base image)
+# Use custom entrypoint
+CMD ["/custom-entrypoint.sh"]
