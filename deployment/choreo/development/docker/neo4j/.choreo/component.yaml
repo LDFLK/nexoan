@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: neo4j
+    displayName: Neo4j Database
+    service:
+      basePath: /
+      port: 7474
+    type: REST
+    networkVisibilities: 
+      - Project
