@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: postgres
+    displayName: PostgreSQL Database
+    service:
+      basePath: /
+      port: 5432
+    type: REST
+    networkVisibilities: 
+      - Project

@@ -63,7 +63,7 @@ FROM --platform=linux/amd64 golang:1.24
 
 # Install runtime dependencies and qemu for emulation
 RUN apt-get update && \
-    apt-get install -y ca-certificates qemu-user-static gnupg curl wget unzip openjdk-17-jdk postgresql-client && \
+    apt-get install -y ca-certificates qemu-user-static gnupg curl wget unzip default-jdk postgresql-client netcat-openbsd && \
     # Add MongoDB repository
     curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
     gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor && \
@@ -86,7 +86,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Set Java environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Copy the built binary from builder stage
@@ -94,6 +94,10 @@ COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
 COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
+
+# Copy the startup script
+COPY crud_startup.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Set environment variables with defaults for Neo4j connection
 ENV NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
@@ -127,52 +131,7 @@ ENV LOG_FORMAT=text
 # Expose ports
 EXPOSE 50051
 
-# Create a script to run tests and start the service
-RUN echo '#!/bin/sh\n\
-set -e\n\
-\n\
-echo "=== CRUD Service Startup ==="\n\
-echo "Running tests with environment:"\n\
-echo "NEO4J_URI: $NEO4J_URI"\n\
-echo "MONGO_URI: $MONGO_URI"\n\
-echo "POSTGRES_HOST: $POSTGRES_HOST"\n\
-\n\
-# Test MongoDB connection\n\
-echo "Testing MongoDB connection..."\n\
-until mongosh --eval "db.adminCommand(\"ping\")" mongodb://admin:admin123@mongodb:27017/admin; do\n\
-  echo "Waiting for MongoDB to be ready..."\n\
-  sleep 2\n\
-done\n\
-echo "MongoDB connection successful!"\n\
-\n\
-# Test Neo4j connection\n\
-echo "Testing Neo4j connection..."\n\
-until cypher-shell -u neo4j -p neo4j123 -a bolt://neo4j:7687 "CALL dbms.components()"; do\n\
-  echo "Waiting for Neo4j to be ready..."\n\
-  sleep 2\n\
-done\n\
-echo "Neo4j connection successful!"\n\
-\n\
-# Test PostgreSQL connection\n\
-echo "Testing PostgreSQL connection..."\n\
-until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT 1;" > /dev/null 2>&1; do\n\
-  echo "Waiting for PostgreSQL to be ready..."\n\
-  sleep 2\n\
-done\n\
-echo "PostgreSQL connection successful!"\n\
-\n\
-# Run Go tests\n\
-echo "=== Running Go Tests ==="\n\
-cd /app/nexoan/crud-api\n\
-if ! go test -v ./...; then\n\
-  echo "❌ Tests failed!"\n\
-  exit 1\n\
-fi\n\
-echo "✅ All tests passed!"\n\
-\n\
-echo "=== Starting CRUD Service ==="\n\
-exec crud-service 2>&1 | tee /app/crud-service.log\n\
-' > /app/start.sh && chmod +x /app/start.sh
+# The startup script is now copied from startup.sh
 
 # Display environment variables and start the service
 CMD ["/app/start.sh"]

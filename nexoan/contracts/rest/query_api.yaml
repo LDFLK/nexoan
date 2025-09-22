@@ -149,6 +149,15 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: fields
+          in: query
+          required: false
+          description: "List of field names to return. Defaults to ['*'] (all fields)."
+          schema:
+            type: array
+            items:
+              type: string
+            default: ["*"]
       responses:
         200:
           description: Attribute value(s)

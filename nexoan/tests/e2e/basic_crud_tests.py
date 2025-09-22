@@ -16,20 +16,20 @@ Running the tests:
 ## Run CRUD Server
 
 ```bash
-cd design/crud-api
+cd nexoan/crud-api
 ./crud-server
 ```
 ## Run API Server
 
 ```bash
-cd design/api
+cd nexoan/update-api
 bal run
 ```
 
 ## Run Tests
 
 ```bash
-cd design/tests/e2e
+cd nexoan/tests/e2e
 python3 basic_crud_tests.py
 ```
 
@@ -65,10 +65,11 @@ class CrudTestUtils:
 
 class TestCRUDAPI(unittest.TestCase):
     def setUp(self):
-        update_host = os.getenv('UPDATE_SERVICE_HOST', 'localhost')
-        update_port = os.getenv('UPDATE_SERVICE_PORT', '8080')
-        self.base_url = f"http://{update_host}:{update_port}/entities"
-        
+        print("🟢 Setting up test environment...")
+        update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
+        print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
+        self.base_url = f"{update_service_url}/entities"
+        print("🟢 BASE_URL: ", self.base_url)
 
 class BasicCRUDTests:
 
@@ -391,10 +392,157 @@ class GraphEntityTests(BasicCRUDTests):
             sys.exit(1)
 
 
+class AttributeValidationTests(BasicCRUDTests):
+
+    def __init__(self):
+        super().__init__(None)
+        self.MINISTER_ID = "minister_of_finance_and_economy"
+        self.DEPARTMENTS = [
+            {"id": "dept_finance", "name": "Department of Finance"},
+            {"id": "dept_economy", "name": "Department of Economy"}
+        ]
+        self.START_DATE = "2025-11-01T00:00:00Z"
+        self.DATA_START_DATE = "2025-12-01T00:00:00Z"
+        self.ATTRIBUTE_NAME = "employee_data"
+
+
+    def create_minister_with_attributes(self):
+        """Create a Minister entity."""
+        print("\n🟢 Creating Minister entity...")
+        
+        payload = {
+            "id": self.MINISTER_ID,
+            "kind": {"major": "Organization", "minor": "Minister"},
+            "created": self.START_DATE,
+            "terminated": "",
+            "name": {
+                "startTime": self.START_DATE,
+                "endTime": "",
+                "value": "Minister of Finance and Economy"
+            },
+            "metadata": [],
+            "attributes": [
+                {
+                    "key": self.ATTRIBUTE_NAME,
+                    "value": {
+                        "values": [
+                            {
+                                "startTime": self.DATA_START_DATE,
+                                "endTime": "",
+                                "value": {
+                                    "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [1, "John Doe", 30, "Engineering", 75000.50],
+                                        [2, "Jane Smith", 25, "Marketing", 65000],
+                                        [3, "Bob Wilson", 35, "Sales", 85000.75],
+                                        [4, "Alice Brown", 28, "Engineering", 70000.25],
+                                        [5, "Charlie Davis", 32, "Finance", 80000]
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "relationships": []
+        }
+        
+        res = requests.post(self.base_url, json=payload)
+        print(res.status_code, res.json())
+        assert res.status_code in [201], f"Failed to create Minister: {res.text}"
+
+        print(f"Response: {res.status_code} - {res.text}")
+        print("✅ Created Minister entity with attributes.")
+
+
+    def read_minister(self):
+        """Read the Minister entity."""
+        print("\n🟢 Reading Minister entity...")
+        res = requests.get(f"{self.base_url}/{self.MINISTER_ID}")
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to read Minister: {res.text}"
+        
+        # Verify the response data
+        response_data = res.json()
+        print(response_data)
+        assert response_data["id"] == self.MINISTER_ID, f"Expected ID {self.MINISTER_ID}, got {response_data['id']}"
+        assert response_data["kind"]["major"] == "Organization", f"Expected major kind 'Organization', got {response_data['kind']['major']}"
+        assert response_data["kind"]["minor"] == "Minister", f"Expected minor kind 'Minister', got {response_data['kind']['minor']}"
+        assert response_data["created"] == self.START_DATE, f"Expected created date {self.START_DATE}, got {response_data['created']}"
+        # The name value is a protobuf Any that needs to be decoded
+        name_value = response_data["name"]["value"]
+        decoded_name = CrudTestUtils.decode_protobuf_any_value(name_value)
+        assert decoded_name == "Minister of Finance and Economy", f"Expected name 'Minister of Finance and Economy', got {decoded_name}"
+
+    def update_attributes_stage_1(self):
+        """Update the attributes of the Minister entity."""
+        print("\n🟢 Updating attributes stage 1...")
+        update_payload = {
+        "id": self.MINISTER_ID,
+        "attributes": [
+            {
+                "key": self.ATTRIBUTE_NAME,
+                "value": {
+                    "values": [
+                        {
+                            "startTime": "2024-08-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [6, "Peter Parker", 30, "Engineering", 75000.50],
+                                        [7, "Clark Kent", 25, "Media", 65000],
+                                    ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+        res = requests.put(f"{self.base_url}/{self.MINISTER_ID}", json=update_payload, headers={"Content-Type": "application/json"})
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to update attributes: {res.text}"
+        print("✅ Attributes updated.")
+
+
+    def update_attributes_stage_2(self):
+        """Update the attributes of the Minister entity."""
+        print("\n🟢 Updating attributes stage 2...")
+        update_payload = {
+        "id": self.MINISTER_ID,
+        "attributes": [
+            {
+                "key": self.ATTRIBUTE_NAME,
+                "value": {
+                    "values": [
+                        {
+                            "startTime": "2024-08-01T00:00:00Z",
+                            "endTime": "",
+                            "value": {
+                                "columns": ["id", "name", "age", "department", "salary"],
+                                    "rows": [
+                                        [8, "Iris West", 30, "Marketing", 12300.50],
+                                        [9, "Barry Allen", 25, "Sales", 22300.50],
+                                    ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+        res = requests.put(f"{self.base_url}/{self.MINISTER_ID}", json=update_payload, headers={"Content-Type": "application/json"})
+        print(res.status_code, res.json())
+        assert res.status_code in [200], f"Failed to update attributes: {res.text}"
+        print("✅ Attributes updated.")
+
+
 def get_base_url():
-    update_host = os.getenv('UPDATE_SERVICE_HOST', 'localhost')
-    update_port = os.getenv('UPDATE_SERVICE_PORT', '8080')
-    return f"http://{update_host}:{update_port}/entities"
+    print("🟢 Setting up test environment...")
+    update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
+    print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
+    return f"{update_service_url}/entities"
 
 if __name__ == "__main__":
     print("🚀 Running End-to-End API Test Suite...")
@@ -419,6 +567,14 @@ if __name__ == "__main__":
         graph_entity_tests.create_relationships()
         graph_entity_tests.update_relationships()
         print("\n🟢 Running Graph Entity Tests... Done")
+
+        print("\n🟢 Running Attribute Validation Tests...")
+        attribute_validation_tests = AttributeValidationTests()
+        attribute_validation_tests.create_minister_with_attributes()
+        attribute_validation_tests.read_minister()
+        attribute_validation_tests.update_attributes_stage_1()
+        attribute_validation_tests.update_attributes_stage_2()
+        print("\n🟢 Running Attribute Validation Tests... Done")
 
         print("\n🎉 All tests passed successfully!")
     

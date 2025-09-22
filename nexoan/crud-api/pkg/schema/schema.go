@@ -632,7 +632,7 @@ func (sg *SchemaGenerator) handleTabularData(structValue *structpb.Struct, schem
 			fieldSchema.TypeInfo.Type = typeinference.NullType
 			fieldSchema.TypeInfo.IsNullable = true
 		default:
-			return nil, fmt.Errorf("unsupported value type in row")
+			return nil, fmt.Errorf("unsupported value type in row: of type %v", value.GetKind())
 		}
 
 		schema.Fields[columnName] = fieldSchema

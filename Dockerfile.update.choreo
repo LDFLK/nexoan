@@ -1,0 +1,200 @@
+# Update Service Dockerfile
+#
+# This Dockerfile builds a Ballerina-based update service that communicates with a CRUD service.
+#
+# Building the Image:
+# -----------------
+# To build the image, run the following command from the directory containing this Dockerfile:
+#   docker build -t ldf-choreo-update-service -f Dockerfile.update.choreo .
+#
+# Running the Container:
+# ---------------------
+# Basic run command:
+#   docker run -p 8080:8080 \
+#     -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#     -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#     -e UPDATE_SERVICE_PORT="8080" \
+#     ldf-choreo-update-service
+#
+# Options:
+#   -p 8080:8080                    : Maps container port 8080 to host port 8080
+#   -e CRUD_SERVICE_URL=<url>       : URL of the CRUD service to connect to (required)
+#   -e UPDATE_SERVICE_HOST=<host>   : Host address to bind the service (default: 0.0.0.0)
+#   -e UPDATE_SERVICE_PORT=<port>   : Port to expose the service (default: 8080)
+#   -d                              : Run in detached mode (background)
+#   --name <container-name>         : Assign a name to the container
+#
+# Examples:
+# 1. Run in detached mode:
+#    docker run -d \
+#      --name ldf-choreo-update-service \
+#      -p 8080:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
+#
+# 2. Run with custom port mapping:
+#    docker run -p 9090:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
+#
+# 3. Run with additional JVM options:
+#    docker run -p 8080:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      -e JAVA_OPTS="-Xmx512m" \
+#      ldf-choreo-update-service
+#
+# 4. Run with container name and restart policy:
+#    docker run -d \
+#      --name ldf-choreo-update-service \
+#      --restart unless-stopped \
+#      -p 8080:8080 \
+#      -e CRUD_SERVICE_URL="http://host.docker.internal:50051" \
+#      -e UPDATE_SERVICE_HOST="0.0.0.0" \
+#      -e UPDATE_SERVICE_PORT="8080" \
+#      ldf-choreo-update-service
+#
+# Environment Variables:
+# ---------------------
+# CRUD_SERVICE_URL: URL of the CRUD service (required)
+#   Format: http://<host>:<port>
+#   Example: http://host.docker.internal:50051
+#
+# UPDATE_SERVICE_HOST: Host address to bind the service
+#   Default: 0.0.0.0
+#   Example: 0.0.0.0
+#
+# UPDATE_SERVICE_PORT: Port to expose the service
+#   Default: 8080
+#   Example: 8080
+#
+# JAVA_OPTS: JVM options (optional)
+#   Example: -Xmx512m -XX:+UseContainerSupport
+#
+# Notes:
+# ------
+# - The service runs on port 8080 inside the container
+# - The container uses a non-root user (choreouser) for security
+# - The service waits for the CRUD service to be available before starting
+# - Use host.docker.internal to connect to services running on the host machine
+# - For macOS, ensure host.docker.internal is properly configured
+#
+# Troubleshooting:
+# ---------------
+# 1. If the service can't connect to the CRUD service:
+#    - Verify the CRUD_SERVICE_URL is correct
+#    - Check if the CRUD service is running and accessible
+#    - Ensure the port mapping is correct
+#    - On macOS, verify host.docker.internal resolution
+#
+# 2. If the service fails to start:
+#    - Check the container logs: docker logs <container-id>
+#    - Verify all required environment variables are set
+#    - Ensure the ports are not already in use
+#    - Check file permissions in the container
+
+# Build stage for Update service
+FROM --platform=linux/amd64 ballerina/ballerina:2201.11.0 AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Switch to root for package installation and user creation
+USER root
+
+# Install shadow package and create user/group
+RUN apk add --no-cache shadow && \
+    groupadd -g 10014 choreo && \
+    useradd -u 10014 -g choreo -s /bin/bash -m choreouser && \
+    mkdir -p /home/choreouser/.ballerina && \
+    chown -R choreouser:choreo /home/choreouser && \
+    chmod -R 755 /home/choreouser
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
+
+# Create and set permissions for build directories
+RUN mkdir -p /app/nexoan/update-api/target && \
+    chown -R choreouser:choreo /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user for building
+USER 10014
+
+# Build the application with explicit platform settings
+# ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+# Build the Ballerina service
+RUN cd nexoan/update-api && \
+    bal build
+
+# Final stage
+FROM --platform=linux/amd64 ballerina/ballerina:2201.11.0
+
+# Switch to root for package installation
+USER root
+
+# Install runtime dependencies and create user
+RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix shadow && \
+    groupadd -g 10014 choreo && \
+    useradd -u 10014 -g choreo -s /bin/bash -m choreouser
+
+# Create necessary directories and set permissions before switching user
+RUN mkdir -p /home/choreouser/.ballerina && \
+    chown -R choreouser:choreo /home/choreouser && \
+    chmod -R 755 /home/choreouser
+
+# Copy the source code and build artifacts
+COPY --from=builder /app/nexoan/update-api /app/nexoan/update-api
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+# Set Ballerina configurable variables from environment variables
+ENV BAL_CONFIG_VAR_CRUDSERVICEURL=${CRUD_SERVICE_URL:-http://crud-choreo:50051}
+ENV BAL_CONFIG_VAR_UPDATESERVICEHOST=${UPDATE_SERVICE_HOST:-0.0.0.0}
+ENV BAL_CONFIG_VAR_UPDATESERVICEPORT=${UPDATE_SERVICE_PORT:-8080}
+
+# Create startup script with proper line endings
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "Starting update service with Ballerina configurable variables:"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_CRUDSERVICEURL: $BAL_CONFIG_VAR_CRUDSERVICEURL"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEHOST: $BAL_CONFIG_VAR_UPDATESERVICEHOST"' >> /app/start.sh && \
+    echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEPORT: $BAL_CONFIG_VAR_UPDATESERVICEPORT"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'exec bal run /app/nexoan/update-api' >> /app/start.sh && \
+    chmod +x /app/start.sh && \
+    dos2unix /app/start.sh
+
+# Set permissions
+RUN chown -R choreouser:choreo /app && \
+    chmod -R 777 /app
+
+# Ensure the entire update-api project directory has write permissions
+RUN chown -R choreouser:choreo /app/nexoan/update-api && \
+    chmod -R 777 /app/nexoan/update-api
+
+# Ensure target directory has proper write permissions
+RUN mkdir -p /app/nexoan/update-api/target && \
+    chown -R choreouser:choreo /app/nexoan/update-api/target && \
+    chmod -R 777 /app/nexoan/update-api/target
+
+# Create necessary directories and set permissions before switching user
+RUN mkdir -p /home/choreouser/.ballerina && \
+    chown -R choreouser:choreo /home/choreouser && \
+    chmod -R 777 /home/choreouser
+
+# Switch to non-root user for running the service
+USER 10014
+
+# Expose ports
+EXPOSE 8080
+
+# Set the entrypoint
+ENTRYPOINT ["/app/start.sh"]

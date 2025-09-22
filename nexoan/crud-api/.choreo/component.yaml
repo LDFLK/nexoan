@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: crud-api
+    displayName: CRUD API
+    service:
+      basePath: /
+      port: 50051
+    type: GRPC
+    networkVisibilities: 
+      - Project

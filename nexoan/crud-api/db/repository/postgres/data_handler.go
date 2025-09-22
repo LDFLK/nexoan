@@ -10,13 +10,46 @@ import (
 
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"lk/datafoundation/crud-api/pkg/schema"
-	"lk/datafoundation/crud-api/pkg/storageinference"
 	"lk/datafoundation/crud-api/pkg/typeinference"
+
+	commons "lk/datafoundation/crud-api/commons"
 
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+// filterInternalColumns removes internal columns that shouldn't be returned to the client by default
+// unless they are explicitly requested in the fields parameter
+func filterInternalColumns(columns []string, requestedFields []string) ([]string, []int) {
+	var filteredColumns []string
+	var columnIndices []int
+
+	// Define internal columns that should be filtered out by default
+	internalColumns := map[string]bool{
+		"created_at":          true,
+		"entity_attribute_id": true,
+		// Note: "id" is NOT filtered out as it's user data
+	}
+
+	// Create a set of requested fields for quick lookup
+	requestedFieldsSet := make(map[string]bool)
+	for _, field := range requestedFields {
+		requestedFieldsSet[field] = true
+	}
+
+	for i, column := range columns {
+		// Keep the column if:
+		// 1. It's not an internal column, OR
+		// 2. It's an internal column but was explicitly requested
+		if !internalColumns[column] || requestedFieldsSet[column] {
+			filteredColumns = append(filteredColumns, column)
+			columnIndices = append(columnIndices, i)
+		}
+	}
+
+	return filteredColumns, columnIndices
+}
 
 // UnmarshalAnyToString attempts to unmarshal an Any protobuf message to a string value
 func UnmarshalAnyToString(anyValue *anypb.Any) (string, error) {
@@ -80,43 +113,8 @@ func UnmarshalEntityAttributes(attributes map[string]*anypb.Any) (map[string]int
 	return result, nil
 }
 
-// generateSchema generates schema information for a value
-func generateSchema(value *anypb.Any) (*schema.SchemaInfo, error) {
-	// Generate schema directly from the Any value
-	schemaGenerator := schema.NewSchemaGenerator()
-	return schemaGenerator.GenerateSchema(value)
-}
-
-// logSchemaInfo logs schema information in a readable format
-func logSchemaInfo(schemaInfo *schema.SchemaInfo) {
-	if schemaInfo == nil {
-		log.Printf("Schema is nil")
-		return
-	}
-
-	// Log the schema information
-	log.Printf("Schema: StorageType=%v, TypeInfo=%v",
-		schemaInfo.StorageType,
-		schemaInfo.TypeInfo)
-
-	// Convert schema to JSON for logging
-	schemaJSON, err := schema.SchemaInfoToJSON(schemaInfo)
-	if err != nil {
-		log.Printf("Failed to convert schema to JSON: %v", err)
-		return
-	}
-
-	// Marshal to pretty JSON for better readability
-	prettyJSON, err := json.MarshalIndent(schemaJSON, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal schema to JSON: %v", err)
-		return
-	}
-
-	log.Printf("Schema JSON:\n%s", string(prettyJSON))
-}
-
 // isTabularData checks if the data has a valid tabular structure
+// TODO: See if this is needed or else remove it. ,
 func isTabularData(value *anypb.Any) (bool, *structpb.Struct, error) {
 	// Try to unmarshal as struct
 	var dataStruct structpb.Struct
@@ -182,7 +180,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 	for _, col := range columnsList.Values {
 		colName := col.GetStringValue()
 		columnTypes[colName] = typeinference.TypeInfo{
-			Type: typeinference.StringType, // Default to string
+			Type:       typeinference.StringType, // Default to string
 			IsNullable: false,
 		}
 	}
@@ -215,7 +213,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 				default:
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				}
@@ -231,14 +229,14 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 					// If current string is not a datetime, convert to string
 					if !isDateTime(str) {
 						columnTypes[colName] = typeinference.TypeInfo{
-							Type: typeinference.StringType,
+							Type:       typeinference.StringType,
 							IsNullable: true,
 						}
 					}
 				default:
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				}
@@ -246,7 +244,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 				if currentType.Type != typeinference.BoolType && currentType.Type != typeinference.StringType {
 					// Mixed types, convert to string
 					columnTypes[colName] = typeinference.TypeInfo{
-						Type: typeinference.StringType,
+						Type:       typeinference.StringType,
 						IsNullable: true,
 					}
 				} else if currentType.Type == typeinference.StringType {
@@ -255,7 +253,7 @@ func validateAndReturnTabularDataTypes(data *structpb.Struct) (map[string]typein
 			default:
 				// Unknown type, convert to string
 				columnTypes[colName] = typeinference.TypeInfo{
-					Type: typeinference.StringType,
+					Type:       typeinference.StringType,
 					IsNullable: true,
 				}
 			}
@@ -288,47 +286,6 @@ func isDateTime(val string) bool {
 	}
 
 	return false
-}
-
-// HandleAttributes handles the attributes for an entity
-func HandleAttributes(ctx context.Context, repo *PostgresRepository, entityID string, attributes map[string]*pb.TimeBasedValueList) error {
-	if attributes == nil {
-		return nil
-	}
-
-	// Process each attribute
-	for attrName, timeBasedValueList := range attributes {
-		if timeBasedValueList == nil {
-			continue
-		}
-
-		// Process each time-based value
-		for _, value := range timeBasedValueList.Values {
-			if value == nil || value.Value == nil {
-				continue
-			}
-
-			// Generate schema for the value
-			schemaInfo, err := generateSchema(value.Value)
-			if err != nil {
-				return fmt.Errorf("error generating schema for attribute %s: %v", attrName, err)
-			}
-
-			// Log schema information for debugging
-			logSchemaInfo(schemaInfo)
-
-			if schemaInfo.StorageType == storageinference.TabularData {
-				// Handle tabular data
-				if err := handleTabularData(ctx, repo, entityID, attrName, value, schemaInfo); err != nil {
-					return fmt.Errorf("error handling tabular data for attribute %s: %v", attrName, err)
-				}
-			} else {
-				fmt.Printf("Attribute is not a tabular value skipping processing storage type :%s", schemaInfo.StorageType)
-			}
-		}
-	}
-
-	return nil
 }
 
 // validateDataAgainstSchema validates that the data matches the schema
@@ -435,9 +392,9 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 }
 
 // handleTabularData processes tabular data attributes
-func handleTabularData(ctx context.Context, repo *PostgresRepository, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
+func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
 	// Generate table name
-	tableName := fmt.Sprintf("attr_%s_%s", sanitizeIdentifier(entityID), sanitizeIdentifier(attrName))
+	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
 	// Convert schema to columns
 	columns := schemaToColumns(schemaInfo)
@@ -534,7 +491,7 @@ func handleTabularData(ctx context.Context, repo *PostgresRepository, entityID, 
 	// Convert columns to string slice
 	columnNames := make([]string, len(columnsValue.Values))
 	for i, col := range columnsValue.Values {
-		columnNames[i] = sanitizeIdentifier(col.GetStringValue())
+		columnNames[i] = commons.SanitizeIdentifier(col.GetStringValue())
 	}
 
 	// Convert rows to [][]interface{}
@@ -573,6 +530,11 @@ func schemaToColumns(schemaInfo *schema.SchemaInfo) []Column {
 	var columns []Column
 
 	for fieldName, field := range schemaInfo.Fields {
+		// Skip "id" columns as they conflict with the auto-generated primary key
+		if strings.ToLower(fieldName) == "id" {
+			continue
+		}
+
 		var colType string
 		switch field.TypeInfo.Type {
 		case typeinference.IntType:
@@ -598,31 +560,12 @@ func schemaToColumns(schemaInfo *schema.SchemaInfo) []Column {
 		}
 
 		columns = append(columns, Column{
-			Name: sanitizeIdentifier(fieldName),
+			Name: commons.SanitizeIdentifier(fieldName),
 			Type: colType,
 		})
 	}
 
 	return columns
-}
-
-// sanitizeIdentifier makes a string safe for use as a PostgreSQL identifier
-// IMPROVEME: https://github.com/LDFLK/nexoan/issues/160
-func sanitizeIdentifier(s string) string {
-	// Replace invalid characters with underscores
-	safe := strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
-			return r
-		}
-		return '_'
-	}, strings.ToLower(s))
-
-	// Ensure it doesn't start with a number
-	if len(safe) > 0 && safe[0] >= '0' && safe[0] <= '9' {
-		safe = "_" + safe
-	}
-
-	return safe
 }
 
 // Column represents a database column definition
@@ -683,10 +626,35 @@ func GetSchemaOfTable(ctx context.Context, repo *PostgresRepository, tableName s
 	return &schemaInfo, nil
 }
 
-// GetData retrieves data from a table with optional filters.
-func GetData(ctx context.Context, repo *PostgresRepository, tableName string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+// TabularData represents the structure of tabular data with columns and rows
+type TabularData struct {
+	Columns []string        `json:"columns"`
+	Rows    [][]interface{} `json:"rows"`
+}
+
+// GetData retrieves data from a table with optional field selection and filters, returns it as pb.Any with JSON-formatted tabular data.
+func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, fields ...string) (*anypb.Any, error) {
+	log.Printf("DEBUG: GetData: tableName=%s, \t\nfilters=%v, \t\nfields=%v", tableName, filters, fields)
+	// Build the SELECT clause
+	var selectClause string
+	if len(fields) > 0 {
+		log.Printf("DEBUG: [DataHandler.GetData] selectClause: %v", fields)
+		// Sanitize and quote field names
+		sanitizedFields := make([]string, len(fields))
+		for i, field := range fields {
+			sanitizedFields[i] = commons.SanitizeIdentifier(field)
+		}
+		selectClause = strings.Join(sanitizedFields, ", ")
+	} else {
+		log.Printf("DEBUG: [DataHandler.GetData] selectClause: *")
+		selectClause = "*"
+	}
+
+	log.Printf("DEBUG: [DataHandler.GetData] selectClause: %s", selectClause)
 	// Base query
-	query := fmt.Sprintf("SELECT * FROM %s", sanitizeIdentifier(tableName))
+	query := fmt.Sprintf("SELECT %s FROM %s", selectClause, commons.SanitizeIdentifier(tableName))
+
+	log.Printf("DEBUG: [DataHandler.GetData] query: %s", query)
 
 	var args []interface{}
 	var whereClauses []string
@@ -694,7 +662,7 @@ func GetData(ctx context.Context, repo *PostgresRepository, tableName string, fi
 
 	// Add filters to the query
 	for key, value := range filters {
-		whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", sanitizeIdentifier(key), argCount))
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", commons.SanitizeIdentifier(key), argCount))
 		args = append(args, value)
 		argCount++
 	}
@@ -710,16 +678,48 @@ func GetData(ctx context.Context, repo *PostgresRepository, tableName string, fi
 	}
 	defer rows.Close()
 
-	// Get column names
-	columns, err := rows.Columns()
+	// Get column names from the result set
+	resultColumns, err := rows.Columns()
 	if err != nil {
 		return nil, fmt.Errorf("error getting columns from %s: %v", tableName, err)
 	}
 
-	var results []map[string]interface{}
+	// Filter out internal columns that shouldn't be returned by default
+	// unless they are explicitly requested in the fields parameter
+	filteredColumns, columnIndices := filterInternalColumns(resultColumns, fields)
+	log.Printf("DEBUG: [DataHandler.GetData] Original columns: %v", resultColumns)
+	log.Printf("DEBUG: [DataHandler.GetData] Filtered columns: %v", filteredColumns)
+	log.Printf("DEBUG: [DataHandler.GetData] Column indices to keep: %v", columnIndices)
+
+	// Log which internal columns were filtered out or included
+	internalColumns := map[string]bool{
+		"created_at":          true,
+		"entity_attribute_id": true,
+	}
+	for _, column := range resultColumns {
+		if internalColumns[column] {
+			if len(columnIndices) > 0 && columnIndices[len(columnIndices)-1] >= 0 {
+				// Check if this column is in the filtered columns
+				found := false
+				for _, filteredCol := range filteredColumns {
+					if filteredCol == column {
+						found = true
+						break
+					}
+				}
+				if found {
+					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' included (explicitly requested)", column)
+				} else {
+					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' filtered out (not requested)", column)
+				}
+			}
+		}
+	}
+
+	var tabularRows [][]interface{}
 	for rows.Next() {
-		rowValues := make([]interface{}, len(columns))
-		rowPointers := make([]interface{}, len(columns))
+		rowValues := make([]interface{}, len(resultColumns))
+		rowPointers := make([]interface{}, len(resultColumns))
 		for i := range rowValues {
 			rowPointers[i] = &rowValues[i]
 		}
@@ -728,22 +728,51 @@ func GetData(ctx context.Context, repo *PostgresRepository, tableName string, fi
 			return nil, fmt.Errorf("error scanning row: %v", err)
 		}
 
-		rowData := make(map[string]interface{})
-		for i, colName := range columns {
-			val := rowValues[i]
+		// Convert row values to interface{} slice, but only include filtered columns
+		row := make([]interface{}, len(filteredColumns))
+		for i, colIndex := range columnIndices {
+			val := rowValues[colIndex]
 			// Handle byte slices (common for text, json, etc.)
 			if b, ok := val.([]byte); ok {
-				rowData[colName] = string(b)
+				row[i] = string(b)
 			} else {
-				rowData[colName] = val
+				row[i] = val
 			}
 		}
-		results = append(results, rowData)
+		tabularRows = append(tabularRows, row)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %v", err)
 	}
 
-	return results, nil
+	// Create the tabular data structure
+	tabularData := map[string]interface{}{
+		"columns": filteredColumns,
+		"rows":    tabularRows,
+	}
+
+	// Convert to JSON string
+	jsonData, err := json.Marshal(tabularData)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling tabular data to JSON: %v", err)
+	}
+
+	log.Printf("DEBUG: [DataHandler.GetData] jsonData: %s", string(jsonData))
+
+	// Create a struct with the JSON string
+	structValue, err := structpb.NewStruct(map[string]interface{}{
+		"data": string(jsonData),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating struct for JSON data: %v", err)
+	}
+
+	// Convert to Any
+	anyValue, err := anypb.New(structValue)
+	if err != nil {
+		return nil, fmt.Errorf("error converting struct to Any: %v", err)
+	}
+
+	return anyValue, nil
 }

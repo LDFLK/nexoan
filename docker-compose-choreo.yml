@@ -1,0 +1,276 @@
+version: '3.8'
+
+name: ldf-choreo
+
+services:
+  mongodb-choreo:
+    platform: linux/amd64
+    build:
+      context: ./deployment/choreo/development/docker/mongodb
+      dockerfile: Dockerfile
+    container_name: mongodb-choreo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_choreo_data:/data/db
+    networks:
+      - choreo-network
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+      - MONGO_INITDB_DATABASE=nexoan
+      # GitHub backup restore configuration
+      - GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups}
+      - BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1}
+      - BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development}
+      - RESTORE_FROM_GITHUB=true
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  neo4j-choreo:
+    platform: linux/amd64
+    build:
+      context: ./deployment/choreo/development/docker/neo4j
+      dockerfile: Dockerfile
+    container_name: neo4j-choreo
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_choreo_data:/data
+      - neo4j_choreo_logs:/logs
+    networks:
+      - choreo-network
+    environment:
+      - NEO4J_AUTH=neo4j/neo4j123
+      - NEO4J_server_memory_pagecache_size=1G
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=1G
+      - NEO4J_server_default__listen__address=0.0.0.0
+      - NEO4J_server_bolt_listen__address=0.0.0.0:7687
+      - NEO4J_server_http_listen__address=0.0.0.0:7474
+      # GitHub backup restore configuration
+      - GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups}
+      - BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1}
+      - BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development}
+      - RESTORE_FROM_GITHUB=true
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres-choreo:
+    platform: linux/amd64
+    build:
+      context: ./deployment/choreo/development/docker/postgres
+      dockerfile: Dockerfile
+    container_name: postgres-choreo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_choreo_data:/var/lib/postgresql/data
+    networks:
+      - choreo-network
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nexoan
+      # GitHub backup restore configuration
+      - GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups}
+      - BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1}
+      - BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development}
+      - RESTORE_FROM_GITHUB=true
+      - FORCE_RESTORE=${FORCE_RESTORE:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  heartbeat-choreo:
+    platform: linux/amd64
+    build:
+      context: ./deployment/choreo/development/docker/heartbeat
+      dockerfile: Dockerfile
+    container_name: heartbeat-choreo
+    networks:
+      - choreo-network
+    environment:
+      - NEO4J_URL=http://neo4j-choreo:7474
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j123
+      - POSTGRES_HOST=postgres-choreo
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nexoan
+      - MONGODB_HOST=mongodb-choreo
+      - MONGODB_PORT=27017
+      - MONGODB_USER=admin
+      - MONGODB_PASSWORD=admin123
+      - MONGODB_DB=nexoan
+      - HEARTBEAT_INTERVAL=30
+    depends_on:
+      - neo4j-choreo
+      - mongodb-choreo
+      - postgres-choreo
+    restart: unless-stopped
+
+  cleanup-choreo:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.cleanup.choreo
+    container_name: cleanup-choreo
+    networks:
+      - choreo-network
+    environment:
+      - POSTGRES_HOST=postgres-choreo
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ldf_choreo_nexoan
+      - MONGO_URI=mongodb://admin:admin123@mongodb-choreo:27017/admin?authSource=admin
+      - MONGO_DB_NAME=ldf_choreo_nexoan
+      - NEO4J_URI=bolt://neo4j-choreo:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j123
+    depends_on:
+      - postgres-choreo
+      - mongodb-choreo
+      - neo4j-choreo
+    profiles:
+      - cleanup
+
+  crud-choreo:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.crud.choreo
+    container_name: crud-choreo
+    ports:
+      - "50051:50051"
+    environment:
+      # Neo4j Configuration (using choreo Neo4j)
+      - NEO4J_URI=bolt://neo4j-choreo:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j123
+      # MongoDB Configuration (using choreo MongoDB)
+      - MONGO_URI=mongodb://admin:admin123@mongodb-choreo:27017/admin?authSource=admin
+      - MONGO_DB_NAME=ldf_choreo_nexoan
+      - MONGO_COLLECTION=metadata_choreo
+      - MONGO_ADMIN_USER=admin
+      - MONGO_ADMIN_PASSWORD=admin123
+      # PostgreSQL Configuration (using choreo PostgreSQL)
+      - POSTGRES_HOST=postgres-choreo
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ldf_choreo_nexoan
+      - POSTGRES_SSL_MODE=disable
+      # CRUD Service Configuration
+      - CRUD_SERVICE_HOST=0.0.0.0
+      - CRUD_SERVICE_PORT=50051
+    depends_on:
+      mongodb-choreo:
+        condition: service_healthy
+      neo4j-choreo:
+        condition: service_healthy
+      postgres-choreo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:50051 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - choreo-network
+
+  update-choreo:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.update.choreo
+    container_name: update-choreo
+    ports:
+      - "8080:8080"
+    environment:
+      - CRUD_SERVICE_URL=http://crud-choreo:50051
+      - UPDATE_SERVICE_HOST=0.0.0.0
+      - UPDATE_SERVICE_PORT=8080
+    depends_on:
+      crud-choreo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - choreo-network
+
+  query-choreo:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.query.choreo
+    container_name: query-choreo
+    ports:
+      - "8081:8081"
+    environment:
+      - CRUD_SERVICE_URL=http://crud-choreo:50051
+      - QUERY_SERVICE_HOST=0.0.0.0
+      - QUERY_SERVICE_PORT=8081
+    depends_on:
+      crud-choreo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - choreo-network
+
+  e2e-choreo:
+    platform: linux/amd64
+    image: python:3.9-slim
+    container_name: e2e-choreo
+    volumes:
+      - ./nexoan/tests/e2e:/app/tests
+    working_dir: /app/tests
+    networks:
+      - choreo-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - UPDATE_SERVICE_URL=http://update-choreo:8080
+      - QUERY_SERVICE_URL=http://query-choreo:8081
+    depends_on:
+      update-choreo:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        pip install requests &&
+        pip install protobuf &&
+        pip install pandas &&
+        python3 basic_crud_tests.py &&
+        python3 basic_query_tests.py"
+
+networks:
+  choreo-network:
+    driver: bridge
+
+volumes:
+  mongodb_choreo_data:
+  neo4j_choreo_data:
+  neo4j_choreo_logs:
+  postgres_choreo_data: 

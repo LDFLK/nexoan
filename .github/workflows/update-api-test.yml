@@ -15,60 +15,175 @@ on:
       - 'docker-compose.yml'
 
 jobs:
-  test:
+  update-api-workflow:
     runs-on: ubuntu-latest
     
     steps:
+
     - uses: actions/checkout@v3
     
+    - name: Clear GitHub Actions cache
+      run: |
+        echo "🧹 Clearing GitHub Actions cache..."
+        rm -rf ~/.cache || true
+        rm -rf /tmp/* || true
+        
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
     - name: Build and test Update service
       run: |
-        # Build Update service
-        docker compose build update
+        # Complete cache and container cleanup for fresh start
+        echo "🧹 Complete cleanup - removing all containers, images, and cache..."
+        docker compose down --remove-orphans || true
+        docker system prune -af || true  # -a removes all unused images, -f forces without prompt
+        docker builder prune -af || true  # Clean build cache
+        docker volume prune -f || true    # Clean unused volumes
         
-        # Start required dependencies
-        docker compose up -d mongodb neo4j crud
+        # Build Update service (force rebuild to pick up environment variable changes)
+        docker compose build --no-cache update
+
+        # Start required dependencies with tmpfs volumes for fresh databases
+        docker compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud
         
+        # Wait for databases to be fully initialized
+        echo "⏳ Waiting for databases to be fully initialized..."
+        sleep 30
+
+        # Verify databases are fresh and ready
+        echo "🔍 Verifying database state..."
+        echo "MongoDB collections:"
+        docker exec mongodb mongosh --eval "db.getMongo().getDBNames()" || echo "MongoDB not ready yet"
+        echo "Neo4j nodes:"
+        docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH (n) RETURN count(n) as nodeCount" || echo "Neo4j not ready yet"
+        echo "PostgreSQL tables:"
+        docker exec postgres psql -U postgres -d nexoan -c "\dt" || echo "PostgreSQL not ready yet"
+
         # Wait for dependencies to be healthy
         echo "Waiting for dependencies to be healthy..."
-        docker compose ps
+        timeout=300
+        while [ $timeout -gt 0 ]; do
+          if docker compose ps | grep -q "healthy"; then
+            echo "Dependencies are starting to be healthy..."
+            break
+          fi
+          # Check if any services have failed
+          if docker compose ps | grep -q "Exit"; then
+            echo "❌ Some services have failed during startup!"
+            echo "=== Service Status ==="
+            docker compose ps
+            echo "=== Failed Service Logs ==="
+            docker compose logs mongodb neo4j postgres crud
+            docker compose down
+            exit 1
+          fi
+          echo "Waiting for health checks... ($timeout seconds remaining)"
+          sleep 5
+          timeout=$((timeout - 5))
+        done
+        
+        if [ $timeout -le 0 ]; then
+          echo "❌ Timeout waiting for dependencies to be healthy!"
+          echo "=== Service Status ==="
+          docker compose ps
+          echo "=== Dependency Logs ==="
+          docker compose logs mongodb neo4j postgres crud
+          docker compose down
+          exit 1
+        fi
+        
+        # Wait for CRUD service to complete tests and start the server
+        echo "Waiting for CRUD service to complete tests and start server..."
+        timeout=600  # 10 minutes for Go tests to complete
+        while [ $timeout -gt 0 ]; do
+          if docker compose logs crud | grep -q "CRUD Service is running on"; then
+            echo "✅ CRUD service is now running!"
+            break
+          elif docker compose logs crud | grep -q "FAILED\|failed\|error.*test"; then
+            echo "❌ CRUD service tests failed!"
+            echo "CRUD service logs:"
+            docker compose logs crud
+            docker compose down
+            exit 1
+          elif docker compose logs crud | grep -q "duplicate key error"; then
+            echo "❌ CRUD service tests failed due to duplicate key error!"
+            echo "This indicates database cleanup didn't work properly."
+            echo "CRUD service logs:"
+            docker compose logs crud
+            docker compose down
+            exit 1
+          fi
+          echo "Waiting for CRUD service startup... ($timeout seconds remaining)"
+          sleep 10
+          timeout=$((timeout - 10))
+        done
+        
+        if [ $timeout -le 0 ]; then
+          echo "❌ Timeout waiting for CRUD service to start!"
+          echo "CRUD service logs:"
+          docker compose logs crud
+          docker compose down
+          exit 1
+        fi
         
         # Start Update service in detached mode
         echo "Starting Update service and running tests..."
-        docker compose up -d update
+        if ! docker compose up -d update; then
+          echo "❌ Failed to start Update service!"
+          echo "=== All Service Status ==="
+          docker compose ps
+          echo "=== CRUD Service Logs ==="
+          docker compose logs crud
+          echo "=== Update Service Logs ==="
+          docker compose logs update
+          docker compose down
+          exit 1
+        fi
         
         # Wait for tests to complete
         echo "Waiting for tests to complete..."
         sleep 30
         
         # Check the logs for test results
+        echo "=== Update Service Logs ==="
+        docker compose logs update
+        
+        echo "=== CRUD Service Logs ==="
+        docker compose logs crud
+        
+        echo "=== All Service Status ==="
+        docker compose ps
+        
         if docker compose logs update | grep -q "failing" && ! docker compose logs update | grep -q "0 failing"; then
-          echo "Update API tests failed!"
-          echo "Container logs:"
-          docker compose logs update
+          echo "❌ Update API tests failed!"
+          echo "Checking for specific error patterns..."
+          
+          if docker compose logs update | grep -q "500"; then
+            echo "🔍 Found HTTP 500 errors - likely CRUD service connectivity issue"
+            echo "CRUD service status:"
+            docker compose ps crud
+          fi
+          
+          if docker compose logs update | grep -q "Connection refused\|connect: connection refused"; then
+            echo "🔍 Found connection refused errors - CRUD service may not be responding"
+          fi
+          
           docker compose down
           exit 1
         elif docker compose logs update | grep -q "0 failing"; then
-          echo "Update API tests passed!"
-          echo "Container logs:"
-          docker compose logs update
+          echo "✅ Update API tests passed!"
         else
-          echo "Test results not found in logs. Checking for service startup..."
-          if docker compose logs update | grep -q "Starting Update service"; then
-            echo "Update API tests passed (service started successfully)!"
-            echo "Container logs:"
-            docker compose logs update
+          echo "⚠️  Test results not found in logs. Checking for service startup..."
+          if docker compose logs update | grep -q "Starting Update service\|Running executable"; then
+            echo "✅ Update API service started successfully!"
           else
-            echo "Could not determine test status from logs"
-            echo "Container logs:"
-            docker compose logs update
+            echo "❌ Could not determine test status and service may not have started properly"
             docker compose down
             exit 1
           fi
         fi
         
-        # Cleanup
-        docker compose down 
+        # Cleanup - ensure complete cleanup for next CI run
+        echo "🧹 Final cleanup - removing all containers..."
+        docker compose -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
+        docker system prune -f

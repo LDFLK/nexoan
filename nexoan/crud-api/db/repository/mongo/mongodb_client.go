@@ -54,6 +54,7 @@ func fromDocument(data *entityDocument) *pb.Entity {
 }
 
 // NewMongoRepository initializes a MongoDB client
+// TODO: Handle errors better
 func NewMongoRepository(ctx context.Context, config *config.MongoConfig) *MongoRepository {
 	clientOptions := options.Client().ApplyURI(config.URI)
 	client, err := mongo.Connect(ctx, clientOptions)

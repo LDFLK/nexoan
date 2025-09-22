@@ -5,14 +5,16 @@ import ballerina/http;
 import ballerina/os;
 
 // Get environment variables without fallback values
-string testCrudHostname = os:getEnv("CRUD_SERVICE_HOST");
-string testCrudPort = os:getEnv("CRUD_SERVICE_PORT");
 string testUpdateHostname = os:getEnv("UPDATE_SERVICE_HOST");
 string testUpdatePort = os:getEnv("UPDATE_SERVICE_PORT");
 
+// Try to get complete CRUD service URL from environment variable first
+string? crudServiceUrlEnv = os:getEnv("CRUD_SERVICE_URL");
+string testCrudServiceUrl = crudServiceUrlEnv ?: "http://0.0.0.0:50051";
 // Construct URLs using string concatenation
-string testCrudServiceUrl = "http://" + testCrudHostname + ":" + testCrudPort;
 string testUpdateServiceUrl = "http://" + testUpdateHostname + ":" + testUpdatePort;
+
+type JsonObject map<anydata>;
 
 // Before Suite Function
 @test:BeforeSuite
@@ -31,6 +33,24 @@ function afterSuiteFunc() {
 // Helper function to unpack Any values to strings
 function unwrapAny(pbAny:Any anyValue) returns string|error {
     return pbAny:unpack(anyValue, string);
+}
+
+// Helper function to unpack Any values to JSON/Struct
+function unwrapAnyToJson(pbAny:Any anyValue) returns json|error {
+    // Try to unpack as string first
+    string|error stringValue = pbAny:unpack(anyValue, string);
+    if stringValue is string {
+        return stringValue;
+    }
+    
+    // If string unpacking fails, return the string representation as a fallback
+    return anyValue.toString();
+}
+
+// Helper function to verify tabular data content
+function verifyTabularData(json actual, json expected) {
+    // Simple string comparison
+    test:assertEquals(actual.toString(), expected.toString(), "Data JSON should match");
 }
 
 // Helper function to convert JSON to protobuf Any value
@@ -72,7 +92,7 @@ function jsonToAny(json data) returns pbAny:Any|error {
         };
         return pbAny:pack(structMap);
     } else if data is map<json> {
-        // For objects, just pack them directly
+        // For objects, pack directly as structured data instead of converting to string
         return pbAny:pack(data);
     } else {
         return error("Unsupported data type: " + data.toString());
@@ -535,7 +555,7 @@ function testCreateMinimalGraphEntity() returns error? {
     
     // Verify empty collections
     test:assertEquals(readEntityResponse.metadata.length(), 0, "Metadata should be empty");
-    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes should be empty");
+    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes default value should be empty");
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
@@ -548,8 +568,11 @@ function testCreateMinimalGraphEntity() returns error? {
 
 @test:Config {}
 function testCreateMinimalGraphEntityViaRest() returns error? {
-    // Initialize an HTTP client for the REST API
-    http:Client restClient = check new (testUpdateServiceUrl);
+    // Initialize an HTTP client for the REST API with HTTP/2 support
+    http:ClientConfiguration httpConfig = {
+        httpVersion: "2.0" // Enable HTTP/2
+    };
+    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
     
     // Test data setup - minimal JSON entity
     string testId = "test-minimal-json-entity";
@@ -618,7 +641,7 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     
     // Verify empty collections
     test:assertEquals(readEntityResponse.metadata.length(), 0, "Metadata should be empty");
-    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes should be empty");
+    test:assertEquals(readEntityResponse.attributes.length(), 0, "Attributes default value should be empty");
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
@@ -637,8 +660,11 @@ function testEntityWithRelationship() returns error? {
     string sourceEntityId = "test-entity-with-relationship-source";
     string targetEntityId = "test-entity-with-relationship-target";
     
-    // Initialize REST client
-    http:Client restClient = check new (testUpdateServiceUrl);
+    // Initialize REST client with HTTP/2 support
+    http:ClientConfiguration httpConfig = {
+        httpVersion: "2.0" // Enable HTTP/2
+    };
+    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
     
     // Create source entity
     json sourceEntityJson = {
@@ -1838,7 +1864,513 @@ function testEntityWithNestedMapValues() returns error? {
 }
 
 
+@test:Config {}
+function testEntityWithTabularAttributes() returns error? {
+    // Initialize the client
+    CrudServiceClient ep = check new (testCrudServiceUrl);
+    
+    // Test data setup
+    string testId = "ID-MIN-A";
+    
+    // Create tabular data structure
+    // TODO: https://github.com/LDFLK/nexoan/issues/284
+    json tabularData = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [
+            [1, "John Doe", 30, "Engineering", 75000.50],
+            [2, "Jane Smith", 25, "Marketing", 65000],
+            [3, "Bob Wilson", 35, "Sales", 85000.75],
+            [4, "Alice Brown", 28, "Engineering", 70000.25],
+            [5, "Charlie Davis", 32, "Finance", 80000]
+        ]
+    };
+
+    // Convert JSON to protobuf Any values
+    pbAny:Any tabularDataAny = check jsonToAny(tabularData);
+
+    Entity createEntityRequest = {
+        id: testId,
+        kind: {
+            major: "Organization",
+            minor: "Minister"
+        },
+        created: "2025-02-01T00:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2025-02-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("Minister of Health")
+        },
+        metadata: [
+            {
+                key: "minister_of_health_metadata",
+                value: check pbAny:pack("tabular_minister_of_health_test_value")
+            }
+        ],
+        attributes: [
+            {
+                key: "employee_data",
+                value: {
+                    values: [
+                        {
+                            startTime: "2025-04-01T00:00:00Z",
+                            endTime: "",
+                            value: tabularDataAny
+                        }
+                    ]
+                }
+            }
+        ],
+        relationships: []
+    };
+
+    // Create entity via gRPC
+    Entity createEntityResponse = check ep->CreateEntity(createEntityRequest);
+    io:println("Entity created with ID: " + createEntityResponse.id);
+    test:assertTrue(createEntityResponse.id != "", "Entity should be created successfully");
+    test:assertEquals(createEntityResponse.id, testId, "Entity ID should match");
+
+    json tabularDataFilter = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [[]]
+    };
+
+    pbAny:Any tabularDataFilterAny = check jsonToAny(tabularDataFilter);
+    
+    // Read entity to verify attributes
+    ReadEntityRequest readEntityRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "employee_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: tabularDataFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
+        output: ["metadata", "attributes", "relationships"]
+    };
+    Entity readEntityResponse = check ep->ReadEntity(readEntityRequest);
+    
+    // Verify the response
+    test:assertTrue(readEntityResponse.id != "", "Entity should be found");
+    test:assertEquals(readEntityResponse.id, testId, "Entity ID should match");
+
+    // Verify attributes are present
+    test:assertTrue(readEntityResponse.attributes.length() > 0, "Entity should have attributes");
+
+    var attributeValue = readEntityResponse.attributes[0].value.values[0].value;
+
+    JsonObject attributeValueJson = check pbAny:unpack(attributeValue);
+    io:println("Attribute value JSON: " + attributeValueJson.toString());
+
+    // Extract the nested data field
+    string dataJsonString = <string>attributeValueJson["data"];
+    io:println("Data JSON string: " + dataJsonString);
+
+    // Parse the nested JSON string to get the actual tabular data
+    json dataJson = check dataJsonString.fromJsonString();
+    io:println("Data JSON: " + dataJson.toString());
+
+    // Compare the actual data content instead of exact JSON structure
+    verifyTabularData(dataJson, tabularData);
+
+    // Clean up
+    Empty _ = check ep->DeleteEntity({id: testId});
+    io:println("Test entity with tabular attributes deleted");
+
+    return;
+}
 
 
+@test:Config {}
+function testEntityWithTabularAttributesMultiRels() returns error? {
+    // Initialize the client
+    CrudServiceClient ep = check new (testCrudServiceUrl);
+    
+    // Test data setup
+    string testId = "ID-MIN-A-MULTI-RELS";
+    
+    // Create tabular data structure
+    // TODO: https://github.com/LDFLK/nexoan/issues/284
+    json employeeData = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [
+            [1, "John Doe", 30, "Engineering", 75000.50],
+            [2, "Jane Smith", 25, "Marketing", 65000],
+            [3, "Bob Wilson", 35, "Sales", 85000.75],
+            [4, "Alice Brown", 28, "Engineering", 70000.25],
+            [5, "Charlie Davis", 32, "Finance", 80000]
+        ]
+    };
+    
+    json budgetData = {
+        "columns": ["id", "category", "amount", "quarter", "status"],
+        "rows": [
+            [1, "Infrastructure", 150000.50, "Q1", "Approved"],
+            [2, "Marketing", 75000, "Q1", "Pending"],
+            [3, "Research", 200000.75, "Q2", "Approved"],
+            [4, "Operations", 120000.25, "Q1", "Approved"],
+            [5, "Training", 45000, "Q2", "Pending"]
+        ]
+    };
+
+    // Convert JSON to protobuf Any values
+    pbAny:Any employeeDataAny = check jsonToAny(employeeData);
+    pbAny:Any budgetDataAny = check jsonToAny(budgetData);
+
+    Entity createEntityRequest = {
+        id: testId,
+        kind: {
+            major: "Organization",
+            minor: "Minister"
+        },
+        created: "2025-01-01T00:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2025-01-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("Minister of Education and Skills")
+        },
+        metadata: [
+            {
+                key: "minister_of_education_and_skills_metadata",
+                value: check pbAny:pack("tabular_minister_of_education_and_skills_test_value")
+            }
+        ],
+        attributes: [
+            {
+                key: "employee_data",
+                value: {
+                    values: [
+                        {
+                            startTime: "2025-04-01T00:00:00Z",
+                            endTime: "",
+                            value: employeeDataAny
+                        }
+                    ]
+                }
+            },
+            {
+                key: "budget_data",
+                value: {
+                    values: [
+                        {
+                            startTime: "2025-06-01T00:00:00Z",
+                            endTime: "",
+                            value: budgetDataAny
+                        }
+                    ]
+                }
+            }
+        ],
+        relationships: []
+    };
+
+    // Create entity via gRPC
+    Entity createEntityResponse = check ep->CreateEntity(createEntityRequest);
+    io:println("Entity created with ID: " + createEntityResponse.id);
+    test:assertTrue(createEntityResponse.id != "", "Entity should be created successfully");
+    test:assertEquals(createEntityResponse.id, testId, "Entity ID should match");
+
+    json employeeDataFilter = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [[]]
+    };
+
+    json budgetDataFilter = {
+        "columns": ["id", "category", "amount", "quarter", "status"],
+        "rows": [[]]
+    };
+
+    pbAny:Any employeeDataFilterAny = check jsonToAny(employeeDataFilter);
+    pbAny:Any budgetDataFilterAny = check jsonToAny(budgetDataFilter);
+    
+    // Read entity to verify attributes
+    ReadEntityRequest readEntityWithBudgetDataRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "budget_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: budgetDataFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
+        output: ["metadata", "attributes", "relationships"]
+    };
+
+    ReadEntityRequest readEntityWithEmployeeDataRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "employee_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: employeeDataFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
+        output: ["metadata", "attributes", "relationships"]
+    };
+
+    Entity readEntityWithBudgetDataResponse = check ep->ReadEntity(readEntityWithBudgetDataRequest);
+
+    Entity readEntityWithEmployeeDataResponse = check ep->ReadEntity(readEntityWithEmployeeDataRequest);
+
+    // Verify the response
+    test:assertTrue(readEntityWithEmployeeDataResponse.id != "", "Entity should be found");
+    test:assertEquals(readEntityWithEmployeeDataResponse.id, testId, "Entity ID should match");
+
+    // Verify the response
+    test:assertTrue(readEntityWithBudgetDataResponse.id != "", "Entity should be found");
+    test:assertEquals(readEntityWithBudgetDataResponse.id, testId, "Entity ID should match");
+
+    // Verify attributes are present
+    test:assertTrue(readEntityWithBudgetDataResponse.attributes.length() > 0, "Entity should have attributes");
+    test:assertTrue(readEntityWithEmployeeDataResponse.attributes.length() > 0, "Entity should have attributes");
+
+    var budgetAttributeValue = readEntityWithBudgetDataResponse.attributes[0].value.values[0].value;
+    var employeeAttributeValue = readEntityWithEmployeeDataResponse.attributes[0].value.values[0].value;
+
+    JsonObject budgetAttributeValueJson = check pbAny:unpack(budgetAttributeValue);
+    JsonObject employeeAttributeValueJson = check pbAny:unpack(employeeAttributeValue);
+    io:println("Attribute value JSON: " + budgetAttributeValueJson.toString());
+    io:println("Attribute value JSON: " + employeeAttributeValueJson.toString());
+
+    // Extract the nested data field
+    string dataJsonString = <string>budgetAttributeValueJson["data"];
+    string employeeDataJsonString = <string>employeeAttributeValueJson["data"];
+    io:println("Budget data JSON string: " + dataJsonString);
+    io:println("Employee data JSON string: " + employeeDataJsonString);
+
+    // Parse the nested JSON string to get the actual tabular data
+    json dataJson = check dataJsonString.fromJsonString();
+    json employeeDataJson = check employeeDataJsonString.fromJsonString();
+    io:println("Budget data JSON: " + dataJson.toString());
+    io:println("Employee data JSON: " + employeeDataJson.toString());
+
+    // Compare the actual data content instead of exact JSON structure
+    verifyTabularData(dataJson, budgetData);
+    verifyTabularData(employeeDataJson, employeeData);
+
+    // Clean up
+    Empty _ = check ep->DeleteEntity({id: testId});
+    io:println("Test entity with tabular attributes deleted");
+
+    return;
+}
 
 
+@test:Config {}
+function testEntityWithTabularAttributesUpdate() returns error? {
+    // Initialize the client
+    CrudServiceClient ep = check new (testCrudServiceUrl);
+    
+    // Test data setup
+    string testId = "ID-MIN-A-UPDATE";
+    
+    // Create tabular data structure
+    json tabularData = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [
+            [1, "John Doe", 30, "Engineering", 75000.50],
+            [2, "Jane Smith", 25, "Marketing", 65000],
+            [3, "Bob Wilson", 35, "Sales", 85000.75],
+            [4, "Alice Brown", 28, "Engineering", 70000.25],
+            [5, "Charlie Davis", 32, "Finance", 80000]
+        ]
+    };
+
+    // Convert JSON to protobuf Any values
+    pbAny:Any tabularDataAny = check jsonToAny(tabularData);
+
+    // First: Create entity with just core values (no attributes, relationships, or metadata)
+    Entity createEntityRequest = {
+        id: testId,
+        kind: {
+            major: "Organization",
+            minor: "Minister"
+        },
+        created: "2025-11-01T00:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2025-11-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("Minister of Finance and Economy")
+        },
+        metadata: [],
+        attributes: [],
+        relationships: []
+    };
+
+    // Create entity via gRPC
+    Entity createEntityResponse = check ep->CreateEntity(createEntityRequest);
+    io:println("Entity created with ID: " + createEntityResponse.id);
+    test:assertTrue(createEntityResponse.id != "", "Entity should be created successfully");
+    test:assertEquals(createEntityResponse.id, testId, "Entity ID should match");
+
+    // Second: Update entity with attributes
+    Entity updateEntityRequest = {
+        id: testId,
+        kind: {
+            major: "Organization",
+            minor: "Minister"
+        },
+        created: "2025-11-01T00:00:00Z",
+        terminated: "",
+        name: {
+            startTime: "2025-11-01T00:00:00Z",
+            endTime: "",
+            value: check pbAny:pack("Minister of Finance and Economy")
+        },
+        metadata: [],
+        attributes: [
+            {
+                key: "employee_data",
+                value: {
+                    values: [
+                        {
+                            startTime: "2025-12-01T00:00:00Z",
+                            endTime: "",
+                            value: tabularDataAny
+                        }
+                    ]
+                }
+            }
+        ],
+        relationships: []
+    };
+
+    // Update entity with attributes
+    UpdateEntityRequest updateRequest = {
+        id: testId,
+        entity: updateEntityRequest
+    };
+    Entity updateEntityResponse = check ep->UpdateEntity(updateRequest);
+    io:println("Entity updated with attributes: " + updateEntityResponse.id);
+    test:assertTrue(updateEntityResponse.id != "", "Entity should be updated successfully");
+
+    // put a filter on the attributes
+    json tabularDataFilter = {
+        "columns": ["id", "name", "age", "department", "salary"],
+        "rows": [[]]
+    };
+    pbAny:Any tabularDataFilterAny = check jsonToAny(tabularDataFilter);
+
+    // Read entity to verify attributes
+    ReadEntityRequest readEntityRequest = {
+        entity: {
+            id: testId,
+            kind: {},
+            created: "",
+            terminated: "",
+            name: {
+                startTime: "",
+                endTime: "",
+                value: check pbAny:pack("")
+            },
+            metadata: [],
+            attributes: [
+                {
+                    key: "employee_data",
+                    value: {
+                        values: [
+                            {
+                                startTime: "",
+                                endTime: "",
+                                value: tabularDataFilterAny
+                            }
+                        ]
+                    }
+                }
+            ],
+            relationships: []
+        },
+        output: ["metadata", "attributes", "relationships"]
+    };
+
+    Entity readEntityResponse = check ep->ReadEntity(readEntityRequest);
+
+    // Verify the response
+    test:assertTrue(readEntityResponse.id != "", "Entity should be found");
+    test:assertEquals(readEntityResponse.id, testId, "Entity ID should match");
+
+    // Verify attributes are present
+    test:assertTrue(readEntityResponse.attributes.length() > 0, "Entity should have attributes");
+
+    var attributeValue = readEntityResponse.attributes[0].value.values[0].value;
+
+    JsonObject attributeValueJson = check pbAny:unpack(attributeValue);
+    io:println("Attribute value JSON: " + attributeValueJson.toString());
+
+    // Extract the nested data field
+    string dataJsonString = <string>attributeValueJson["data"];
+    io:println("Data JSON string: " + dataJsonString);
+
+    // Parse the nested JSON string to get the actual tabular data
+    json dataJson = check dataJsonString.fromJsonString();
+    io:println("Data JSON: " + dataJson.toString());
+
+    // Compare the actual data content instead of exact JSON structure
+    verifyTabularData(dataJson, tabularData);
+
+    // Clean up
+    Empty _ = check ep->DeleteEntity({id: testId});
+    io:println("Test entity with tabular attributes deleted");
+
+    return;
+}

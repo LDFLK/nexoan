@@ -9,6 +9,8 @@ import (
 
 	"lk/datafoundation/crud-api/pkg/typeinference"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
+	schema "lk/datafoundation/crud-api/pkg/schema"
+	commons "lk/datafoundation/crud-api/commons"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -427,21 +429,17 @@ func TestInsertSampleData(t *testing.T) {
 				Value:     dataStruct,
 			}
 
-			// Create attribute list
-			attributes := map[string]*pb.TimeBasedValueList{
-				tt.attrName: {
-					Values: []*pb.TimeBasedValue{timeBasedValue},
-				},
-			}
+			schemaInfo, err := schema.GenerateSchema(dataStruct)
+			assert.NoError(t, err, "Failed to generate schema")
 
 			// Handle attributes (this will create table and insert data)
-			err = HandleAttributes(ctx, repo, tt.entityID, attributes)
+			err = repo.HandleTabularData(ctx, tt.entityID, tt.attrName, timeBasedValue, schemaInfo)
 			assert.NoError(t, err, "Failed to handle attributes")
 
 			// Verify table exists
 			tableName := fmt.Sprintf("attr_%s_%s", 
-				sanitizeIdentifier(tt.entityID), 
-				sanitizeIdentifier(tt.attrName))
+				commons.SanitizeIdentifier(tt.entityID), 
+				commons.SanitizeIdentifier(tt.attrName))
 			exists, err := repo.TableExists(ctx, tableName)
 			assert.NoError(t, err, "Failed to check table existence")
 			assert.True(t, exists, "Table should exist")

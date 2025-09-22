@@ -1,0 +1,14 @@
+schemaVersion: 1.2
+endpoints:
+  - name: query-ep
+    displayName: Nexoan Query API
+    service:
+      basePath: /
+      port: 8081
+    type: REST
+    networkVisibilities: 
+      - Public
+dependencies:
+    connectionReferences:
+    - name: query-to-crud-con
+      resourceRef: service:/data-platform/core-api/v1/55a4d/PUBLIC

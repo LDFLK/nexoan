@@ -25,11 +25,10 @@ RUN echo "=========================================" \
 RUN mkdir -p /app/nexoan/query-api/target \
     && chmod -R 755 /app
 
-# Set environment variables
-ENV CRUD_SERVICE_HOST=${CRUD_SERVICE_HOST:-crud}
-ENV CRUD_SERVICE_PORT=${CRUD_SERVICE_PORT:-50051}
-ENV QUERY_SERVICE_HOST=${QUERY_SERVICE_HOST:-0.0.0.0}
-ENV QUERY_SERVICE_PORT=${QUERY_SERVICE_PORT:-8081}
+# Set environment variables for configurable strings
+ENV BAL_CONFIG_VAR_CRUDSERVICEURL=${BAL_CONFIG_VAR_CRUDSERVICEURL:-http://crud:50051}
+ENV BAL_CONFIG_VAR_QUERYSERVICEHOST=${BAL_CONFIG_VAR_QUERYSERVICEHOST:-0.0.0.0}
+ENV BAL_CONFIG_VAR_QUERYSERVICEPORT=${BAL_CONFIG_VAR_QUERYSERVICEPORT:-8081}
 
 # Build the Ballerina service
 RUN cd nexoan/query-api && \
@@ -40,8 +39,11 @@ EXPOSE 8081
 # Create a startup script that checks connectivity before running the service
 RUN printf '#!/bin/sh\n\
 echo "Waiting for CRUD service to be ready..."\n\
-until nc -z -w 5 ${CRUD_SERVICE_HOST} ${CRUD_SERVICE_PORT}; do\n\
-  echo "Waiting for CRUD service at ${CRUD_SERVICE_HOST}:${CRUD_SERVICE_PORT}..."\n\
+# Extract host and port from CRUD service URL for connectivity check\n\
+CRUD_HOST=$(echo ${BAL_CONFIG_VAR_CRUDSERVICEURL} | sed "s|http://||" | cut -d: -f1)\n\
+CRUD_PORT=$(echo ${BAL_CONFIG_VAR_CRUDSERVICEURL} | cut -d: -f3 | cut -d/ -f1)\n\
+until nc -z -w 5 ${CRUD_HOST} ${CRUD_PORT}; do\n\
+  echo "Waiting for CRUD service at ${CRUD_HOST}:${CRUD_PORT}..."\n\
   sleep 2\n\
 done\n\
 echo "CRUD service is ready!"\n\

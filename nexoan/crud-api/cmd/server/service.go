@@ -13,10 +13,12 @@ import (
 	mongorepository "lk/datafoundation/crud-api/db/repository/mongo"
 	neo4jrepository "lk/datafoundation/crud-api/db/repository/neo4j"
 	postgres "lk/datafoundation/crud-api/db/repository/postgres"
+	engine "lk/datafoundation/crud-api/engine"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Server implements the CrudService
@@ -61,13 +63,25 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 	}
 
 	// Handle attributes
-	err = postgres.HandleAttributes(ctx, s.postgresRepo, req.Id, req.Attributes)
-	if err != nil {
-		log.Printf("[server.CreateEntity] Error handling attributes: %v", err)
-		return nil, err
+	processor := engine.NewEntityAttributeProcessor()
+	attributeResults := processor.ProcessEntityAttributes(ctx, req, "create", nil)
+
+	// Check if any attributes failed
+	hasErrors := false
+	for attrName, result := range attributeResults {
+		if !result.Success || result.Error != nil {
+			log.Printf("[server.CreateEntity] Error handling attribute %s: %v", attrName, result.Error)
+			hasErrors = true
+		} else {
+			log.Printf("[server.CreateEntity] Successfully handled attribute %s for entity: %s", attrName, req.Id)
+		}
 	}
 
-	// Return the complete entity including attributes
+	if hasErrors {
+		log.Printf("[server.CreateEntity] Some attributes failed to process")
+		// Continue processing - don't fail the entire operation for attribute errors
+	}
+
 	return req, nil
 }
 
@@ -155,9 +169,56 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			}
 
 		case "attributes":
-			// TODO: Implement attribute fetching when available
-			log.Printf("Attribute fetching not yet implemented")
-			// Attributes map is already initialized
+			log.Printf("Processing attributes for entity: %s", req.Entity.Id)
+
+			// TODO: Fetch the actual entity with attributes from storage
+			// For now, create a minimal entity with test attributes to demonstrate the conversion
+
+			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
+
+			// Use the EntityAttributeProcessor to read and process attributes
+			processor := engine.NewEntityAttributeProcessor()
+
+			// Extract fields from the request attributes based on storage type
+			fields := extractFieldsFromAttributes(req.Entity.Attributes)
+			log.Printf("Extracted fields from attributes: %v", fields)
+
+			readOptions := engine.NewReadOptions(make(map[string]interface{}), fields...)
+
+			// Process the entity with attributes to get the results map
+			attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "read", readOptions)
+
+			log.Printf("[server.ReadEntity] Successfully processed attributes for entity: %s, results: %+v", req.Entity.Id, attributeResults)
+
+			// Convert the results map back to TimeBasedValueList and attach to response.Attributes
+			for attrName, result := range attributeResults {
+				log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s, result: %+v", attrName, req.Entity.Id, result)
+				if result.Success && result.Data != nil {
+					// Convert the result data back to TimeBasedValue format
+					if timeBasedValue, ok := result.Data.(*pb.TimeBasedValue); ok {
+						// If the data is already in TimeBasedValue format, use it directly
+						log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s", attrName, req.Entity.Id)
+						response.Attributes[attrName] = &pb.TimeBasedValueList{
+							Values: []*pb.TimeBasedValue{timeBasedValue},
+						}
+					} else {
+						// Convert other data types to TimeBasedValue format
+						log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s", attrName, req.Entity.Id)
+						response.Attributes[attrName] = &pb.TimeBasedValueList{
+							Values: []*pb.TimeBasedValue{
+								{
+									StartTime: "",
+									EndTime:   "",
+									Value: &anypb.Any{
+										TypeUrl: "type.googleapis.com/google.protobuf.StringValue",
+										Value:   []byte(fmt.Sprintf("%v", result.Data)),
+									},
+								},
+							},
+						}
+					}
+				}
+			}
 
 		case "kind", "name", "created", "terminated":
 			// These fields are already fetched at the start
@@ -203,6 +264,32 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 		log.Printf("[server.UpdateEntity] Error updating relationships for entity %s: %v", updateEntityID, err)
 		// Continue processing despite error
 	}
+
+	// Handle attributes
+	processor := engine.NewEntityAttributeProcessor()
+	// Note that in the perspective of the attribute this is a creation operation
+	// The entity is already there but here the attribute is set later. 
+	// There is no alignment of update operation with the attribute.
+	// TODO: https://github.com/LDFLK/nexoan/issues/286
+	attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "create", nil)
+
+	// Check if any attributes failed
+	hasErrors := false
+	for attrName, result := range attributeResults {
+		if !result.Success || result.Error != nil {
+			log.Printf("[server.CreateEntity] Error handling attribute %s: %v", attrName, result.Error)
+			hasErrors = true
+		} else {
+			log.Printf("[server.CreateEntity] Successfully handled attribute %s for entity: %s", attrName, req.Id)
+		}
+	}
+
+	if hasErrors {
+		log.Printf("[server.CreateEntity] Some attributes failed to process")
+		// Continue processing - don't fail the entire operation for attribute errors
+	}
+
+	// Prepare the Update Response
 
 	// Read entity data from Neo4j to include in response
 	kind, name, created, terminated, _ := s.neo4jRepo.GetGraphEntity(ctx, updateEntityID)
@@ -293,6 +380,119 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 	return &pb.EntityList{
 		Entities: entities,
 	}, nil
+}
+
+// extractFieldsFromAttributes extracts field names from entity attributes based on storage type
+// TODO: Limitation in multi-value attribute reads. 
+// FIXME: https://github.com/LDFLK/nexoan/issues/285
+func extractFieldsFromAttributes(attributes map[string]*pb.TimeBasedValueList) []string {
+	var fields []string
+
+	for attrName, attrValueList := range attributes {
+		if attrValueList == nil || len(attrValueList.Values) == 0 {
+			continue
+		}
+
+		// Get the first value to determine storage type
+		value := attrValueList.Values[0]
+		if value == nil || value.Value == nil {
+			continue
+		}
+
+		// Determine storage type and extract fields accordingly
+		storageType, err := determineStorageTypeFromValue(value.Value)
+		if err != nil {
+			log.Printf("Warning: could not determine storage type for attribute %s: %v", attrName, err)
+			continue
+		}
+
+		switch storageType {
+		case "tabular":
+			// For tabular data, extract columns from the attribute value
+			if columns, err := extractColumnsFromTabularAttribute(value.Value); err == nil {
+				fields = append(fields, columns...)
+			} else {
+				log.Printf("Warning: could not extract columns from tabular attribute %s: %v", attrName, err)
+			}
+		case "graph":
+			// TODO: Handle graph data fields
+			log.Printf("Graph data fields extraction not implemented yet for attribute %s", attrName)
+		case "map":
+			// TODO: Handle document/map data fields
+			log.Printf("Document data fields extraction not implemented yet for attribute %s", attrName)
+		default:
+			log.Printf("Unknown storage type %s for attribute %s", storageType, attrName)
+		}
+	}
+
+	return fields
+}
+
+// determineStorageTypeFromValue determines the storage type from a protobuf Any value
+func determineStorageTypeFromValue(anyValue *anypb.Any) (string, error) {
+	// Unpack the Any value to get the underlying message
+	message, err := anyValue.UnmarshalNew()
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal Any value: %v", err)
+	}
+
+	// Check if it's a struct
+	if structValue, ok := message.(*structpb.Struct); ok {
+		// Check for tabular structure (has both "columns" and "rows" fields)
+		if _, hasColumns := structValue.Fields["columns"]; hasColumns {
+			if _, hasRows := structValue.Fields["rows"]; hasRows {
+				return "tabular", nil
+			}
+		}
+
+		// Check for graph structure (has both "nodes" and "edges" fields)
+		if _, hasNodes := structValue.Fields["nodes"]; hasNodes {
+			if _, hasEdges := structValue.Fields["edges"]; hasEdges {
+				return "graph", nil
+			}
+		}
+
+		// If it has fields but not the specific structures above, treat as map/document
+		if len(structValue.Fields) > 0 {
+			return "map", nil
+		}
+	}
+
+	return "unknown", nil
+}
+
+// extractColumnsFromTabularAttribute extracts column names from a tabular attribute value
+func extractColumnsFromTabularAttribute(anyValue *anypb.Any) ([]string, error) {
+	// Unpack the Any value to get the underlying message
+	message, err := anyValue.UnmarshalNew()
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Any value: %v", err)
+	}
+
+	// Check if it's a struct
+	structValue, ok := message.(*structpb.Struct)
+	if !ok {
+		return nil, fmt.Errorf("expected struct value")
+	}
+
+	// Get the columns field
+	columnsField, exists := structValue.Fields["columns"]
+	if !exists {
+		return nil, fmt.Errorf("no columns field found")
+	}
+
+	// Extract column names from the list value
+	listValue := columnsField.GetListValue()
+	if listValue == nil {
+		return nil, fmt.Errorf("columns field is not a list")
+	}
+
+	columns := make([]string, len(listValue.Values))
+	for i, col := range listValue.Values {
+		columns[i] = col.GetStringValue()
+	}
+
+	return columns, nil
 }
 
 // Start the gRPC server

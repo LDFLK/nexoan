@@ -3,20 +3,32 @@
 
 import ballerina/http;
 import ballerina/protobuf.types.'any;
-import ballerina/os;
+import ballerina/grpc;
 import ballerina/lang.'int as langint;
 import ballerina/io;
 import ballerina/protobuf.types.'any as pbAny;
 
-string crudHostname = os:getEnv("CRUD_SERVICE_HOST");
-string queryHostname = os:getEnv("QUERY_SERVICE_HOST");
-string crudPort = os:getEnv("CRUD_SERVICE_PORT");
-string queryPort = os:getEnv("QUERY_SERVICE_PORT");
+// BAL_CONFIG_VAR_CRUDSERVICEURL
+configurable string crudServiceUrl = "http://localhost:50051";
+// BAL_CONFIG_VAR_QUERYSERVICEHOST
+configurable string queryServiceHost = "0.0.0.0";
+// BAL_CONFIG_VAR_QUERYSERVICEPORT
+configurable string queryServicePort = "8081";
 
-listener http:Listener ep0 = new (check langint:fromString(queryPort), config = {host: queryHostname});
+listener http:Listener ep0 = new (check langint:fromString(queryServicePort), config = {
+    host: queryServiceHost,
+    httpVersion: http:HTTP_2_0
+});
 
-string crudServiceUrl = "http://" + crudHostname + ":" + crudPort;
-CrudServiceClient ep = check new (crudServiceUrl);
+// Create gRPC client with proper configuration for HTTP/2
+grpc:ClientConfiguration grpcConfig = {
+    timeout: 300000, // 5 minutes timeout
+    secureSocket: {
+        enable: false // Disable TLS for insecure connection
+    }
+};
+
+CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
 
 // Helper function to extract string representation based on typeUrl
 function extractValueAsString('any:Any anyValue) returns string {
@@ -39,11 +51,104 @@ function extractValueAsString('any:Any anyValue) returns string {
     }
 }
 
+// Helper function to convert decimal values to float for protobuf compatibility
+// Note that this is a temporary solution to convert decimal values to float for protobuf compatibility.
+// It is not a permanent solution and should be removed when the protobuf library is updated to support decimal values.
+// FIXME: https://github.com/LDFLK/nexoan/issues/287
+function decimalToFloat(json data) returns json {
+    if data is decimal {
+        // Convert decimal to float for protobuf compatibility
+        return <float>data;
+    } else if data is json[] {
+        // Handle arrays - recursively convert each element
+        json[] convertedArray = [];
+        foreach var item in data {
+            convertedArray.push(decimalToFloat(item));
+        }
+        return convertedArray;
+    } else if data is map<json> {
+        // Handle maps - recursively convert each value
+        map<json> convertedMap = {};
+        foreach var [key, value] in data.entries() {
+            convertedMap[key] = decimalToFloat(value);
+        }
+        return convertedMap;
+    } else {
+        // For other types (int, string, boolean, etc.), return as-is
+        return data;
+    }
+}
+
+// Helper function to convert JSON to protobuf Any value
+function makeFilter(json data) returns pbAny:Any|error {
+    // First, convert any decimal values to float for protobuf compatibility
+    // FIXME: https://github.com/LDFLK/nexoan/issues/287
+    json convertedData = decimalToFloat(data);
+
+    if convertedData is int {
+        // For integer values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is float {
+        // For float values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is string {
+        // For string values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is boolean {
+        // For boolean values
+        map<json> structMap = {
+            "value": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is () {
+        // For null values
+        map<json> structMap = {
+            "null_value": ()
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is json[] {
+        // For arrays, wrap in a list_value structure
+        map<json> structMap = {
+            "values": convertedData
+        };
+        return pbAny:pack(structMap);
+    } else if convertedData is map<json> {
+        // For objects, pack directly as structured data instead of converting to string
+        return pbAny:pack(convertedData);
+    } else {
+        return error("Unsupported data type: " + convertedData.toString());
+    }
+}
+
 service /v1 on ep0 {
     # Get entity attribute
     #
     # + return - Attribute value(s) 
-    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime) returns record {string 'start?; string end?; string value?;}|record {string 'start?; string end?; string value?;}[]|http:NotFound|error {
+    resource function get entities/[string entityId]/attributes/[string attributeName](string? startTime, string? endTime, string[]? fields) returns record {string 'start?; string end?; string value?;}|record {string 'start?; string end?; string value?;}[]|http:NotFound|error {
+        // Set default fields value to ["*"] if not provided or if empty array
+        string[] fieldsToUse = (fields == () || fields.length() == 0) ? [] : fields;
+
+        // TODO: Pass fieldsToUse to the backend for field filtering
+        // This requires updating the ReadEntityRequest protobuf definition
+        // to include a fields parameter for attribute filtering
+        io:println("Fields parameter (defaulting to all fields): " + fieldsToUse.toString());
+
+        json attributeValueFilter = {
+            "columns": fieldsToUse,
+            "rows": [[]]
+        };
+
+        pbAny:Any attributeValueFilterAny = check makeFilter(attributeValueFilter);
+
         // Create entity filter with specific attribute and time range
         Entity entityFilter = {
             id: entityId,
@@ -70,10 +175,7 @@ service /v1 on ep0 {
                             {
                                 startTime: startTime ?: "",
                                 endTime: endTime ?: "",
-                                value: {
-                                    typeUrl: "type.googleapis.com/google.protobuf.StringValue",
-                                    value: ""
-                                }
+                                value: attributeValueFilterAny
                             }
                         ]
                     }
