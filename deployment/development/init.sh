@@ -501,7 +501,7 @@ restore_neo4j() {
     fi
     
     # Get Neo4j data volume path
-    local neo4j_volume=$(docker volume inspect ldfarchitecture_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
+    local neo4j_volume=$(docker volume inspect nexoan_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
     if [ -z "$neo4j_volume" ]; then
         log "ERROR" "Could not find Neo4j data volume"
         return 1
@@ -847,7 +847,7 @@ backup_neo4j() {
     fi
     
     # Get Neo4j data volume path
-    local neo4j_volume=$(docker volume inspect ldfarchitecture_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
+    local neo4j_volume=$(docker volume inspect nexoan_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
     if [ -z "$neo4j_volume" ]; then
         log "ERROR" "Could not find Neo4j data volume"
         return 1
