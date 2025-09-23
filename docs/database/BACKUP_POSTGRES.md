@@ -266,6 +266,12 @@ docker exec postgres psql -U postgres -c "SELECT pg_size_pretty(pg_database_size
 docker exec postgres psql -U postgres -c "SELECT * FROM pg_stat_activity;"
 ```
 
+## Restoring in Neon 
+
+```bash
+psql "<connection-string-from-neon>" -f <path-to-backup-folder>/nexoan.sql
+```
+
 ## Best Practices
 
 ### 1. Regular Backups

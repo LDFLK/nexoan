@@ -318,6 +318,14 @@ docker exec mongodb mongo --eval "db.stats()"
 docker exec mongodb mongo --eval "db.your_collection.count()"
 ```
 
+## Restore to Mongodb Atlas
+
+Note that this dump must be taken from Nexoan dump program. 
+
+```bash
+mongorestore --uri="<mongodb-service-uri>" --db=nexoan --drop "<path-to-the-dump-folder>"
+```
+
 ## Best Practices
 
 ### 1. Regular Backups
