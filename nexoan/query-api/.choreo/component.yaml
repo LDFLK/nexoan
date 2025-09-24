@@ -8,3 +8,7 @@ endpoints:
     type: REST
     networkVisibilities: 
       - Public
+dependencies:
+    connectionReferences:
+    - name: query-to-core
+      resourceRef: service:/data-platform/core-api/v1/97559/PUBLIC
