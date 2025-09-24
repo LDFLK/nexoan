@@ -8,7 +8,3 @@ endpoints:
     type: REST
     networkVisibilities: 
       - Public
-dependencies:
-    connectionReferences:
-    - name: query-to-crud-con
-      resourceRef: service:/data-platform/core-api/v1/55a4d/PUBLIC
