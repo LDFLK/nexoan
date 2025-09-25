@@ -35,3 +35,12 @@ and a few file mounts to make things work.
 When deploying the CRUD service on thing to note is that GRPC services are not exposed through the Gateway in Choreo. So we have to choose the `PROJECT_URL` from `Manage`->`Overview` tabs in Choreo
 console. Make sure to extract that URL and use it as the `crudServiceURL` config in both `Update` API and
 `Query` API services.
+
+### Choreo Configuration Groups
+
+Note that when you add variables to your deployment configurations through Choreo Configuration Groups, 
+it is a must to remove the prefix added during the deployment time, otherwise, the code won't be able to interpret it. 
+
+For instance if you set `DB_URI` as a config parameter, once you link the configuration group to your deployment, it will have a mapping `Environment Variable` -> `Configuration Param` as follows. And let's assume your component is `SERVICE`.
+
+`SERVICE_ENV_VAR_DB_URI` and we need to remove `SERVICE_ENV_VAR` from it to make sure the code can understand it.

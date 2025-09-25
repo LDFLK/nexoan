@@ -72,12 +72,10 @@ RUN groupadd -g 10014 choreo && \
     chmod -R 755 /home/choreouser
 
 # Download dependencies
-RUN cd nexoan/crud-api && \
-    go mod download
+RUN go mod download
 
 # Build the application as a static binary
-RUN cd nexoan/crud-api && \
-    CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o crud-service cmd/server/service.go cmd/server/utils.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o crud-service cmd/server/service.go cmd/server/utils.go
 
 # Final stage
 FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.24
@@ -111,8 +109,8 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Copy the built binary to PATH and the entire crud-api directory
-COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
-COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
+COPY --from=builder /app/crud-service /usr/local/bin/
+COPY --from=builder /app /app/nexoan/crud-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 

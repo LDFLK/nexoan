@@ -13,6 +13,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_choreo_data:/data/db
+      - mongodb_choreo_config:/data/configdb
+      - mongodb_choreo_backup:/data/backup
     networks:
       - choreo-network
     environment:
@@ -28,8 +30,8 @@ services:
       test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
   neo4j-choreo:
     platform: linux/amd64
@@ -125,7 +127,7 @@ services:
   cleanup-choreo:
     platform: linux/amd64
     build:
-      context: .
+      context: ./deployment/docker/cleanup
       dockerfile: Dockerfile.cleanup.choreo
     container_name: cleanup-choreo
     networks:
@@ -151,7 +153,7 @@ services:
   crud-choreo:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/crud-api
       dockerfile: Dockerfile.crud.choreo
     container_name: crud-choreo
     ports:
@@ -195,7 +197,7 @@ services:
   update-choreo:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/update-api
       dockerfile: Dockerfile.update.choreo
     container_name: update-choreo
     ports:
@@ -219,7 +221,7 @@ services:
   query-choreo:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/query-api
       dockerfile: Dockerfile.query.choreo
     container_name: query-choreo
     ports:
@@ -272,6 +274,8 @@ networks:
 
 volumes:
   mongodb_choreo_data:
+  mongodb_choreo_config:
+  mongodb_choreo_backup:
   neo4j_choreo_data:
   neo4j_choreo_logs:
   postgres_choreo_data:
