@@ -1,7 +1,11 @@
 # Nexoan
 
 > 💡 **Note (α)**  
-> Name needs to be proposed, voted and finalized. 
+> Name needs to be proposed, voted and finalized.
+
+## 📚 Documentation
+
+📖 **[View Complete Documentation](docs/README.md)** - Architecture, data types, storage formats, deployment guides, and more.
 
 ## 🚀 Running Services
 

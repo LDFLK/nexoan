@@ -19,7 +19,7 @@ Welcome to the Nexoan data management system documentation. This folder contains
 - **[PostgreSQL Backup](database/BACKUP_POSTGRES.md)** - PostgreSQL backup and restore procedures
 
 #### Deployment
-- **[Backup Integration](deployment/BACKUP_INTEGRATION.md)** - Instructions on running the script for backing up and restoring from github all databases.
+- **[Backup Integration](deployment/BACKUP_INTEGRATION.md)** - Instructions on running the script for backing up and restoring all databases from github.
 
 ### Development & Operations
 
