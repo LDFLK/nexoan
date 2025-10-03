@@ -57,7 +57,7 @@ This will look something like the following:
 If you are using an standalone Docker container built on top of an exisitng neo4j image with volumes named
 `/var/lib/docker/volumes/neo4j_data/_data`
 
-Or if you are using the `docker-compose.yml` to build you will see the volume as `ldfarchitecture_neo4j_data`.
+Or if you are using the `docker-compose.yml` to build you will see the volume as `ldfarchitecture_neo4j_data` or `nexoan_neo4j_data`.
 
 Set this as `NEO4J_CONTAINER_DATA_VOLUME`
 
