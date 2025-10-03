@@ -57,7 +57,7 @@ This will look something like the following:
 If you are using an standalone Docker container built on top of an exisitng neo4j image with volumes named
 `/var/lib/docker/volumes/neo4j_data/_data`
 
-Or if you are using the `docker-compose.yml` to build you will see the volume as `ldfarchitecture_neo4j_data`.
+Or if you are using the `docker-compose.yml` to build you will see the volume as `ldfarchitecture_neo4j_data` or `nexoan_neo4j_data`.
 
 Set this as `NEO4J_CONTAINER_DATA_VOLUME`
 
@@ -152,6 +152,19 @@ neo4j-admin database upload neo4j \
 - `/Users/your_username/Documents/neo4j_dump` with the correct path to your local folder with the dump file.
 - `<neo4j_uri>`,`<neo4j_user>`,`<neo4j_password>` with your actual aura db credentials
 
-### 5. Verify the Migration
 
-Connect to your Neo4j Aura instance and verify that the new data has been inserted.
+### 7. OR Upload the Dump to Neo4j Local DB
+
+Run the following command to upload the dump to your local Neo4j instance:
+
+```bash
+docker run --interactive --tty --rm \
+  --volume ${NEO4J_CONTAINER_DATA_VOLUME}:/data \
+  --volume ${NEO4J_BACKUP_DIR}:/backups \
+  neo4j/neo4j-admin:5 \
+  neo4j-admin database load neo4j --from-path=/backups --overwrite-destination=true
+```
+
+### 8. Verify the Migration
+
+Connect to your Neo4j instance and verify that the new data has been inserted.
