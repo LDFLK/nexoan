@@ -236,17 +236,23 @@ restore_mongodb() {
     log "INFO" "Starting MongoDB restore..."
     source ../../configs/backup.env
     
-    local backup_dir="${MONGODB_BACKUP_DIR:-./backups/mongodb}"
+    # Accept optional backup file path parameter
+    local backup_file="$1"
     
-    if [ ! -d "$backup_dir" ]; then
-        log "ERROR" "Backup directory not found: $backup_dir"
-        return 1
+    # If no parameter provided, use default backup directory
+    if [ -z "$backup_file" ]; then
+        local backup_dir="${MONGODB_BACKUP_DIR:-./backups/mongodb}"
+        
+        if [ ! -d "$backup_dir" ]; then
+            log "ERROR" "Backup directory not found: $backup_dir"
+            return 1
+        fi
+        
+        log "INFO" "Using backup directory: $backup_dir"
+        
+        # Look for nexoan.tar.gz file
+        backup_file="$backup_dir/nexoan.tar.gz"
     fi
-    
-    log "INFO" "Using backup directory: $backup_dir"
-    
-    # Look for nexoan.tar.gz file
-    local backup_file="$backup_dir/nexoan.tar.gz"
     
     if [ ! -f "$backup_file" ]; then
         log "ERROR" "Backup file not found: $backup_file"
@@ -390,17 +396,23 @@ restore_postgres() {
     log "INFO" "Starting PostgreSQL restore..."
     source ../../configs/backup.env
     
-    local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
+    # Accept optional backup file path parameter
+    local backup_file="$1"
     
-    if [ ! -d "$backup_dir" ]; then
-        log "ERROR" "Backup directory not found: $backup_dir"
-        return 1
+    # If no parameter provided, use default backup directory
+    if [ -z "$backup_file" ]; then
+        local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
+        
+        if [ ! -d "$backup_dir" ]; then
+            log "ERROR" "Backup directory not found: $backup_dir"
+            return 1
+        fi
+        
+        log "INFO" "Using backup directory: $backup_dir"
+        
+        # Look for nexoan.tar.gz file
+        backup_file="$backup_dir/nexoan.tar.gz"
     fi
-    
-    log "INFO" "Using backup directory: $backup_dir"
-    
-    # Look for nexoan.tar.gz file
-    local backup_file="$backup_dir/nexoan.tar.gz"
     
     if [ ! -f "$backup_file" ]; then
         log "ERROR" "Backup file not found: $backup_file"
@@ -463,17 +475,23 @@ restore_neo4j() {
     log "INFO" "Starting Neo4j restore..."
     source ../../configs/backup.env
     
-    local backup_dir="${NEO4J_BACKUP_DIR:-./backups/neo4j}"
+    # Accept optional backup file path parameter
+    local backup_file="$1"
     
-    if [ ! -d "$backup_dir" ]; then
-        log "ERROR" "Backup directory not found: $backup_dir"
-        return 1
+    # If no parameter provided, use default backup directory
+    if [ -z "$backup_file" ]; then
+        local backup_dir="${NEO4J_BACKUP_DIR:-./backups/neo4j}"
+        
+        if [ ! -d "$backup_dir" ]; then
+            log "ERROR" "Backup directory not found: $backup_dir"
+            return 1
+        fi
+        
+        log "INFO" "Using backup directory: $backup_dir"
+        
+        # Look for neo4j.dump file
+        backup_file="$backup_dir/neo4j.dump"
     fi
-    
-    log "INFO" "Using backup directory: $backup_dir"
-    
-    # Look for neo4j.dump file
-    local backup_file="$backup_dir/neo4j.dump"
     
     if [ ! -f "$backup_file" ]; then
         log "ERROR" "Backup file not found: $backup_file"
@@ -714,13 +732,7 @@ restore_from_github() {
     log "INFO" "Processing Neo4j backup..."
     local neo4j_file="$archive_dir/nexoan/version/$version/$environment/neo4j/neo4j.dump"
     if [ -f "$neo4j_file" ]; then
-        # Copy Neo4j backup to the expected backup directory
-        local neo4j_backup_dir="${NEO4J_BACKUP_DIR:-./backups/neo4j}"
-        mkdir -p "$neo4j_backup_dir"
-        cp "$neo4j_file" "$neo4j_backup_dir/"
-        log "INFO" "Copied Neo4j backup to: $neo4j_backup_dir/neo4j.dump"
-        
-        if restore_neo4j; then
+        if restore_neo4j "$neo4j_file"; then
             results="${results}neo4j:true,"
             log "SUCCESS" "Neo4j restored successfully"
         else
