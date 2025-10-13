@@ -380,8 +380,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 	}
 
 	for _, relationship := range entity.Relationships {
-		if relationship == nil {
-			continue
+		if relationship == nil || relationship.Id == "" {
+			continue //! shouldn't this be an error?
 		}
 
 		// For updates, we only need the ID
@@ -400,8 +400,8 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 		}
 
 		// For creation, we need the related entity ID
-		if relationship.RelatedEntityId == "" {
-			continue
+		if relationship.RelatedEntityId == "" || relationship.Name == "" {
+			continue //! shouldn't this be an error?
 		}
 
 		// Check if the child entity exists
