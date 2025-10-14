@@ -262,7 +262,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	err = s.neo4jRepo.HandleGraphRelationshipsUpdate(ctx, updateEntity)
 	if err != nil {
 		log.Printf("[server.UpdateEntity] Error updating relationships for entity %s: %v", updateEntityID, err)
-		return nil, err
+		return nil, fmt.Errorf("error updating relationships for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle attributes
