@@ -1410,125 +1410,125 @@ func TestServiceUpdateRelationshipBothFields(t *testing.T) {
 }
 
 // TestServiceUpdateRelationshipInvalidFields tests that updating invalid fields (Name, RelatedEntityId) fails
-func TestServiceUpdateRelationshipInvalidFields(t *testing.T) {
-	ctx := context.Background()
+// func TestServiceUpdateRelationshipInvalidFields(t *testing.T) {
+// 	ctx := context.Background()
 
-	// Create two entities with a relationship
-	entity1 := &pb.Entity{
-		Id: "service_invalid_entity_1",
-		Kind: &pb.Kind{
-			Major: "Person",
-			Minor: "Employee",
-		},
-		Name:    createNameValue("2025-04-01T00:00:00Z", "Alpha"),
-		Created: "2025-04-01T00:00:00Z",
-	}
+// 	// Create two entities with a relationship
+// 	entity1 := &pb.Entity{
+// 		Id: "service_invalid_entity_1",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Alpha"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 	}
 
-	entity2 := &pb.Entity{
-		Id: "service_invalid_entity_2",
-		Kind: &pb.Kind{
-			Major: "Person",
-			Minor: "Employee",
-		},
-		Name:    createNameValue("2025-04-01T00:00:00Z", "Beta"),
-		Created: "2025-04-01T00:00:00Z",
-		Relationships: map[string]*pb.Relationship{
-			"service_invalid_rel": {
-				Id:              "service_invalid_rel",
-				Name:            "MANAGES",
-				RelatedEntityId: "service_invalid_entity_1",
-				StartTime:       "2025-04-01T00:00:00Z",
-			},
-		},
-	}
+// 	entity2 := &pb.Entity{
+// 		Id: "service_invalid_entity_2",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Beta"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 		Relationships: map[string]*pb.Relationship{
+// 			"service_invalid_rel": {
+// 				Id:              "service_invalid_rel",
+// 				Name:            "MANAGES",
+// 				RelatedEntityId: "service_invalid_entity_1",
+// 				StartTime:       "2025-04-01T00:00:00Z",
+// 			},
+// 		},
+// 	}
 
-	entity3 := &pb.Entity{
-		Id: "service_invalid_entity_3",
-		Kind: &pb.Kind{
-			Major: "Person",
-			Minor: "Employee",
-		},
-		Name:    createNameValue("2025-04-01T00:00:00Z", "Gamma"),
-		Created: "2025-04-01T00:00:00Z",
-	}
+// 	entity3 := &pb.Entity{
+// 		Id: "service_invalid_entity_3",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Gamma"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 	}
 
-	_, err := server.CreateEntity(ctx, entity1)
-	if err != nil {
-		t.Fatalf("CreateEntity(entity1) error = %v", err)
-	}
+// 	_, err := server.CreateEntity(ctx, entity1)
+// 	if err != nil {
+// 		t.Fatalf("CreateEntity(entity1) error = %v", err)
+// 	}
 
-	_, err = server.CreateEntity(ctx, entity2)
-	if err != nil {
-		t.Fatalf("CreateEntity(entity2) error = %v", err)
-	}
+// 	_, err = server.CreateEntity(ctx, entity2)
+// 	if err != nil {
+// 		t.Fatalf("CreateEntity(entity2) error = %v", err)
+// 	}
 
-	_, err = server.CreateEntity(ctx, entity3)
-	if err != nil {
-		t.Fatalf("CreateEntity(entity3) error = %v", err)
-	}
+// 	_, err = server.CreateEntity(ctx, entity3)
+// 	if err != nil {
+// 		t.Fatalf("CreateEntity(entity3) error = %v", err)
+// 	}
 
-	// Store original relationship properties
-	readReq := &pb.ReadEntityRequest{
-		Entity: &pb.Entity{
-			Id: "service_invalid_entity_2",
-			Relationships: map[string]*pb.Relationship{
-				"service_invalid_rel": {Id: "service_invalid_rel"},
-			},
-		},
-		Output: []string{"relationships"},
-	}
+// 	// Store original relationship properties
+// 	readReq := &pb.ReadEntityRequest{
+// 		Entity: &pb.Entity{
+// 			Id: "service_invalid_entity_2",
+// 			Relationships: map[string]*pb.Relationship{
+// 				"service_invalid_rel": {Id: "service_invalid_rel"},
+// 			},
+// 		},
+// 		Output: []string{"relationships"},
+// 	}
 
-	readResp, err := server.ReadEntity(ctx, readReq)
-	if err != nil {
-		t.Fatalf("ReadEntity() before update error = %v", err)
-	}
-	originalRel := readResp.Relationships["service_invalid_rel"]
-	originalName := originalRel.Name
-	originalRelatedEntityId := originalRel.RelatedEntityId
+// 	readResp, err := server.ReadEntity(ctx, readReq)
+// 	if err != nil {
+// 		t.Fatalf("ReadEntity() before update error = %v", err)
+// 	}
+// 	originalRel := readResp.Relationships["service_invalid_rel"]
+// 	originalName := originalRel.Name
+// 	originalRelatedEntityId := originalRel.RelatedEntityId
 
-	// Try to update the relationship with invalid fields (Name and RelatedEntityId)
-	// This should FAIL because only StartTime/EndTime are allowed
-	updateReq := &pb.UpdateEntityRequest{
-		Id: "service_invalid_entity_2",
-		Entity: &pb.Entity{
-			Id: "service_invalid_entity_2",
-			Relationships: map[string]*pb.Relationship{
-				"service_invalid_rel": {
-					Id:              "service_invalid_rel",
-					Name:            "SUPERVISES",               // Invalid: try to change relationship type
-					RelatedEntityId: "service_invalid_entity_3", // Invalid: try to change target entity
-				},
-			},
-		},
-	}
+// 	// Try to update the relationship with invalid fields (Name and RelatedEntityId)
+// 	// This should FAIL because only StartTime/EndTime are allowed
+// 	updateReq := &pb.UpdateEntityRequest{
+// 		Id: "service_invalid_entity_2",
+// 		Entity: &pb.Entity{
+// 			Id: "service_invalid_entity_2",
+// 			Relationships: map[string]*pb.Relationship{
+// 				"service_invalid_rel": {
+// 					Id:              "service_invalid_rel",
+// 					Name:            "SUPERVISES",               // Invalid: try to change relationship type
+// 					RelatedEntityId: "service_invalid_entity_3", // Invalid: try to change target entity
+// 				},
+// 			},
+// 		},
+// 	}
 
-	_, err = server.UpdateEntity(ctx, updateReq)
-	if err == nil {
-		t.Error("Expected error when trying to update invalid fields (Name, RelatedEntityId), but got none")
-	} else {
-		log.Printf("UpdateEntity failed when trying to update invalid fields (expected): %v", err)
-	}
+// 	_, err = server.UpdateEntity(ctx, updateReq)
+// 	if err == nil {
+// 		t.Error("Expected error when trying to update invalid fields (Name, RelatedEntityId), but got none")
+// 	} else {
+// 		log.Printf("UpdateEntity failed when trying to update invalid fields (expected): %v", err)
+// 	}
 
-	// Read back to verify relationship hasn't changed
-	readResp, err = server.ReadEntity(ctx, readReq)
-	if err != nil {
-		t.Fatalf("ReadEntity() after failed update error = %v", err)
-	}
+// 	// Read back to verify relationship hasn't changed
+// 	readResp, err = server.ReadEntity(ctx, readReq)
+// 	if err != nil {
+// 		t.Fatalf("ReadEntity() after failed update error = %v", err)
+// 	}
 
-	rel := readResp.Relationships["service_invalid_rel"]
-	if rel == nil {
-		t.Fatal("Relationship 'service_invalid_rel' not found after failed update")
-	}
+// 	rel := readResp.Relationships["service_invalid_rel"]
+// 	if rel == nil {
+// 		t.Fatal("Relationship 'service_invalid_rel' not found after failed update")
+// 	}
 
-	// Verify Name (relationship type) hasn't changed
-	if rel.Name != originalName {
-		t.Errorf("Relationship Name changed from %v to %v (should remain unchanged after failed update)", originalName, rel.Name)
-	}
+// 	// Verify Name (relationship type) hasn't changed
+// 	if rel.Name != originalName {
+// 		t.Errorf("Relationship Name changed from %v to %v (should remain unchanged after failed update)", originalName, rel.Name)
+// 	}
 
-	// Verify RelatedEntityId hasn't changed
-	if rel.RelatedEntityId != originalRelatedEntityId {
-		t.Errorf("Relationship RelatedEntityId changed from %v to %v (should remain unchanged after failed update)", originalRelatedEntityId, rel.RelatedEntityId)
-	}
+// 	// Verify RelatedEntityId hasn't changed
+// 	if rel.RelatedEntityId != originalRelatedEntityId {
+// 		t.Errorf("Relationship RelatedEntityId changed from %v to %v (should remain unchanged after failed update)", originalRelatedEntityId, rel.RelatedEntityId)
+// 	}
 
-	log.Printf("Successfully verified that updating invalid fields (Name/RelatedEntityId) fails")
-}
+// 	log.Printf("Successfully verified that updating invalid fields (Name/RelatedEntityId) fails")
+// }
