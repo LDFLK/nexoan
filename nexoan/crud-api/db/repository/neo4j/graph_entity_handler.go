@@ -381,58 +381,97 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 
 	for _, relationship := range entity.Relationships {
 		if relationship == nil || relationship.Id == "" {
-			continue //! shouldn't this be an error?
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Skipping relationship with empty ID")
+			continue
 		}
 
-		// For updates, we only need the ID
-		if relationship.Id != "" {
-			relationshipData := map[string]interface{}{}
+		// Check if the relationship exists
+		existingRel, err := repo.ReadRelationship(ctx, relationship.Id)
+		relationshipExists := (err == nil && existingRel != nil)
 
-			// Map StartTime to Created if provided
+		if relationshipExists {
+			// RELATIONSHIP EXISTS - UPDATE IT
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Relationship %s exists, updating...", relationship.Id)
+
+			// Validate: only StartTime and EndTime are allowed for updates
+			if relationship.Name != "" || relationship.RelatedEntityId != "" || relationship.Direction != "" {
+				invalidFields := []string{}
+				if relationship.Name != "" {
+					invalidFields = append(invalidFields, "Name")
+				}
+				if relationship.RelatedEntityId != "" {
+					invalidFields = append(invalidFields, "RelatedEntityId")
+				}
+				if relationship.Direction != "" {
+					invalidFields = append(invalidFields, "Direction")
+				}
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Cannot update immutable fields: %v", invalidFields)
+				return fmt.Errorf("cannot update immutable fields: %v. Only StartTime and EndTime are allowed", invalidFields)
+			}
+
+			// Build update data with valid fields only
+			relationshipData := map[string]interface{}{}
 			if relationship.StartTime != "" {
 				relationshipData["Created"] = relationship.StartTime
 			}
-
-			// Map EndTime to Terminated if provided
 			if relationship.EndTime != "" {
 				relationshipData["Terminated"] = relationship.EndTime
 			}
 
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Update data: %+v", relationshipData)
-			// Try to update if we have an ID and update data
-			if len(relationshipData) > 0 {
-				_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
-				if err == nil {
-					log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
-					continue
-				}
-				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
+			// Check if we have any valid fields to update
+			if len(relationshipData) == 0 {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] No valid fields provided for update")
+				return fmt.Errorf("no valid fields provided for relationship update. Only StartTime and EndTime are allowed")
 			}
-		}
 
-		// For creation, we need the related entity ID
-		if relationship.RelatedEntityId == "" || relationship.Name == "" {
-			continue //! shouldn't this be an error?
-		}
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Updating relationship with data: %+v", relationshipData)
 
-		// Check if the child entity exists
-		childEntityMap, err := repo.ReadGraphEntity(ctx, relationship.RelatedEntityId)
-		if err != nil || childEntityMap == nil {
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Child entity %s does not exist in Neo4j. Make sure to create it first.",
-				relationship.RelatedEntityId)
-			return fmt.Errorf("[neo4j_handler.HandleGraphRelationshipsUpdate] child entity %s does not exist", relationship.RelatedEntityId)
-		}
-		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Child entity %s exists in Neo4j", relationship.RelatedEntityId)
+			// Update the relationship
+			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
+			if err != nil {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
+				return err
+			}
 
-		// Either no ID or update failed, try to create
-		_, createErr := repo.CreateRelationship(ctx, entity.Id, relationship)
-		if createErr != nil {
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Error creating relationship from %s to %s: %v",
-				entity.Id, relationship.RelatedEntityId, createErr)
-			return createErr
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
+			continue
+
+		} else {
+			// RELATIONSHIP DOESN'T EXIST - CREATE IT
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Relationship %s doesn't exist, creating...", relationship.Id)
+
+			// Validate required fields for creation
+			if relationship.RelatedEntityId == "" {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Missing RelatedEntityId for relationship creation")
+				return fmt.Errorf("missing RelatedEntityId for relationship %s. Required for creation", relationship.Id)
+			}
+			if relationship.Name == "" {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Missing Name for relationship creation")
+				return fmt.Errorf("missing Name for relationship %s. Required for creation", relationship.Id)
+			}
+			if relationship.StartTime == "" {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Missing StartTime for relationship creation")
+				return fmt.Errorf("missing StartTime for relationship %s. Required for creation", relationship.Id)
+			}
+
+			// Check if the child entity exists
+			childEntityMap, err := repo.ReadGraphEntity(ctx, relationship.RelatedEntityId)
+			if err != nil || childEntityMap == nil {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Child entity %s does not exist in Neo4j",
+					relationship.RelatedEntityId)
+				return fmt.Errorf("[neo4j_handler.HandleGraphRelationshipsUpdate] child entity %s does not exist", relationship.RelatedEntityId)
+			}
+
+			// Create the relationship
+			_, err = repo.CreateRelationship(ctx, entity.Id, relationship)
+			if err != nil {
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to create relationship: %v", err)
+				return err
+			}
+
+			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully created relationship %s", relationship.Id)
+			continue
 		}
-		log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully created new relationship from %s to %s",
-			entity.Id, relationship.RelatedEntityId)
 	}
 
 	return nil
