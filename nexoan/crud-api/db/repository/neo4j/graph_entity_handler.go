@@ -386,17 +386,28 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 
 		// For updates, we only need the ID
 		if relationship.Id != "" {
-			relationshipData := map[string]interface{}{
-				"Terminated": relationship.EndTime,
+			relationshipData := map[string]interface{}{}
+
+			// Map StartTime to Created if provided
+			if relationship.StartTime != "" {
+				relationshipData["Created"] = relationship.StartTime
 			}
+
+			// Map EndTime to Terminated if provided
+			if relationship.EndTime != "" {
+				relationshipData["Terminated"] = relationship.EndTime
+			}
+
 			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Update data: %+v", relationshipData)
-			// Try to update if we have an ID
-			_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
-			if err == nil {
-				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
-				continue
+			// Try to update if we have an ID and update data
+			if len(relationshipData) > 0 {
+				_, err = repo.UpdateRelationship(ctx, relationship.Id, relationshipData)
+				if err == nil {
+					log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully updated relationship %s", relationship.Id)
+					continue
+				}
+				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
 			}
-			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to update relationship: %v", err)
 		}
 
 		// For creation, we need the related entity ID
