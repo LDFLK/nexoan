@@ -1410,125 +1410,348 @@ func TestServiceUpdateRelationshipBothFields(t *testing.T) {
 }
 
 // TestServiceUpdateRelationshipInvalidFields tests that updating invalid fields (Name, RelatedEntityId) fails
-// func TestServiceUpdateRelationshipInvalidFields(t *testing.T) {
+func TestServiceUpdateRelationshipInvalidFields(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two entities with a relationship
+	entity1 := &pb.Entity{
+		Id: "service_invalid_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Alpha"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_invalid_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Beta"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_invalid_rel": {
+				Id:              "service_invalid_rel",
+				Name:            "MANAGES",
+				RelatedEntityId: "service_invalid_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	entity3 := &pb.Entity{
+		Id: "service_invalid_entity_3",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Gamma"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity3)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity3) error = %v", err)
+	}
+
+	// Store original relationship properties
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id: "service_invalid_entity_2",
+			Relationships: map[string]*pb.Relationship{
+				"service_invalid_rel": {Id: "service_invalid_rel"},
+			},
+		},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() before update error = %v", err)
+	}
+	originalRel := readResp.Relationships["service_invalid_rel"]
+	originalName := originalRel.Name
+	originalRelatedEntityId := originalRel.RelatedEntityId
+
+	// Try to update the relationship with invalid fields (Name and RelatedEntityId)
+	// This should FAIL because only StartTime/EndTime are allowed
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_invalid_entity_2",
+		Entity: &pb.Entity{
+			Id: "service_invalid_entity_2",
+			Relationships: map[string]*pb.Relationship{
+				"service_invalid_rel": {
+					Id:              "service_invalid_rel",
+					Name:            "SUPERVISES",               // Invalid: try to change relationship type
+					RelatedEntityId: "service_invalid_entity_3", // Invalid: try to change target entity
+				},
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq)
+	if err == nil {
+		t.Error("Expected error when trying to update invalid fields (Name, RelatedEntityId), but got none")
+	} else {
+		log.Printf("UpdateEntity failed when trying to update invalid fields (expected): %v", err)
+	}
+
+	// Read back to verify relationship hasn't changed
+	readResp, err = server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() after failed update error = %v", err)
+	}
+
+	rel := readResp.Relationships["service_invalid_rel"]
+	if rel == nil {
+		t.Fatal("Relationship 'service_invalid_rel' not found after failed update")
+	}
+
+	// Verify Name (relationship type) hasn't changed
+	if rel.Name != originalName {
+		t.Errorf("Relationship Name changed from %v to %v (should remain unchanged after failed update)", originalName, rel.Name)
+	}
+
+	// Verify RelatedEntityId hasn't changed
+	if rel.RelatedEntityId != originalRelatedEntityId {
+		t.Errorf("Relationship RelatedEntityId changed from %v to %v (should remain unchanged after failed update)", originalRelatedEntityId, rel.RelatedEntityId)
+	}
+
+	log.Printf("Successfully verified that updating invalid fields (Name/RelatedEntityId) fails")
+}
+
+// TestServiceCreateEntityWithIncompleteRelationship tests that creating an entity with incomplete relationship fails
+// func TestServiceCreateEntityWithIncompleteRelationship(t *testing.T) {
 // 	ctx := context.Background()
 
-// 	// Create two entities with a relationship
+// 	// Create a target entity first
 // 	entity1 := &pb.Entity{
-// 		Id: "service_invalid_entity_1",
+// 		Id: "service_incomplete_create_entity_1",
 // 		Kind: &pb.Kind{
 // 			Major: "Person",
 // 			Minor: "Employee",
 // 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Alpha"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 	}
-
-// 	entity2 := &pb.Entity{
-// 		Id: "service_invalid_entity_2",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Beta"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 		Relationships: map[string]*pb.Relationship{
-// 			"service_invalid_rel": {
-// 				Id:              "service_invalid_rel",
-// 				Name:            "MANAGES",
-// 				RelatedEntityId: "service_invalid_entity_1",
-// 				StartTime:       "2025-04-01T00:00:00Z",
-// 			},
-// 		},
-// 	}
-
-// 	entity3 := &pb.Entity{
-// 		Id: "service_invalid_entity_3",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Gamma"),
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Delta"),
 // 		Created: "2025-04-01T00:00:00Z",
 // 	}
 
 // 	_, err := server.CreateEntity(ctx, entity1)
 // 	if err != nil {
-// 		t.Fatalf("CreateEntity(entity1) error = %v", err)
+// 		t.Fatalf("CreateEntity(target entity) error = %v", err)
+// 	}
+
+// 	// Try to create an entity with incomplete relationship (missing Name field)
+// 	entity2 := &pb.Entity{
+// 		Id: "service_incomplete_create_entity_2",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Epsilon"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 		Relationships: map[string]*pb.Relationship{
+// 			"service_incomplete_create_rel_1": {
+// 				Id: "service_incomplete_create_rel_1",
+// 				// Name is missing (required field)
+// 				RelatedEntityId: "service_incomplete_create_entity_1",
+// 				StartTime:       "2025-04-01T00:00:00Z",
+// 			},
+// 		},
 // 	}
 
 // 	_, err = server.CreateEntity(ctx, entity2)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity(entity2) error = %v", err)
+// 	if err == nil {
+// 		t.Error("Expected error when creating entity with incomplete relationship (missing Name), but got none")
+// 	} else {
+// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
+// 	}
+
+// 	// Try to create an entity with incomplete relationship (missing RelatedEntityId)
+// 	entity3 := &pb.Entity{
+// 		Id: "service_incomplete_create_entity_3",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Zeta"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 		Relationships: map[string]*pb.Relationship{
+// 			"service_incomplete_create_rel_2": {
+// 				Id:   "service_incomplete_create_rel_2",
+// 				Name: "REPORTS_TO",
+// 				// RelatedEntityId is missing (required field)
+// 				StartTime: "2025-04-01T00:00:00Z",
+// 			},
+// 		},
 // 	}
 
 // 	_, err = server.CreateEntity(ctx, entity3)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity(entity3) error = %v", err)
-// 	}
-
-// 	// Store original relationship properties
-// 	readReq := &pb.ReadEntityRequest{
-// 		Entity: &pb.Entity{
-// 			Id: "service_invalid_entity_2",
-// 			Relationships: map[string]*pb.Relationship{
-// 				"service_invalid_rel": {Id: "service_invalid_rel"},
-// 			},
-// 		},
-// 		Output: []string{"relationships"},
-// 	}
-
-// 	readResp, err := server.ReadEntity(ctx, readReq)
-// 	if err != nil {
-// 		t.Fatalf("ReadEntity() before update error = %v", err)
-// 	}
-// 	originalRel := readResp.Relationships["service_invalid_rel"]
-// 	originalName := originalRel.Name
-// 	originalRelatedEntityId := originalRel.RelatedEntityId
-
-// 	// Try to update the relationship with invalid fields (Name and RelatedEntityId)
-// 	// This should FAIL because only StartTime/EndTime are allowed
-// 	updateReq := &pb.UpdateEntityRequest{
-// 		Id: "service_invalid_entity_2",
-// 		Entity: &pb.Entity{
-// 			Id: "service_invalid_entity_2",
-// 			Relationships: map[string]*pb.Relationship{
-// 				"service_invalid_rel": {
-// 					Id:              "service_invalid_rel",
-// 					Name:            "SUPERVISES",               // Invalid: try to change relationship type
-// 					RelatedEntityId: "service_invalid_entity_3", // Invalid: try to change target entity
-// 				},
-// 			},
-// 		},
-// 	}
-
-// 	_, err = server.UpdateEntity(ctx, updateReq)
 // 	if err == nil {
-// 		t.Error("Expected error when trying to update invalid fields (Name, RelatedEntityId), but got none")
+// 		t.Error("Expected error when creating entity with incomplete relationship (missing RelatedEntityId), but got none")
 // 	} else {
-// 		log.Printf("UpdateEntity failed when trying to update invalid fields (expected): %v", err)
+// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
 // 	}
 
-// 	// Read back to verify relationship hasn't changed
-// 	readResp, err = server.ReadEntity(ctx, readReq)
-// 	if err != nil {
-// 		t.Fatalf("ReadEntity() after failed update error = %v", err)
+// 	// Try to create an entity with incomplete relationship (missing StartTime)
+// 	entity4 := &pb.Entity{
+// 		Id: "service_incomplete_create_entity_4",
+// 		Kind: &pb.Kind{
+// 			Major: "Person",
+// 			Minor: "Employee",
+// 		},
+// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Eta"),
+// 		Created: "2025-04-01T00:00:00Z",
+// 		Relationships: map[string]*pb.Relationship{
+// 			"service_incomplete_create_rel_3": {
+// 				Id:              "service_incomplete_create_rel_3",
+// 				Name:            "MANAGES",
+// 				RelatedEntityId: "service_incomplete_create_entity_1",
+// 				// StartTime is missing (required field)
+// 			},
+// 		},
 // 	}
 
-// 	rel := readResp.Relationships["service_invalid_rel"]
-// 	if rel == nil {
-// 		t.Fatal("Relationship 'service_invalid_rel' not found after failed update")
+// 	_, err = server.CreateEntity(ctx, entity4)
+// 	if err == nil {
+// 		t.Error("Expected error when creating entity with incomplete relationship (missing StartTime), but got none")
+// 	} else {
+// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
 // 	}
 
-// 	// Verify Name (relationship type) hasn't changed
-// 	if rel.Name != originalName {
-// 		t.Errorf("Relationship Name changed from %v to %v (should remain unchanged after failed update)", originalName, rel.Name)
-// 	}
-
-// 	// Verify RelatedEntityId hasn't changed
-// 	if rel.RelatedEntityId != originalRelatedEntityId {
-// 		t.Errorf("Relationship RelatedEntityId changed from %v to %v (should remain unchanged after failed update)", originalRelatedEntityId, rel.RelatedEntityId)
-// 	}
-
-// 	log.Printf("Successfully verified that updating invalid fields (Name/RelatedEntityId) fails")
+// 	log.Printf("Successfully verified that creating entities with incomplete relationships fails")
 // }
+
+// TestServiceUpdateEntityAddIncompleteRelationship tests that adding incomplete relationship via update fails
+func TestServiceUpdateEntityAddIncompleteRelationship(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two entities
+	entity1 := &pb.Entity{
+		Id: "service_incomplete_update_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Theta"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_incomplete_update_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Iota"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	// Try to update entity to add incomplete relationship (missing Name)
+	updateReq1 := &pb.UpdateEntityRequest{
+		Id: "service_incomplete_update_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_incomplete_update_entity_1",
+			Relationships: map[string]*pb.Relationship{
+				"service_incomplete_update_rel_1": {
+					Id: "service_incomplete_update_rel_1",
+					// Name is missing (required field)
+					RelatedEntityId: "service_incomplete_update_entity_2",
+					StartTime:       "2025-04-01T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq1)
+	if err == nil {
+		t.Error("Expected error when updating entity with incomplete relationship (missing Name), but got none")
+	} else {
+		log.Printf("UpdateEntity failed with incomplete relationship as expected: %v", err)
+	}
+
+	// Try to update entity to add incomplete relationship (missing RelatedEntityId)
+	updateReq2 := &pb.UpdateEntityRequest{
+		Id: "service_incomplete_update_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_incomplete_update_entity_1",
+			Relationships: map[string]*pb.Relationship{
+				"service_incomplete_update_rel_2": {
+					Id:   "service_incomplete_update_rel_2",
+					Name: "COLLABORATES_WITH",
+					// RelatedEntityId is missing (required field)
+					StartTime: "2025-04-01T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq2)
+	if err == nil {
+		t.Error("Expected error when updating entity with incomplete relationship (missing RelatedEntityId), but got none")
+	} else {
+		log.Printf("UpdateEntity failed with incomplete relationship as expected: %v", err)
+	}
+
+	// Try to update entity to add incomplete relationship (missing StartTime)
+	updateReq3 := &pb.UpdateEntityRequest{
+		Id: "service_incomplete_update_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_incomplete_update_entity_1",
+			Relationships: map[string]*pb.Relationship{
+				"service_incomplete_update_rel_3": {
+					Id:              "service_incomplete_update_rel_3",
+					Name:            "SUPERVISES",
+					RelatedEntityId: "service_incomplete_update_entity_2",
+					// StartTime is missing (required field)
+				},
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq3)
+	if err == nil {
+		t.Error("Expected error when updating entity with incomplete relationship (missing StartTime), but got none")
+	} else {
+		log.Printf("UpdateEntity failed with incomplete relationship as expected: %v", err)
+	}
+
+	// Verify no relationships were created
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_incomplete_update_entity_1"},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	if len(readResp.Relationships) > 0 {
+		t.Errorf("Expected no relationships to be created, but found %d", len(readResp.Relationships))
+	}
+
+	log.Printf("Successfully verified that adding incomplete relationships via update fails")
+}

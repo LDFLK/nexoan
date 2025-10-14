@@ -466,7 +466,7 @@ func (repo *Neo4jRepository) HandleGraphRelationshipsUpdate(ctx context.Context,
 			_, err = repo.CreateRelationship(ctx, entity.Id, relationship)
 			if err != nil {
 				log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Failed to create relationship: %v", err)
-				return err
+				return fmt.Errorf("[neo4j_handler.HandleGraphRelationshipsUpdate] failed to create relationship: %v", err)
 			}
 
 			log.Printf("[neo4j_handler.HandleGraphRelationshipsUpdate] Successfully created relationship %s", relationship.Id)

@@ -262,13 +262,13 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	err = s.neo4jRepo.HandleGraphRelationshipsUpdate(ctx, updateEntity)
 	if err != nil {
 		log.Printf("[server.UpdateEntity] Error updating relationships for entity %s: %v", updateEntityID, err)
-		// Continue processing despite error
+		return nil, err
 	}
 
 	// Handle attributes
 	processor := engine.NewEntityAttributeProcessor()
 	// Note that in the perspective of the attribute this is a creation operation
-	// The entity is already there but here the attribute is set later. 
+	// The entity is already there but here the attribute is set later.
 	// There is no alignment of update operation with the attribute.
 	// TODO: https://github.com/LDFLK/nexoan/issues/286
 	attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "create", nil)
@@ -383,7 +383,7 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 }
 
 // extractFieldsFromAttributes extracts field names from entity attributes based on storage type
-// TODO: Limitation in multi-value attribute reads. 
+// TODO: Limitation in multi-value attribute reads.
 // FIXME: https://github.com/LDFLK/nexoan/issues/285
 func extractFieldsFromAttributes(attributes map[string]*pb.TimeBasedValueList) []string {
 	var fields []string
