@@ -2193,3 +2193,405 @@ func TestServiceUpdateEntityRelationshipsOnlyNoCore(t *testing.T) {
 
 	log.Printf("Successfully updated only relationships without modifying core attributes")
 }
+
+// TestServiceCreateEntityWithMetadataFullFlow tests creating an entity with metadata
+func TestServiceCreateEntityWithMetadataFullFlow(t *testing.T) {
+	ctx := context.Background()
+
+	// Create metadata
+	metadata := make(map[string]*anypb.Any)
+	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Engineering"})
+	metadata["level"], _ = anypb.New(&wrapperspb.StringValue{Value: "Senior"})
+
+	// Create entity with metadata
+	entity := &pb.Entity{
+		Id: "service_metadata_create_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:     createNameValue("2025-04-01T00:00:00Z", "Metadata User"),
+		Created:  "2025-04-01T00:00:00Z",
+		Metadata: metadata,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() with metadata error = %v", err)
+	}
+
+	// Read entity back with metadata
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_metadata_create_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata was stored
+	if len(readResp.Metadata) == 0 {
+		t.Error("Expected metadata to be stored, but got empty metadata")
+	}
+
+	if len(readResp.Metadata) != 2 {
+		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
+	}
+
+	// Verify specific metadata values
+	if _, exists := readResp.Metadata["department"]; !exists {
+		t.Error("Expected 'department' metadata field not found")
+	}
+	if _, exists := readResp.Metadata["level"]; !exists {
+		t.Error("Expected 'level' metadata field not found")
+	}
+
+	log.Printf("Successfully created entity with metadata")
+}
+
+// TestServiceCreateEntityWithoutMetadataFullFlow tests creating an entity without metadata
+func TestServiceCreateEntityWithoutMetadataFullFlow(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entity without metadata
+	entity := &pb.Entity{
+		Id: "service_no_metadata_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "No Metadata User"),
+		Created: "2025-04-01T00:00:00Z",
+		// No metadata field set
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() without metadata error = %v", err)
+	}
+
+	// Read entity back
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_no_metadata_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify entity exists but has empty metadata
+	if readResp.Id != "service_no_metadata_entity_1" {
+		t.Errorf("Entity ID = %v, want 'service_no_metadata_entity_1'", readResp.Id)
+	}
+
+	// Metadata should be empty
+	if len(readResp.Metadata) > 0 {
+		t.Errorf("Expected no metadata, but got %d metadata fields", len(readResp.Metadata))
+	}
+
+	log.Printf("Successfully created entity without metadata")
+}
+
+// TestServiceAddMetadataToExistingEntity tests adding metadata to an existing entity via update
+func TestServiceAddMetadataToExistingEntity(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entity without metadata first
+	entity := &pb.Entity{
+		Id: "service_add_metadata_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Initially No Metadata"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Now add metadata via update
+	metadata := make(map[string]*anypb.Any)
+	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Sales"})
+	metadata["location"], _ = anypb.New(&wrapperspb.StringValue{Value: "New York"})
+
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_add_metadata_entity_1",
+		Entity: &pb.Entity{
+			Metadata: metadata,
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() to add metadata error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Read entity back with metadata
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_add_metadata_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata was added
+	if len(readResp.Metadata) != 2 {
+		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
+	}
+
+	if _, exists := readResp.Metadata["department"]; !exists {
+		t.Error("Expected 'department' metadata field not found")
+	}
+	if _, exists := readResp.Metadata["location"]; !exists {
+		t.Error("Expected 'location' metadata field not found")
+	}
+
+	log.Printf("Successfully added metadata to existing entity")
+}
+
+// TestServiceUpdateExistingMetadata tests updating metadata that already exists on an entity
+func TestServiceUpdateExistingMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entity with initial metadata
+	initialMetadata := make(map[string]*anypb.Any)
+	initialMetadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Engineering"})
+	initialMetadata["level"], _ = anypb.New(&wrapperspb.StringValue{Value: "Junior"})
+	initialMetadata["location"], _ = anypb.New(&wrapperspb.StringValue{Value: "San Francisco"})
+
+	entity := &pb.Entity{
+		Id: "service_update_existing_metadata_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:     createNameValue("2025-04-01T00:00:00Z", "Metadata Update User"),
+		Created:  "2025-04-01T00:00:00Z",
+		Metadata: initialMetadata,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Update the metadata with new values and add a new field
+	updatedMetadata := make(map[string]*anypb.Any)
+	updatedMetadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Product"}) // Changed
+	updatedMetadata["level"], _ = anypb.New(&wrapperspb.StringValue{Value: "Senior"})       // Changed
+	updatedMetadata["location"], _ = anypb.New(&wrapperspb.StringValue{Value: "New York"})  // Changed
+	updatedMetadata["title"], _ = anypb.New(&wrapperspb.StringValue{Value: "Tech Lead"})    // New field
+
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_existing_metadata_entity_1",
+		Entity: &pb.Entity{
+			Metadata: updatedMetadata,
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() to update metadata error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Read entity back with metadata
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_existing_metadata_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata was updated with new values and new field added
+	if len(readResp.Metadata) != 4 {
+		t.Errorf("Expected 4 metadata fields, got %d", len(readResp.Metadata))
+	}
+
+	// Verify updated values
+	if deptAny, exists := readResp.Metadata["department"]; exists {
+		var deptValue wrapperspb.StringValue
+		if err := deptAny.UnmarshalTo(&deptValue); err == nil {
+			if deptValue.Value != "Product" {
+				t.Errorf("department = %v, want 'Product'", deptValue.Value)
+			}
+		}
+	} else {
+		t.Error("Expected 'department' metadata field not found")
+	}
+
+	if levelAny, exists := readResp.Metadata["level"]; exists {
+		var levelValue wrapperspb.StringValue
+		if err := levelAny.UnmarshalTo(&levelValue); err == nil {
+			if levelValue.Value != "Senior" {
+				t.Errorf("level = %v, want 'Senior'", levelValue.Value)
+			}
+		}
+	} else {
+		t.Error("Expected 'level' metadata field not found")
+	}
+
+	if locAny, exists := readResp.Metadata["location"]; exists {
+		var locValue wrapperspb.StringValue
+		if err := locAny.UnmarshalTo(&locValue); err == nil {
+			if locValue.Value != "New York" {
+				t.Errorf("location = %v, want 'New York'", locValue.Value)
+			}
+		}
+	} else {
+		t.Error("Expected 'location' metadata field not found")
+	}
+
+	if titleAny, exists := readResp.Metadata["title"]; exists {
+		var titleValue wrapperspb.StringValue
+		if err := titleAny.UnmarshalTo(&titleValue); err == nil {
+			if titleValue.Value != "Tech Lead" {
+				t.Errorf("title = %v, want 'Tech Lead'", titleValue.Value)
+			}
+		}
+	} else {
+		t.Error("Expected 'title' metadata field not found")
+	}
+
+	log.Printf("Successfully updated existing metadata with new values and added new field")
+}
+
+// TestServiceUpdateEntityCoreAttributesMetadataAndRelationships tests updating core attributes, metadata, and relationships together
+func TestServiceUpdateEntityCoreAttributesMetadataAndRelationships(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two entities
+	entity1 := &pb.Entity{
+		Id: "service_update_all_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Target Entity"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	metadata := make(map[string]*anypb.Any)
+	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "IT"})
+
+	entity2 := &pb.Entity{
+		Id: "service_update_all_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:     createNameValue("2025-04-01T00:00:00Z", "Manager User"),
+		Created:  "2025-04-01T00:00:00Z",
+		Metadata: metadata,
+		Relationships: map[string]*pb.Relationship{
+			"service_update_all_rel_1": {
+				Id:              "service_update_all_rel_1",
+				Name:            "MANAGES",
+				RelatedEntityId: "service_update_all_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	// Update core attributes, metadata, and relationships all together
+	updatedMetadata := make(map[string]*anypb.Any)
+	updatedMetadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "HR"})
+	updatedMetadata["title"], _ = anypb.New(&wrapperspb.StringValue{Value: "Director"})
+
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_all_entity_2",
+		Entity: &pb.Entity{
+			Name:       createNameValue("2025-04-01T00:00:00Z", "Updated Manager"),
+			Terminated: "2025-12-31T00:00:00Z",
+			Metadata:   updatedMetadata,
+			Relationships: map[string]*pb.Relationship{
+				"service_update_all_rel_1": {
+					Id:      "service_update_all_rel_1",
+					EndTime: "2025-12-31T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Read entity back with all fields
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_all_entity_2"},
+		Output: []string{"metadata", "relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify core attributes were updated
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "Updated Manager" {
+		t.Errorf("Name = %v, want 'Updated Manager'", stringValue.Value)
+	}
+	if readResp.Terminated != "2025-12-31T00:00:00Z" {
+		t.Errorf("Terminated = %v, want '2025-12-31T00:00:00Z'", readResp.Terminated)
+	}
+
+	// Verify metadata was updated
+	if len(readResp.Metadata) != 2 {
+		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
+	}
+	if _, exists := readResp.Metadata["department"]; !exists {
+		t.Error("Expected 'department' metadata field not found")
+	}
+	if _, exists := readResp.Metadata["title"]; !exists {
+		t.Error("Expected 'title' metadata field not found")
+	}
+
+	// Verify relationship was updated
+	rel := readResp.Relationships["service_update_all_rel_1"]
+	if rel == nil {
+		t.Fatal("Relationship 'service_update_all_rel_1' not found")
+	}
+	if rel.EndTime != "2025-12-31T00:00:00Z" {
+		t.Errorf("Relationship EndTime = %v, want '2025-12-31T00:00:00Z'", rel.EndTime)
+	}
+
+	log.Printf("Successfully updated core attributes, metadata, and relationships together")
+}
