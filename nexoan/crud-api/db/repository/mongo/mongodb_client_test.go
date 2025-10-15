@@ -93,13 +93,13 @@ func TestCreateAndReadEntity(t *testing.T) {
 	}
 
 	// Create entity
-	result, err := testRepo.CreateEntity(testCtx, entity)
+	result, err := testRepo.CreateMetadata(testCtx, entity)
 	assert.NoError(t, err)
 	assert.NotNil(t, result, "Insert result should not be nil")
 	log.Printf("Inserted document with ID: %v", result.InsertedID)
 
 	// Read entity with error check
-	readEntity, err := testRepo.ReadEntity(testCtx, entityID)
+	readEntity, err := testRepo.ReadMetadata(testCtx, entityID)
 	if err != nil {
 		t.Fatalf("Failed to read entity: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestUpdateEntityMetadata(t *testing.T) {
 	}
 
 	// Create entity
-	_, err = testRepo.CreateEntity(testCtx, entity)
+	_, err = testRepo.CreateMetadata(testCtx, entity)
 	assert.NoError(t, err)
 
 	// Update metadata
@@ -156,16 +156,14 @@ func TestUpdateEntityMetadata(t *testing.T) {
 	updatedMetadata["key3"] = val3 // Add new key
 
 	// Update entity
-	_, err = testRepo.UpdateEntity(testCtx, entityID, map[string]interface{}{
+	_, err = testRepo.UpdateMetadata(testCtx, entityID, map[string]interface{}{
 		"metadata": updatedMetadata,
 	})
 	assert.NoError(t, err)
 
 	// Read updated entity
-	readEntity, err := testRepo.ReadEntity(testCtx, entityID)
+	readEntity, err := testRepo.ReadMetadata(testCtx, entityID)
 	assert.NoError(t, err)
-
-	// Verify updated metadata
 	assert.Equal(t, 2, len(readEntity.Metadata))
 	assert.Contains(t, readEntity.Metadata, "key1")
 	assert.Contains(t, readEntity.Metadata, "key3")
@@ -198,16 +196,16 @@ func TestDeleteEntity(t *testing.T) {
 	}
 
 	// Create entity
-	_, err = testRepo.CreateEntity(testCtx, entity)
+	_, err = testRepo.CreateMetadata(testCtx, entity)
 	assert.NoError(t, err)
 
 	// Delete entity
-	result, err := testRepo.DeleteEntity(testCtx, entityID)
+	result, err := testRepo.DeleteMetadata(testCtx, entityID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), result.DeletedCount)
 
 	// Verify entity is deleted
-	_, err = testRepo.ReadEntity(testCtx, entityID)
+	_, err = testRepo.ReadMetadata(testCtx, entityID)
 	assert.Error(t, err) // Should return an error since entity doesn't exist
 }
 
@@ -223,8 +221,6 @@ func TestMetadataHandling(t *testing.T) {
 
 	// Create test entity with metadata
 	entityID := "test-entity-4"
-
-	// Create diverse metadata with different value types
 	metadata := make(map[string]*anypb.Any)
 
 	stringVal, err := anypb.New(wrapperspb.String("string-value"))
@@ -247,12 +243,12 @@ func TestMetadataHandling(t *testing.T) {
 	}
 
 	// Create entity - this should use the entityID as the document ID
-	result, err := testRepo.CreateEntity(testCtx, entity)
+	result, err := testRepo.CreateMetadata(testCtx, entity)
 	assert.NoError(t, err)
 	assert.NotNil(t, result, "Insert result should not be nil")
 
 	// Read entity to verify metadata was stored correctly
-	readEntity, err := testRepo.ReadEntity(testCtx, entityID)
+	readEntity, err := testRepo.ReadMetadata(testCtx, entityID)
 	assert.NoError(t, err)
 
 	// Verify metadata with different value types

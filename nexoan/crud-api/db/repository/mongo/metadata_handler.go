@@ -12,15 +12,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Add this function to handle metadata operations
+// HandleMetadata inserts or updates the metadata of an entity
 func (repo *MongoRepository) HandleMetadata(ctx context.Context, entityId string, entity *pb.Entity) error {
-	// Skip operations if no metadata is provided
+	// Skip if no metadata is provided
 	if entity == nil || entity.GetMetadata() == nil || len(entity.GetMetadata()) == 0 {
 		return nil
 	}
 
 	// Check if entity exists
-	existingEntity, err := repo.ReadEntity(ctx, entityId)
+	existingEntity, err := repo.ReadMetadata(ctx, entityId)
 	if err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
@@ -37,12 +37,12 @@ func (repo *MongoRepository) HandleMetadata(ctx context.Context, entityId string
 			Attributes:    entity.Attributes,
 			Relationships: entity.Relationships,
 		}
-		_, err = repo.CreateEntity(ctx, newEntity)
+		_, err = repo.CreateMetadata(ctx, newEntity)
 	} else {
 		// Update existing entity's metadata
 		// TODO: Should we choose _id for placing our id or should we use id field separately and use that.
 		// Because then it is going to be reading or deleting or whatever by filtering using an attribute not the id of the object.
-		_, err = repo.UpdateEntity(ctx, existingEntity.Id, bson.M{"metadata": entity.GetMetadata()})
+		_, err = repo.UpdateMetadata(ctx, existingEntity.Id, bson.M{"metadata": entity.GetMetadata()})
 	}
 
 	return err
@@ -50,11 +50,11 @@ func (repo *MongoRepository) HandleMetadata(ctx context.Context, entityId string
 
 // Improved GetMetadata function that handles conversion internally
 func (repo *MongoRepository) GetMetadata(ctx context.Context, entityId string) (map[string]*anypb.Any, error) {
-	// Use the existing ReadEntity method for consistency
-	entity, err := repo.ReadEntity(ctx, entityId)
+	// Use the existing ReadMetadata method for consistency
+	entity, err := repo.ReadMetadata(ctx, entityId)
 	if err != nil {
 		// Log error and return empty metadata map
-		log.Printf("Error retrieving metadata for entity %s: %v", entityId, err)
+			log.Printf("Error retrieving metadata for entity %s: %v", entityId, err)
 		metadata := make(map[string]*anypb.Any)
 		return metadata, nil
 	}
