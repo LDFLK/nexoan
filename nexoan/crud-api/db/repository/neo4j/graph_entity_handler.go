@@ -279,6 +279,12 @@ func (repo *Neo4jRepository) HandleGraphEntityUpdate(ctx context.Context, entity
 		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] entity ID is required")
 	}
 
+	// Check if user is trying to update Kind (not allowed)
+	if entity.Kind != nil && (entity.Kind.Major != "" || entity.Kind.Minor != "") {
+		log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Cannot update Kind for entity %s", entity.Id)
+		return false, fmt.Errorf("[neo4j_handler.HandleGraphEntityUpdate] Kind cannot be updated")
+	}
+
 	log.Printf("[neo4j_handler.HandleGraphEntityUpdate] Updating existing entity in Neo4j: %s", entity.Id)
 
 	// Prepare data for Neo4j with safety checks

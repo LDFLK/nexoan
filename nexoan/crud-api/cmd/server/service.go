@@ -237,6 +237,11 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	updateEntityID := req.Id
 	updateEntity := req.Entity
 
+	// Ensure the entity ID matches the URL parameter - since the id is already passed in the url param, the user does not need to pass it again in the payload
+	if updateEntity.Id == "" || updateEntity.Id != updateEntityID {
+		updateEntity.Id = updateEntityID
+	}
+
 	// Initialize metadata
 	var metadata map[string]*anypb.Any
 
@@ -255,7 +260,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	success, err := s.neo4jRepo.HandleGraphEntityUpdate(ctx, updateEntity)
 	if !success {
 		log.Printf("[server.UpdateEntity] Error updating graph entity for %s: %v", updateEntityID, err)
-		// Continue processing despite error
+		return nil, fmt.Errorf("error updating graph entity for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle Relationships update
