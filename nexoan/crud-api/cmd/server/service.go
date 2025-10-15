@@ -33,8 +33,8 @@ type Server struct {
 func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, error) {
 	log.Printf("Creating Entity: %s", req.Id)
 
-	// Always save the entity in MongoDB, even if it has no metadata
 	// The HandleMetadata function will only process it if it has metadata
+	// If metadata is not provided, a document will not be created in MongoDB
 	// FIXME: https://github.com/LDFLK/nexoan/issues/120
 	err := s.mongoRepo.HandleMetadata(ctx, req.Id, req)
 	if err != nil {
@@ -242,18 +242,11 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 		updateEntity.Id = updateEntityID
 	}
 
-	// Initialize metadata
-	var metadata map[string]*anypb.Any
-
-	// Pass the ID and metadata to HandleMetadata
+	// Pass the ID and metadata to HandleMetadata- if no metadata was provided this will rerturn nil
 	err := s.mongoRepo.HandleMetadata(ctx, updateEntityID, updateEntity)
 	if err != nil {
-		// Log error and continue with empty metadata
 		log.Printf("[server.UpdateEntity] Error updating metadata for entity %s: %v", updateEntityID, err)
-		metadata = make(map[string]*anypb.Any)
-	} else {
-		// Use the provided metadata
-		metadata = updateEntity.Metadata
+		return nil, fmt.Errorf("error updating metadata for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle Graph Entity update if entity has required fields
@@ -301,6 +294,9 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 
 	// Get relationships from Neo4j
 	relationships, _ := s.neo4jRepo.GetGraphRelationships(ctx, updateEntityID)
+
+	// Get metadata from MongoDB
+	metadata, _ := s.mongoRepo.GetMetadata(ctx, updateEntityID)
 
 	// Return updated entity with all available information
 	return &pb.Entity{

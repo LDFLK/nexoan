@@ -19,14 +19,14 @@ func (repo *MongoRepository) HandleMetadata(ctx context.Context, entityId string
 		return nil
 	}
 
-	// Check if entity exists
+	// Check if metadata for entity already exists
 	existingEntity, err := repo.ReadEntity(ctx, entityId)
 	if err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
 	if existingEntity == nil {
-		// Create new entity with all fields including metadata
+		// Create new entity metadata with all fields including metadata
 		newEntity := &pb.Entity{
 			Id:            entityId,
 			Metadata:      entity.GetMetadata(),
