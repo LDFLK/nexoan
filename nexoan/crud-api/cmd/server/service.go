@@ -79,7 +79,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 
 	if hasErrors {
 		log.Printf("[server.CreateEntity] Some attributes failed to process")
-		// Continue processing - don't fail the entire operation for attribute errors
+		return nil, fmt.Errorf("some attributes failed to process")
 	}
 
 	return req, nil
@@ -284,7 +284,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 
 	if hasErrors {
 		log.Printf("[server.CreateEntity] Some attributes failed to process")
-		// Continue processing - don't fail the entire operation for attribute errors
+		return nil, fmt.Errorf("some attributes failed to process")
 	}
 
 	// Prepare the Update Response
