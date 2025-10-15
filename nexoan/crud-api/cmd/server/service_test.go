@@ -1755,3 +1755,441 @@ func TestServiceUpdateEntityAddIncompleteRelationship(t *testing.T) {
 
 	log.Printf("Successfully verified that adding incomplete relationships via update fails")
 }
+
+// TestServiceUpdateEntityCoreAttributesOnly tests updating only core attributes (Name, Terminated)
+func TestServiceUpdateEntityCoreAttributesOnly(t *testing.T) {
+	ctx := context.Background()
+
+	// Create an entity
+	entity := &pb.Entity{
+		Id: "service_update_core_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Original Name"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Update only core attributes (Name and Terminated)
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_core_entity_1",
+		Entity: &pb.Entity{
+			Name:       createNameValue("2025-04-01T00:00:00Z", "Updated Name"),
+			Terminated: "2025-12-31T00:00:00Z",
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Verify the updates
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_core_entity_1"},
+		Output: []string{},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Unpack and verify Name
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "Updated Name" {
+		t.Errorf("Name = %v, want 'Updated Name'", stringValue.Value)
+	}
+
+	// Verify Terminated
+	if readResp.Terminated != "2025-12-31T00:00:00Z" {
+		t.Errorf("Terminated = %v, want '2025-12-31T00:00:00Z'", readResp.Terminated)
+	}
+
+	// Verify Kind hasn't changed
+	if readResp.Kind.Major != "Person" || readResp.Kind.Minor != "Employee" {
+		t.Errorf("Kind changed to %v/%v, should remain Person/Employee", readResp.Kind.Major, readResp.Kind.Minor)
+	}
+
+	log.Printf("Successfully updated core attributes only")
+}
+
+// TestServiceUpdateEntityKindNotAllowed tests that updating Kind fails
+func TestServiceUpdateEntityKindNotAllowed(t *testing.T) {
+	ctx := context.Background()
+
+	// Create an entity
+	entity := &pb.Entity{
+		Id: "service_update_kind_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Test User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Try to update Kind.Major
+	updateReq1 := &pb.UpdateEntityRequest{
+		Id: "service_update_kind_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_update_kind_entity_1",
+			Kind: &pb.Kind{
+				Major: "Organization", // Try to change Major
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq1)
+	if err == nil {
+		t.Error("Expected error when trying to update Kind.Major, but got none")
+	} else {
+		log.Printf("UpdateEntity correctly rejected Kind.Major update: %v", err)
+	}
+
+	// Try to update Kind.Minor
+	updateReq2 := &pb.UpdateEntityRequest{
+		Id: "service_update_kind_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_update_kind_entity_1",
+			Kind: &pb.Kind{
+				Minor: "Manager", // Try to change Minor
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq2)
+	if err == nil {
+		t.Error("Expected error when trying to update Kind.Minor, but got none")
+	} else {
+		log.Printf("UpdateEntity correctly rejected Kind.Minor update: %v", err)
+	}
+
+	// Try to update both
+	updateReq3 := &pb.UpdateEntityRequest{
+		Id: "service_update_kind_entity_1",
+		Entity: &pb.Entity{
+			Id: "service_update_kind_entity_1",
+			Kind: &pb.Kind{
+				Major: "Organization",
+				Minor: "Department",
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq3)
+	if err == nil {
+		t.Error("Expected error when trying to update both Kind.Major and Kind.Minor, but got none")
+	} else {
+		log.Printf("UpdateEntity correctly rejected Kind update: %v", err)
+	}
+
+	// Verify Kind hasn't changed
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_kind_entity_1"},
+		Output: []string{},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	if readResp.Kind.Major != "Person" || readResp.Kind.Minor != "Employee" {
+		t.Errorf("Kind was modified to %v/%v, should remain Person/Employee", readResp.Kind.Major, readResp.Kind.Minor)
+	}
+
+	log.Printf("Successfully verified that Kind updates are rejected")
+}
+
+// TestServiceUpdateEntityCoreAttributesAndRelationships tests updating both core attributes and relationships
+func TestServiceUpdateEntityCoreAttributesAndRelationships(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two entities
+	entity1 := &pb.Entity{
+		Id: "service_update_both_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Alice"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_update_both_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Bob"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_update_both_rel_1": {
+				Id:              "service_update_both_rel_1",
+				Name:            "REPORTS_TO",
+				RelatedEntityId: "service_update_both_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	// Update both core attributes and relationships successfully
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_both_entity_2",
+		Entity: &pb.Entity{
+			Id:         "service_update_both_entity_2",
+			Name:       createNameValue("2025-04-01T00:00:00Z", "Bob Updated"),
+			Terminated: "2025-12-31T00:00:00Z",
+			Relationships: map[string]*pb.Relationship{
+				"service_update_both_rel_1": {
+					Id:      "service_update_both_rel_1",
+					EndTime: "2025-12-31T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Verify both core attributes and relationships were updated
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_both_entity_2"},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify core attributes
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "Bob Updated" {
+		t.Errorf("Name = %v, want 'Bob Updated'", stringValue.Value)
+	}
+	if readResp.Terminated != "2025-12-31T00:00:00Z" {
+		t.Errorf("Terminated = %v, want '2025-12-31T00:00:00Z'", readResp.Terminated)
+	}
+
+	// Verify relationship was updated
+	rel := readResp.Relationships["service_update_both_rel_1"]
+	if rel == nil {
+		t.Fatal("Relationship 'service_update_both_rel_1' not found")
+	}
+	if rel.EndTime != "2025-12-31T00:00:00Z" {
+		t.Errorf("Relationship EndTime = %v, want '2025-12-31T00:00:00Z'", rel.EndTime)
+	}
+
+	log.Printf("Successfully updated both core attributes and relationships")
+}
+
+// TestServiceUpdateEntityCoreAttributesSuccessRelationshipsFail tests when core attributes succeed but relationships fail
+func TestServiceUpdateEntityCoreAttributesSuccessRelationshipsFail(t *testing.T) {
+	ctx := context.Background()
+
+	// Create an entity
+	entity := &pb.Entity{
+		Id: "service_update_partial_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Charlie"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Try to update core attributes with invalid relationship (missing required fields)
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_partial_entity_1",
+		Entity: &pb.Entity{
+			Id:         "service_update_partial_entity_1",
+			Name:       createNameValue("2025-04-01T00:00:00Z", "Charlie Updated"),
+			Terminated: "2025-12-31T00:00:00Z",
+			Relationships: map[string]*pb.Relationship{
+				"service_update_partial_rel_1": {
+					Id: "service_update_partial_rel_1",
+					// Missing Name and RelatedEntityId (required fields)
+					StartTime: "2025-04-01T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	_, err = server.UpdateEntity(ctx, updateReq)
+	if err == nil {
+		t.Error("Expected error when relationships update fails, but got none")
+	} else {
+		log.Printf("UpdateEntity correctly failed when relationship is invalid: %v", err)
+	}
+
+	// Verify that core attributes WERE updated successfully (no transaction rollback)
+	// Since there's no transaction wrapping, core attributes succeed before relationships fail
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_partial_entity_1"},
+		Output: []string{},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify Name WAS updated (core attributes succeed before relationship failure)
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "Charlie Updated" {
+		t.Errorf("Name = %v, want 'Charlie Updated' (core attributes should be updated despite relationship failure)", stringValue.Value)
+	}
+
+	// Verify Terminated was also updated
+	if readResp.Terminated != "2025-12-31T00:00:00Z" {
+		t.Errorf("Terminated = %v, want '2025-12-31T00:00:00Z' (core attributes should be updated despite relationship failure)", readResp.Terminated)
+	}
+
+	log.Printf("Successfully verified that core attributes are updated even when relationships fail (no transaction rollback)")
+}
+
+// TestServiceUpdateEntityRelationshipsOnlyNoCore tests updating only relationships without core attributes
+func TestServiceUpdateEntityRelationshipsOnlyNoCore(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two entities
+	entity1 := &pb.Entity{
+		Id: "service_update_rel_only_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "David"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_update_rel_only_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Eve"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_update_rel_only_rel_1": {
+				Id:              "service_update_rel_only_rel_1",
+				Name:            "WORKS_WITH",
+				RelatedEntityId: "service_update_rel_only_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	// Update only relationships, no core attributes
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_update_rel_only_entity_2",
+		Entity: &pb.Entity{
+			Id: "service_update_rel_only_entity_2",
+			Relationships: map[string]*pb.Relationship{
+				"service_update_rel_only_rel_1": {
+					Id:      "service_update_rel_only_rel_1",
+					EndTime: "2025-06-30T00:00:00Z",
+				},
+			},
+		},
+	}
+
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
+
+	// Verify relationship was updated
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_update_rel_only_entity_2"},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	rel := readResp.Relationships["service_update_rel_only_rel_1"]
+	if rel == nil {
+		t.Fatal("Relationship 'service_update_rel_only_rel_1' not found")
+	}
+	if rel.EndTime != "2025-06-30T00:00:00Z" {
+		t.Errorf("Relationship EndTime = %v, want '2025-06-30T00:00:00Z'", rel.EndTime)
+	}
+
+	// Verify core attributes remain unchanged
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "Eve" {
+		t.Errorf("Name changed to %v, should remain 'Eve'", stringValue.Value)
+	}
+
+	log.Printf("Successfully updated only relationships without modifying core attributes")
+}
