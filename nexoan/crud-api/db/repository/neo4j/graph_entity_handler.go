@@ -522,6 +522,7 @@ func (repo *Neo4jRepository) HandleGraphEntityFilter(ctx context.Context, req *p
 		filters["id"] = req.Entity.Id
 	} else {
 		// Only add other filters if we're not filtering by ID
+		
 		// Add name if present
 		if req.Entity.Name != nil && req.Entity.Name.Value != nil {
 			var stringValue wrapperspb.StringValue

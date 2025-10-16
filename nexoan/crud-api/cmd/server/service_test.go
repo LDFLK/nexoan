@@ -1439,6 +1439,139 @@ func TestServiceReadEntityById(t *testing.T) {
 	log.Printf("Successfully filtered entity by ID: %v", listResp.Entities[0].Id)
 }
 
+// TestServiceReadEntitiesByKindMajorOnly tests filtering entities by Kind.Major only
+func TestServiceReadEntitiesByKindMajorOnly(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entities with same Major but different Minor
+	entity1 := &pb.Entity{
+		Id: "service_kind_filter_entity_1",
+		Kind: &pb.Kind{
+			Major: "Vehicle",
+			Minor: "Car",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Tesla Model 3"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_kind_filter_entity_2",
+		Kind: &pb.Kind{
+			Major: "Vehicle",
+			Minor: "Truck",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Ford F-150"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	// Filter by Kind.Major only (should return both)
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Kind: &pb.Kind{
+				Major: "Vehicle",
+				// Minor not specified
+			},
+		},
+	}
+
+	listResp, err := server.ReadEntities(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntities() error = %v", err)
+	}
+	if listResp == nil {
+		t.Fatal("ReadEntities() returned nil response")
+	}
+	if len(listResp.Entities) < 2 {
+		t.Errorf("ReadEntities() returned %d entities, want at least 2", len(listResp.Entities))
+	}
+
+	log.Printf("Successfully filtered entities by Kind.Major only: found %d entities", len(listResp.Entities))
+}
+
+// TestServiceReadEntitiesWithNoResults tests filtering with criteria that matches nothing
+func TestServiceReadEntitiesWithNoResults(t *testing.T) {
+	ctx := context.Background()
+
+	// Filter by a Kind that doesn't exist
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Kind: &pb.Kind{
+				Major: "NonExistentKind",
+				Minor: "AlsoNonExistent",
+			},
+		},
+	}
+
+	listResp, err := server.ReadEntities(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntities() error = %v (should succeed with empty list)", err)
+	}
+	if listResp == nil {
+		t.Fatal("ReadEntities() returned nil response")
+	}
+
+	// Should return empty list, not error
+	if len(listResp.Entities) > 0 {
+		t.Errorf("Expected empty entity list, but got %d entities", len(listResp.Entities))
+	}
+
+	log.Printf("Successfully verified that no matches returns empty list")
+}
+
+// TestServiceReadEntitiesWithMissingEntity tests that missing entity parameter returns error
+func TestServiceReadEntitiesWithMissingEntity(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to filter without providing entity
+	readReq := &pb.ReadEntityRequest{
+		Entity: nil, // Missing entity
+	}
+
+	_, err := server.ReadEntities(ctx, readReq)
+	if err == nil {
+		t.Error("Expected error when entity is nil, but got none")
+	} else {
+		log.Printf("ReadEntities correctly failed with missing entity: %v", err)
+	}
+
+	log.Printf("Successfully verified that missing entity parameter fails")
+}
+
+// TestServiceReadEntitiesWithMissingIdAndKind tests that missing both ID and Kind.Major returns error
+func TestServiceReadEntitiesWithMissingIdAndKind(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to filter without ID and without Kind.Major
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			// No ID
+			Kind: &pb.Kind{
+				// No Major
+				Minor: "Employee",
+			},
+		},
+	}
+
+	_, err := server.ReadEntities(ctx, readReq)
+	if err == nil {
+		t.Error("Expected error when both ID and Kind.Major are missing, but got none")
+	} else {
+		log.Printf("ReadEntities correctly failed with missing ID and Kind.Major: %v", err)
+	}
+
+	log.Printf("Successfully verified that missing both ID and Kind.Major fails")
+}
+
 // TestServiceCreateEntityWithMetadata tests creating an entity with metadata
 func TestServiceCreateEntityWithMetadata(t *testing.T) {
 	ctx := context.Background()
