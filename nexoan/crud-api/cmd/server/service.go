@@ -33,7 +33,6 @@ type Server struct {
 func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, error) {
 	log.Printf("Creating Entity: %s", req.Id)
 
-
 	// Validate required fields for Neo4j entity creation
 	success, err := s.neo4jRepo.HandleGraphEntityCreation(ctx, req)
 	if !success {
@@ -316,10 +315,19 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 // DeleteEntity removes metadata
 func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty, error) {
 	log.Printf("[server.DeleteEntity] Deleting Entity metadata: %s", req.Id)
-	_, err := s.mongoRepo.DeleteEntity(ctx, req.Id)
+
+	// Check if entity exists before deleting
+	_, err := s.mongoRepo.ReadEntity(ctx, req.Id)
 	if err != nil {
-		// Log error but return success
+		log.Printf("[server.DeleteEntity] Entity %s does not exist: %v", req.Id, err)
+		return nil, fmt.Errorf("entity %s does not exist", req.Id)
+	}
+
+	_, err = s.mongoRepo.DeleteEntity(ctx, req.Id)
+	if err != nil {
+		// Log error
 		log.Printf("[server.DeleteEntity] Error deleting metadata for entity %s: %v", req.Id, err)
+		return nil, fmt.Errorf("error deleting metadata for entity %s: %v", req.Id, err)
 	}
 	// TODO: Implement Relationship Deletion in Neo4j
 	// TODO: Implement Entity Deletion in Neo4j
