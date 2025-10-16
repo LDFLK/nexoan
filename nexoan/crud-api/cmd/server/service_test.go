@@ -759,6 +759,474 @@ func TestServiceReadEntityWithRelationships(t *testing.T) {
 	log.Printf("Successfully read entity with relationships: %v", readResp.Id)
 }
 
+// TestServiceReadNonExistentEntity tests that reading a non-existent entity returns an error
+func TestServiceReadNonExistentEntity(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to read an entity that doesn't exist
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "non_existent_entity_12345"},
+		Output: []string{},
+	}
+
+	_, err := server.ReadEntity(ctx, readReq)
+	if err == nil {
+		t.Error("Expected error when reading non-existent entity, but got none")
+	} else {
+		log.Printf("ReadEntity correctly failed for non-existent entity: %v", err)
+	}
+
+	log.Printf("Successfully verified that reading non-existent entity fails")
+}
+
+// TestServiceReadEntityWithMetadata tests reading an entity with metadata output
+func TestServiceReadEntityWithMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entity with metadata
+	metadata := make(map[string]*anypb.Any)
+	metadata["position"], _ = anypb.New(&wrapperspb.StringValue{Value: "Software Engineer"})
+	metadata["team"], _ = anypb.New(&wrapperspb.StringValue{Value: "Platform"})
+
+	entity := &pb.Entity{
+		Id: "service_read_metadata_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:     createNameValue("2025-04-01T00:00:00Z", "Metadata Reader"),
+		Created:  "2025-04-01T00:00:00Z",
+		Metadata: metadata,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Read entity with metadata output
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_read_metadata_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata was returned
+	if len(readResp.Metadata) != 2 {
+		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
+	}
+	if _, exists := readResp.Metadata["position"]; !exists {
+		t.Error("Expected 'position' metadata field not found")
+	}
+	if _, exists := readResp.Metadata["team"]; !exists {
+		t.Error("Expected 'team' metadata field not found")
+	}
+
+	log.Printf("Successfully read entity with metadata")
+}
+
+// TestServiceReadEntityWithFilteredRelationships tests reading entity with filtered relationships
+func TestServiceReadEntityWithFilteredRelationships(t *testing.T) {
+	ctx := context.Background()
+
+	// Create three entities
+	entity1 := &pb.Entity{
+		Id: "service_read_filtered_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Person A"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_read_filtered_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Person B"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	// Create entity with multiple relationships
+	entity3 := &pb.Entity{
+		Id: "service_read_filtered_entity_3",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Manager"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_read_filtered_rel_1": {
+				Id:              "service_read_filtered_rel_1",
+				Name:            "MANAGES",
+				RelatedEntityId: "service_read_filtered_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+			"service_read_filtered_rel_2": {
+				Id:              "service_read_filtered_rel_2",
+				Name:            "SUPERVISES",
+				RelatedEntityId: "service_read_filtered_entity_2",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity3)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity3) error = %v", err)
+	}
+
+	// Read with filtered relationships (filter by relationship ID)
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id: "service_read_filtered_entity_3",
+			Relationships: map[string]*pb.Relationship{
+				"service_read_filtered_rel_1": {
+					Id: "service_read_filtered_rel_1",
+				},
+			},
+		},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() with filtered relationships error = %v", err)
+	}
+
+	// Should only get the filtered relationship
+	if _, exists := readResp.Relationships["service_read_filtered_rel_1"]; !exists {
+		t.Error("Expected filtered relationship 'service_read_filtered_rel_1' not found")
+	}
+
+	log.Printf("Successfully read entity with filtered relationships")
+}
+
+// TestServiceReadEntityWithAttributes tests reading entity with attributes
+func TestServiceReadEntityWithAttributes(t *testing.T) {
+	ctx := context.Background()
+
+	// Create attributes
+	attributes := make(map[string]*pb.TimeBasedValueList)
+
+	salaryData := map[string]interface{}{
+		"columns": []interface{}{"amount", "currency"},
+		"rows":    []interface{}{[]interface{}{"95000", "USD"}},
+	}
+	salaryStruct, _ := structpb.NewStruct(salaryData)
+	salaryValue, _ := anypb.New(salaryStruct)
+
+	attributes["salary"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     salaryValue,
+			},
+		},
+	}
+
+	// Create entity with attributes
+	entity := &pb.Entity{
+		Id: "service_read_attributes_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:       createNameValue("2025-04-01T00:00:00Z", "Attr Reader"),
+		Created:    "2025-04-01T00:00:00Z",
+		Attributes: attributes,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Read entity with attributes
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_read_attributes_entity_1",
+			Attributes: attributes,
+		},
+		Output: []string{"attributes"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() with attributes error = %v", err)
+	}
+
+	// Verify attributes were returned
+	if len(readResp.Attributes) == 0 {
+		t.Error("Expected attributes to be returned")
+	}
+	if _, exists := readResp.Attributes["salary"]; !exists {
+		t.Error("Expected 'salary' attribute not found")
+	}
+
+	log.Printf("Successfully read entity with attributes")
+}
+
+// TestServiceReadEntityWithMultipleOutputFields tests reading with multiple output fields at once
+func TestServiceReadEntityWithMultipleOutputFields(t *testing.T) {
+	ctx := context.Background()
+
+	// Create target entity for relationship
+	targetEntity := &pb.Entity{
+		Id: "service_read_multi_target",
+		Kind: &pb.Kind{
+			Major: "Organization",
+			Minor: "Company",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "TechCorp"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, targetEntity)
+	if err != nil {
+		t.Fatalf("CreateEntity(target) error = %v", err)
+	}
+
+	// Create entity with metadata, attributes, and relationships
+	metadata := make(map[string]*anypb.Any)
+	metadata["employee_id"], _ = anypb.New(&wrapperspb.StringValue{Value: "EMP001"})
+
+	attributes := make(map[string]*pb.TimeBasedValueList)
+	// Use tabular structure for skills
+	skillsData := map[string]interface{}{
+		"columns": []interface{}{"skill", "level"},
+		"rows":    []interface{}{[]interface{}{"Java", "Expert"}, []interface{}{"Kubernetes", "Intermediate"}},
+	}
+	skillsStruct, _ := structpb.NewStruct(skillsData)
+	skillsValue, _ := anypb.New(skillsStruct)
+
+	attributes["skills"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     skillsValue,
+			},
+		},
+	}
+
+	entity := &pb.Entity{
+		Id: "service_read_multi_entity",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:       createNameValue("2025-04-01T00:00:00Z", "Multi Output User"),
+		Created:    "2025-04-01T00:00:00Z",
+		Metadata:   metadata,
+		Attributes: attributes,
+		Relationships: map[string]*pb.Relationship{
+			"service_read_multi_rel": {
+				Id:              "service_read_multi_rel",
+				Name:            "WORKS_FOR",
+				RelatedEntityId: "service_read_multi_target",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err = server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Read with multiple output fields
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_read_multi_entity",
+			Attributes: attributes,
+		},
+		Output: []string{"metadata", "relationships", "attributes"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() with multiple outputs error = %v", err)
+	}
+
+	// Verify all requested components were returned
+	if len(readResp.Metadata) == 0 {
+		t.Error("Expected metadata to be returned")
+	}
+	if len(readResp.Relationships) == 0 {
+		t.Error("Expected relationships to be returned")
+	}
+	if len(readResp.Attributes) == 0 {
+		t.Error("Expected attributes to be returned")
+	}
+
+	log.Printf("Successfully read entity with multiple output fields")
+}
+
+// TestServiceReadEntityWithNonExistentRelationship tests reading entity looking for relationship that doesn't exist
+func TestServiceReadEntityWithNonExistentRelationship(t *testing.T) {
+	ctx := context.Background()
+
+	// Create an entity without relationships
+	entity := &pb.Entity{
+		Id: "service_read_no_rel_entity",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "No Rel User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Try to read with filter for non-existent relationship
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id: "service_read_no_rel_entity",
+			Relationships: map[string]*pb.Relationship{
+				"non_existent_relationship_id": {
+					Id: "non_existent_relationship_id",
+				},
+			},
+		},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v (should succeed with empty relationships)", err)
+	}
+
+	// Should return entity with empty relationships
+	if len(readResp.Relationships) > 0 {
+		t.Errorf("Expected no relationships, but got %d", len(readResp.Relationships))
+	}
+
+	// Verify entity itself was returned correctly
+	if readResp.Id != "service_read_no_rel_entity" {
+		t.Errorf("Entity ID = %v, want 'service_read_no_rel_entity'", readResp.Id)
+	}
+
+	log.Printf("Successfully read entity with filter for non-existent relationship (returned empty)")
+}
+
+// TestServiceReadEntityWithRelationshipBelongingToDifferentEntity tests that relationship of another entity is not returned
+func TestServiceReadEntityWithRelationshipBelongingToDifferentEntity(t *testing.T) {
+	ctx := context.Background()
+
+	// Create three entities
+	entity1 := &pb.Entity{
+		Id: "service_read_other_rel_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Employee A"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_read_other_rel_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Employee B"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	// Create entity3 with a relationship to entity1
+	entity3 := &pb.Entity{
+		Id: "service_read_other_rel_entity_3",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Manager"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_read_other_rel_belongs_to_3": {
+				Id:              "service_read_other_rel_belongs_to_3",
+				Name:            "SUPERVISES",
+				RelatedEntityId: "service_read_other_rel_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity2) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity3)
+	if err != nil {
+		t.Fatalf("CreateEntity(entity3) error = %v", err)
+	}
+
+	// Try to read entity2 and look for the relationship that belongs to entity3
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id: "service_read_other_rel_entity_2", // Reading entity2
+			Relationships: map[string]*pb.Relationship{
+				"service_read_other_rel_belongs_to_3": { // This relationship belongs to entity3, not entity2
+					Id: "service_read_other_rel_belongs_to_3",
+				},
+			},
+		},
+		Output: []string{"relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v (should succeed with empty relationships)", err)
+	}
+
+	// Should NOT return the relationship since it doesn't belong to this entity
+	if _, exists := readResp.Relationships["service_read_other_rel_belongs_to_3"]; exists {
+		t.Error("Should not return relationship that belongs to a different entity")
+	}
+
+	if len(readResp.Relationships) > 0 {
+		t.Errorf("Expected no relationships, but got %d", len(readResp.Relationships))
+	}
+
+	// Verify the correct entity was returned
+	if readResp.Id != "service_read_other_rel_entity_2" {
+		t.Errorf("Entity ID = %v, want 'service_read_other_rel_entity_2'", readResp.Id)
+	}
+
+	log.Printf("Successfully verified that relationship belonging to different entity is not returned")
+}
+
 // TestServiceUpdateEntity tests updating an entity through the service layer
 func TestServiceUpdateEntity(t *testing.T) {
 	ctx := context.Background()
