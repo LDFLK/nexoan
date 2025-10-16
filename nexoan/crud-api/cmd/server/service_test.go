@@ -115,13 +115,480 @@ func TestServiceCreateEntity(t *testing.T) {
 	log.Printf("Successfully created entity: %v", resp.Id)
 }
 
+// TestServiceCreateEntityWithValidFields tests creating a graph entity with all valid required fields
+func TestServiceCreateEntityWithValidFields(t *testing.T) {
+	ctx := context.Background()
+
+	// Create entity with all required fields
+	entity := &pb.Entity{
+		Id: "service_valid_fields_entity_1",
+		Kind: &pb.Kind{
+			Major: "Organization",
+			Minor: "Department",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Engineering Department"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	resp, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() with valid fields error = %v", err)
+	}
+	if resp == nil {
+		t.Fatal("CreateEntity() returned nil response")
+	}
+	if resp.Id != entity.Id {
+		t.Errorf("CreateEntity() response ID = %v, want %v", resp.Id, entity.Id)
+	}
+
+	log.Printf("Successfully created entity with valid fields: %v", resp.Id)
+}
+
+// TestServiceCreateEntityWithMissingKindMajor tests that creating entity without Kind.Major fails
+func TestServiceCreateEntityWithMissingKindMajor(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to create entity without Kind.Major
+	entity := &pb.Entity{
+		Id: "service_missing_major_entity_1",
+		Kind: &pb.Kind{
+			Minor: "Employee",
+			// Major is missing
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Invalid User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err == nil {
+		t.Error("Expected error when creating entity without Kind.Major, but got none")
+	} else {
+		log.Printf("CreateEntity correctly failed without Kind.Major: %v", err)
+	}
+
+	log.Printf("Successfully verified that Kind.Major is required")
+}
+
+// TestServiceCreateEntityWithMissingKindMinor tests that creating entity without Kind.Minor fails
+func TestServiceCreateEntityWithMissingKindMinor(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to create entity without Kind.Minor
+	entity := &pb.Entity{
+		Id: "service_missing_minor_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			// Minor is missing
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Invalid User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err == nil {
+		t.Error("Expected error when creating entity without Kind.Minor, but got none")
+	} else {
+		log.Printf("CreateEntity correctly failed without Kind.Minor: %v", err)
+	}
+
+	log.Printf("Successfully verified that Kind.Minor is required")
+}
+
+// TestServiceCreateEntityWithDuplicateId tests that creating entity with duplicate ID fails
+func TestServiceCreateEntityWithDuplicateId(t *testing.T) {
+	ctx := context.Background()
+
+	// Create first entity
+	entity1 := &pb.Entity{
+		Id: "service_duplicate_id_entity",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "First User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(first entity) error = %v", err)
+	}
+
+	// Try to create second entity with same ID
+	entity2 := &pb.Entity{
+		Id: "service_duplicate_id_entity", // Same ID!
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Second User"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err == nil {
+		t.Error("Expected error when creating entity with duplicate ID, but got none")
+	} else {
+		log.Printf("CreateEntity correctly failed with duplicate ID: %v", err)
+	}
+
+	// Verify original entity wasn't modified
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_duplicate_id_entity"},
+		Output: []string{},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	var stringValue wrapperspb.StringValue
+	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
+	if err != nil {
+		t.Fatalf("Error unpacking Name value: %v", err)
+	}
+	if stringValue.Value != "First User" {
+		t.Errorf("Entity was modified, name = %v, should remain 'First User'", stringValue.Value)
+	}
+
+	log.Printf("Successfully verified that duplicate IDs are rejected")
+}
+
+// TestServiceCreateEntityWithDuplicateRelationshipId tests that creating relationship with duplicate ID fails
+func TestServiceCreateEntityWithDuplicateRelationshipId(t *testing.T) {
+	ctx := context.Background()
+
+	// Create two target entities
+	entity1 := &pb.Entity{
+		Id: "service_dup_rel_target_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Target 1"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	entity2 := &pb.Entity{
+		Id: "service_dup_rel_target_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Target 2"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(target1) error = %v", err)
+	}
+
+	_, err = server.CreateEntity(ctx, entity2)
+	if err != nil {
+		t.Fatalf("CreateEntity(target2) error = %v", err)
+	}
+
+	// Create entity with first relationship using a specific ID
+	entity3 := &pb.Entity{
+		Id: "service_dup_rel_source_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Manager 1"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"duplicate_relationship_id": {
+				Id:              "duplicate_relationship_id",
+				Name:            "MANAGES",
+				RelatedEntityId: "service_dup_rel_target_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err = server.CreateEntity(ctx, entity3)
+	if err != nil {
+		t.Fatalf("CreateEntity(first relationship) error = %v", err)
+	}
+
+	// Try to create another entity with a relationship using the SAME ID
+	entity4 := &pb.Entity{
+		Id: "service_dup_rel_source_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Manager",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Manager 2"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"duplicate_relationship_id": { // Same relationship ID!
+				Id:              "duplicate_relationship_id",
+				Name:            "SUPERVISES",
+				RelatedEntityId: "service_dup_rel_target_2",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err = server.CreateEntity(ctx, entity4)
+	if err == nil {
+		t.Error("Expected error when creating entity with duplicate relationship ID, but got none")
+	} else {
+		log.Printf("CreateEntity correctly failed with duplicate relationship ID: %v", err)
+	}
+
+	log.Printf("Successfully verified that duplicate relationship IDs are rejected")
+}
+
+// TestServiceCreateEntityWithMetadataAndAttributes tests creating an entity with both metadata and attributes
+func TestServiceCreateEntityWithMetadataAndAttributes(t *testing.T) {
+	ctx := context.Background()
+
+	// Create metadata
+	metadata := make(map[string]*anypb.Any)
+	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Research"})
+	metadata["clearance_level"], _ = anypb.New(&wrapperspb.StringValue{Value: "Level 3"})
+
+	// Create attributes with all three types
+	attributes := make(map[string]*pb.TimeBasedValueList)
+
+	// Tabular attribute
+	salaryData := map[string]interface{}{
+		"columns": []interface{}{"amount", "currency"},
+		"rows":    []interface{}{[]interface{}{"130000", "USD"}},
+	}
+	salaryStruct, _ := structpb.NewStruct(salaryData)
+	salaryValue, _ := anypb.New(salaryStruct)
+
+	attributes["salary"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     salaryValue,
+			},
+		},
+	}
+
+	// Graph attribute
+	projectData := map[string]interface{}{
+		"nodes": []interface{}{
+			map[string]interface{}{"id": "proj1", "name": "AI Research"},
+		},
+		"edges": []interface{}{},
+	}
+	projectStruct, _ := structpb.NewStruct(projectData)
+	projectValue, _ := anypb.New(projectStruct)
+
+	attributes["projects"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     projectValue,
+			},
+		},
+	}
+
+	// Map attribute
+	credentialsData := map[string]interface{}{
+		"username": "researcher123",
+		"access":   "read-write",
+	}
+	credentialsStruct, _ := structpb.NewStruct(credentialsData)
+	credentialsValue, _ := anypb.New(credentialsStruct)
+
+	attributes["credentials"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     credentialsValue,
+			},
+		},
+	}
+
+	// Create entity with both metadata and attributes
+	entity := &pb.Entity{
+		Id: "service_metadata_attributes_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Researcher",
+		},
+		Name:       createNameValue("2025-04-01T00:00:00Z", "Dr. Smith"),
+		Created:    "2025-04-01T00:00:00Z",
+		Metadata:   metadata,
+		Attributes: attributes,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() with metadata and attributes error = %v", err)
+	}
+
+	// Read entity back with both metadata and attributes
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_metadata_attributes_entity_1",
+			Attributes: attributes,
+		},
+		Output: []string{"metadata", "attributes"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata was stored
+	if len(readResp.Metadata) != 2 {
+		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
+	}
+	if _, exists := readResp.Metadata["department"]; !exists {
+		t.Error("Expected 'department' metadata field not found")
+	}
+	if _, exists := readResp.Metadata["clearance_level"]; !exists {
+		t.Error("Expected 'clearance_level' metadata field not found")
+	}
+
+	// Verify all three attribute types were stored
+	if len(readResp.Attributes) == 0 {
+		t.Error("Expected attributes to be stored, but got empty attributes")
+	}
+	if _, exists := readResp.Attributes["salary"]; !exists {
+		t.Error("Expected 'salary' (tabular) attribute not found")
+	}
+	if _, exists := readResp.Attributes["projects"]; !exists {
+		t.Error("Expected 'projects' (graph) attribute not found")
+	}
+	if _, exists := readResp.Attributes["credentials"]; !exists {
+		t.Error("Expected 'credentials' (map) attribute not found")
+	}
+
+	log.Printf("Successfully created entity with both metadata and all three attribute types")
+}
+
+// TestServiceCreateEntityWithMetadataAttributesAndRelationships tests creating a complete entity
+func TestServiceCreateEntityWithMetadataAttributesAndRelationships(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a target entity for the relationship
+	targetEntity := &pb.Entity{
+		Id: "service_complete_target_entity",
+		Kind: &pb.Kind{
+			Major: "Organization",
+			Minor: "Department",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Engineering Dept"),
+		Created: "2025-04-01T00:00:00Z",
+	}
+
+	_, err := server.CreateEntity(ctx, targetEntity)
+	if err != nil {
+		t.Fatalf("CreateEntity(target) error = %v", err)
+	}
+
+	// Create metadata
+	metadata := make(map[string]*anypb.Any)
+	metadata["role"], _ = anypb.New(&wrapperspb.StringValue{Value: "Lead Engineer"})
+
+	// Create attributes
+	attributes := make(map[string]*pb.TimeBasedValueList)
+
+	salaryData := map[string]interface{}{
+		"columns": []interface{}{"amount", "currency"},
+		"rows":    []interface{}{[]interface{}{"160000", "USD"}},
+	}
+	salaryStruct, _ := structpb.NewStruct(salaryData)
+	salaryValue, _ := anypb.New(salaryStruct)
+
+	attributes["salary"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     salaryValue,
+			},
+		},
+	}
+
+	// Create entity with metadata, attributes, AND relationships
+	entity := &pb.Entity{
+		Id: "service_complete_entity",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Engineer",
+		},
+		Name:       createNameValue("2025-04-01T00:00:00Z", "Complete User"),
+		Created:    "2025-04-01T00:00:00Z",
+		Metadata:   metadata,
+		Attributes: attributes,
+		Relationships: map[string]*pb.Relationship{
+			"service_complete_rel": {
+				Id:              "service_complete_rel",
+				Name:            "MEMBER_OF",
+				RelatedEntityId: "service_complete_target_entity",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err = server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() with metadata, attributes, and relationships error = %v", err)
+	}
+
+	// Read entity back with all components
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_complete_entity",
+			Attributes: attributes,
+		},
+		Output: []string{"metadata", "attributes", "relationships"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() error = %v", err)
+	}
+
+	// Verify metadata
+	if len(readResp.Metadata) == 0 {
+		t.Error("Expected metadata to be stored")
+	}
+	if _, exists := readResp.Metadata["role"]; !exists {
+		t.Error("Expected 'role' metadata field not found")
+	}
+
+	// Verify attributes
+	if len(readResp.Attributes) == 0 {
+		t.Error("Expected attributes to be stored")
+	}
+	if _, exists := readResp.Attributes["salary"]; !exists {
+		t.Error("Expected 'salary' attribute not found")
+	}
+
+	// Verify relationships
+	if len(readResp.Relationships) == 0 {
+		t.Error("Expected relationships to be stored")
+	}
+	if _, exists := readResp.Relationships["service_complete_rel"]; !exists {
+		t.Error("Expected 'service_complete_rel' relationship not found")
+	}
+
+	log.Printf("Successfully created complete entity with metadata, attributes, and relationships")
+}
+
 // TestServiceReadEntity tests reading an entity through the service layer
 func TestServiceReadEntity(t *testing.T) {
 	ctx := context.Background()
 
 	// First create an entity to read
 	entity := &pb.Entity{
-		Id: "service_test_entity_2",
+		Id: "service_read_test_entity_1",
 		Kind: &pb.Kind{
 			Major: "Person",
 			Minor: "Minister",
@@ -137,7 +604,7 @@ func TestServiceReadEntity(t *testing.T) {
 
 	// Read the entity back
 	readReq := &pb.ReadEntityRequest{
-		Entity: &pb.Entity{Id: "service_test_entity_2"},
+		Entity: &pb.Entity{Id: "service_read_test_entity_1"},
 		Output: []string{}, // Request basic info only
 	}
 
@@ -1535,105 +2002,105 @@ func TestServiceUpdateRelationshipInvalidFields(t *testing.T) {
 }
 
 // TestServiceCreateEntityWithIncompleteRelationship tests that creating an entity with incomplete relationship fails
-// func TestServiceCreateEntityWithIncompleteRelationship(t *testing.T) {
-// 	ctx := context.Background()
+func TestServiceCreateEntityWithIncompleteRelationship(t *testing.T) {
+	ctx := context.Background()
 
-// 	// Create a target entity first
-// 	entity1 := &pb.Entity{
-// 		Id: "service_incomplete_create_entity_1",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Delta"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 	}
+	// Create a target entity first
+	entity1 := &pb.Entity{
+		Id: "service_incomplete_create_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Delta"),
+		Created: "2025-04-01T00:00:00Z",
+	}
 
-// 	_, err := server.CreateEntity(ctx, entity1)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity(target entity) error = %v", err)
-// 	}
+	_, err := server.CreateEntity(ctx, entity1)
+	if err != nil {
+		t.Fatalf("CreateEntity(target entity) error = %v", err)
+	}
 
-// 	// Try to create an entity with incomplete relationship (missing Name field)
-// 	entity2 := &pb.Entity{
-// 		Id: "service_incomplete_create_entity_2",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Epsilon"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 		Relationships: map[string]*pb.Relationship{
-// 			"service_incomplete_create_rel_1": {
-// 				Id: "service_incomplete_create_rel_1",
-// 				// Name is missing (required field)
-// 				RelatedEntityId: "service_incomplete_create_entity_1",
-// 				StartTime:       "2025-04-01T00:00:00Z",
-// 			},
-// 		},
-// 	}
+	// Try to create an entity with incomplete relationship (missing Name field)
+	entity2 := &pb.Entity{
+		Id: "service_incomplete_create_entity_2",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Epsilon"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_incomplete_create_rel_1": {
+				Id: "service_incomplete_create_rel_1",
+				// Name is missing (required field)
+				RelatedEntityId: "service_incomplete_create_entity_1",
+				StartTime:       "2025-04-01T00:00:00Z",
+			},
+		},
+	}
 
-// 	_, err = server.CreateEntity(ctx, entity2)
-// 	if err == nil {
-// 		t.Error("Expected error when creating entity with incomplete relationship (missing Name), but got none")
-// 	} else {
-// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
-// 	}
+	_, err = server.CreateEntity(ctx, entity2)
+	if err == nil {
+		t.Error("Expected error when creating entity with incomplete relationship (missing Name), but got none")
+	} else {
+		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
+	}
 
-// 	// Try to create an entity with incomplete relationship (missing RelatedEntityId)
-// 	entity3 := &pb.Entity{
-// 		Id: "service_incomplete_create_entity_3",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Zeta"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 		Relationships: map[string]*pb.Relationship{
-// 			"service_incomplete_create_rel_2": {
-// 				Id:   "service_incomplete_create_rel_2",
-// 				Name: "REPORTS_TO",
-// 				// RelatedEntityId is missing (required field)
-// 				StartTime: "2025-04-01T00:00:00Z",
-// 			},
-// 		},
-// 	}
+	// Try to create an entity with incomplete relationship (missing RelatedEntityId)
+	entity3 := &pb.Entity{
+		Id: "service_incomplete_create_entity_3",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Zeta"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_incomplete_create_rel_2": {
+				Id:   "service_incomplete_create_rel_2",
+				Name: "REPORTS_TO",
+				// RelatedEntityId is missing (required field)
+				StartTime: "2025-04-01T00:00:00Z",
+			},
+		},
+	}
 
-// 	_, err = server.CreateEntity(ctx, entity3)
-// 	if err == nil {
-// 		t.Error("Expected error when creating entity with incomplete relationship (missing RelatedEntityId), but got none")
-// 	} else {
-// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
-// 	}
+	_, err = server.CreateEntity(ctx, entity3)
+	if err == nil {
+		t.Error("Expected error when creating entity with incomplete relationship (missing RelatedEntityId), but got none")
+	} else {
+		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
+	}
 
-// 	// Try to create an entity with incomplete relationship (missing StartTime)
-// 	entity4 := &pb.Entity{
-// 		Id: "service_incomplete_create_entity_4",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Eta"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 		Relationships: map[string]*pb.Relationship{
-// 			"service_incomplete_create_rel_3": {
-// 				Id:              "service_incomplete_create_rel_3",
-// 				Name:            "MANAGES",
-// 				RelatedEntityId: "service_incomplete_create_entity_1",
-// 				// StartTime is missing (required field)
-// 			},
-// 		},
-// 	}
+	// Try to create an entity with incomplete relationship (missing StartTime)
+	entity4 := &pb.Entity{
+		Id: "service_incomplete_create_entity_4",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:    createNameValue("2025-04-01T00:00:00Z", "Eta"),
+		Created: "2025-04-01T00:00:00Z",
+		Relationships: map[string]*pb.Relationship{
+			"service_incomplete_create_rel_3": {
+				Id:              "service_incomplete_create_rel_3",
+				Name:            "MANAGES",
+				RelatedEntityId: "service_incomplete_create_entity_1",
+				// StartTime is missing (required field)
+			},
+		},
+	}
 
-// 	_, err = server.CreateEntity(ctx, entity4)
-// 	if err == nil {
-// 		t.Error("Expected error when creating entity with incomplete relationship (missing StartTime), but got none")
-// 	} else {
-// 		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
-// 	}
+	_, err = server.CreateEntity(ctx, entity4)
+	if err == nil {
+		t.Error("Expected error when creating entity with incomplete relationship (missing StartTime), but got none")
+	} else {
+		log.Printf("CreateEntity failed with incomplete relationship as expected: %v", err)
+	}
 
-// 	log.Printf("Successfully verified that creating entities with incomplete relationships fails")
-// }
+	log.Printf("Successfully verified that creating entities with incomplete relationships fails")
+}
 
 // TestServiceUpdateEntityAddIncompleteRelationship tests that adding incomplete relationship via update fails
 func TestServiceUpdateEntityAddIncompleteRelationship(t *testing.T) {
