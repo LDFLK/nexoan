@@ -33,16 +33,6 @@ type Server struct {
 func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, error) {
 	log.Printf("Creating Entity: %s", req.Id)
 
-	// The HandleMetadata function will only process it if it has metadata
-	// If metadata is not provided, a document will not be created in MongoDB
-	// FIXME: https://github.com/LDFLK/nexoan/issues/120
-	err := s.mongoRepo.HandleMetadata(ctx, req.Id, req)
-	if err != nil {
-		log.Printf("[server.CreateEntity] Error saving metadata in MongoDB: %v", err)
-		return nil, err
-	} else {
-		log.Printf("[server.CreateEntity] Successfully saved metadata in MongoDB for entity: %s", req.Id)
-	}
 
 	// Validate required fields for Neo4j entity creation
 	success, err := s.neo4jRepo.HandleGraphEntityCreation(ctx, req)
@@ -60,6 +50,17 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 		return nil, err
 	} else {
 		log.Printf("[server.CreateEntity] Successfully saved relationships in Neo4j for entity: %s", req.Id)
+	}
+
+	// The HandleMetadata function will only process it if it has metadata
+	// If metadata is not provided, a document will not be created in MongoDB
+	// FIXME: https://github.com/LDFLK/nexoan/issues/120
+	err = s.mongoRepo.HandleMetadata(ctx, req.Id, req)
+	if err != nil {
+		log.Printf("[server.CreateEntity] Error saving metadata in MongoDB: %v", err)
+		return nil, err
+	} else {
+		log.Printf("[server.CreateEntity] Successfully saved metadata in MongoDB for entity: %s", req.Id)
 	}
 
 	// Handle attributes
