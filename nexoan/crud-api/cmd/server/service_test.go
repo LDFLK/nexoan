@@ -1271,6 +1271,84 @@ func TestServiceUpdateEntity(t *testing.T) {
 	log.Printf("Successfully updated entity: %v", updateResp.Id)
 }
 
+// TestServiceDeleteEntity tests deleting an entity successfully
+func TestServiceDeleteEntityMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// Create an entity with metadata to delete
+	metadata := make(map[string]*anypb.Any)
+	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "Finance"})
+
+	entity := &pb.Entity{
+		Id: "service_delete_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:     createNameValue("2025-04-01T00:00:00Z", "To Be Deleted"),
+		Created:  "2025-04-01T00:00:00Z",
+		Metadata: metadata,
+	}
+
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
+
+	// Verify entity exists with metadata
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{Id: "service_delete_entity_1"},
+		Output: []string{"metadata"},
+	}
+
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() before delete error = %v", err)
+	}
+	if len(readResp.Metadata) == 0 {
+		t.Error("Expected metadata before deletion")
+	}
+
+	// Delete the entity
+	deleteReq := &pb.EntityId{Id: "service_delete_entity_1"}
+	deleteResp, err := server.DeleteEntity(ctx, deleteReq)
+	if err != nil {
+		t.Fatalf("DeleteEntity() error = %v", err)
+	}
+	if deleteResp == nil {
+		t.Fatal("DeleteEntity() returned nil response")
+	}
+
+	// Verify metadata was deleted (entity should still exist in Neo4j per TODO comments)
+	readRespAfter, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() after delete error = %v", err)
+	}
+
+	// Metadata should be empty now
+	if len(readRespAfter.Metadata) > 0 {
+		t.Errorf("Expected metadata to be deleted, but found %d metadata fields", len(readRespAfter.Metadata))
+	}
+
+	log.Printf("Successfully deleted entity metadata")
+}
+
+// TestServiceDeleteNonExistentEntity tests deleting an entity that doesn't exist
+func TestServiceDeleteNonExistentEntityMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// Try to delete an entity that doesn't exist
+	deleteReq := &pb.EntityId{Id: "non_existent_delete_entity"}
+	_, err := server.DeleteEntity(ctx, deleteReq)
+	if err == nil {
+		t.Error("Expected error when deleting non-existent entity, but got none")
+	} else {
+		log.Printf("DeleteEntity correctly failed for non-existent entity: %v", err)
+	}
+
+	log.Printf("Successfully verified that deleting non-existent entity fails")
+}
+
 // TestServiceReadEntities tests filtering entities through the service layer
 func TestServiceReadEntities(t *testing.T) {
 	ctx := context.Background()
