@@ -19,7 +19,7 @@ func (repo *Neo4jRepository) GetGraphEntity(ctx context.Context, entityId string
 	var created string
 	var terminated string
 
-	// Attempt to read from Neo4j, but don't fail if it's not available
+	// Attempt to read from Neo4j
 	entityMap, err := repo.ReadGraphEntity(ctx, entityId)
 	if err == nil && entityMap != nil {
 
@@ -61,6 +61,9 @@ func (repo *Neo4jRepository) GetGraphEntity(ctx context.Context, entityId string
 		if termValue, ok := entityMap["Terminated"]; ok {
 			terminated = termValue.(string)
 		}
+	} else {
+		log.Printf("[neo4j_handler.GetGraphEntity] Error reading entity %s: %v", entityId, err)
+		return nil, nil, "", "", fmt.Errorf("[neo4j_handler.GetGraphEntity] error reading entity: %v", err)
 	}
 
 	return kind, name, created, terminated, err
@@ -158,8 +161,8 @@ func (repo *Neo4jRepository) GetFilteredRelationships(ctx context.Context, entit
 
 		// Ensure required fields are present
 		if !relIDOk || !relatedEntityIdOk || !startTimeOk || !nameOk || !directionOk {
-			log.Printf("[GetEntityIdsByRelationship] Skipping relationship due to missing required fields: %v", rel)
-			continue
+			log.Printf("[GetEntityIdsByRelationship] Missing required fields in relationship: %v", rel)
+			return nil, fmt.Errorf("relationship missing required fields: %v", rel)
 		}
 
 		// Create a pb.Relationship object

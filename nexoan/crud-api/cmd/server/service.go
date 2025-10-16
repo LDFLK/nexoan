@@ -29,7 +29,7 @@ type Server struct {
 	postgresRepo *postgres.PostgresRepository
 }
 
-// CreateEntity handles entity creation with metadata
+// CreateEntity handles entity creation with relationships, metadata and attributes
 func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, error) {
 	log.Printf("Creating Entity: %s", req.Id)
 
@@ -106,7 +106,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 	kind, name, created, terminated, err := s.neo4jRepo.GetGraphEntity(ctx, req.Entity.Id)
 	if err != nil {
 		log.Printf("Error fetching entity info: %v", err)
-		// Continue processing as we might still be able to get other information
+		return nil, fmt.Errorf("error fetching entity info: %v", err)
 	} else {
 		response.Kind = kind
 		response.Name = name
@@ -130,7 +130,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			metadata, err := s.mongoRepo.GetMetadata(ctx, req.Entity.Id)
 			if err != nil {
 				log.Printf("Error fetching metadata: %v", err)
-				// Continue with other fields even if metadata fails
+				return nil, fmt.Errorf("error fetching metadata: %v", err)
 			} else {
 				log.Printf("[DEBUG] Retrieved metadata: %+v", metadata)
 				response.Metadata = metadata
@@ -144,6 +144,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, "", "", "", "", "", "", req.ActiveAt)
 					if err != nil {
 						log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
+						return nil, fmt.Errorf("error fetching related entity IDs: %v", err)
 					} else {
 						for id, relationship := range filteredRels {
 							response.Relationships[id] = relationship
@@ -156,7 +157,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 						filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
 						if err != nil {
 							log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
-							return nil, err
+							return nil, fmt.Errorf("error fetching related entity IDs: %v", err)
 						}
 
 						// Add the relationships to the response
