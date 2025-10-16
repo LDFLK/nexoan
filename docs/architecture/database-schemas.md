@@ -1,0 +1,883 @@
+# Database Schemas - Detailed Documentation
+
+This document provides comprehensive details about the database schemas used in Nexoan across MongoDB, Neo4j, and PostgreSQL.
+
+---
+
+## Overview
+
+Nexoan uses a multi-database architecture where each database is optimized for specific data types:
+
+| Database | Purpose | Data Stored |
+|----------|---------|-------------|
+| MongoDB | Flexible metadata | Key-value metadata pairs |
+| Neo4j | Graph relationships | Entity nodes and relationship edges |
+| PostgreSQL | Structured attributes | Time-series attribute data with schemas |
+
+---
+
+## MongoDB Schema
+
+### Database Information
+
+**Database Name**: `nexoan`  
+**Connection**: `mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin`
+
+### Collections
+
+#### 1. metadata
+
+**Purpose**: Store entity metadata as flexible key-value pairs
+
+**Schema** (document structure):
+```javascript
+{
+    "_id": "entity123",                    // Entity ID (Primary Key)
+    "metadata": {                          // Metadata object
+        "key1": "value1",
+        "key2": "value2",
+        "key3": 123,
+        "key4": true,
+        "nested": {
+            "subkey": "subvalue"
+        }
+    },
+    "created_at": ISODate("2024-01-01T00:00:00Z"),  // Optional timestamp
+    "updated_at": ISODate("2024-01-01T00:00:00Z")   // Optional timestamp
+}
+```
+
+**Example Document**:
+```javascript
+{
+    "_id": "employee_001",
+    "metadata": {
+        "department": "Engineering",
+        "role": "Software Engineer",
+        "manager": "manager_123",
+        "employeeId": "EMP-001",
+        "hireDate": "2024-01-01",
+        "location": "New York",
+        "active": true,
+        "skills": ["Go", "Ballerina", "Neo4j"],
+        "performance": {
+            "rating": 4.5,
+            "lastReview": "2024-06-01"
+        }
+    }
+}
+```
+
+**Indexes**:
+```javascript
+// Primary index (automatic)
+{ "_id": 1 }
+
+// Optional: Text search on metadata values
+{ "metadata.$**": "text" }
+
+// Optional: Query specific metadata fields
+{ "metadata.department": 1 }
+{ "metadata.active": 1 }
+```
+
+**Operations**:
+
+**Insert/Update**:
+```javascript
+db.metadata.updateOne(
+    { "_id": "entity123" },
+    { 
+        "$set": { 
+            "metadata": {
+                "department": "Engineering",
+                "role": "Engineer"
+            }
+        }
+    },
+    { "upsert": true }
+)
+```
+
+**Query**:
+```javascript
+// Get metadata by entity ID
+db.metadata.findOne({ "_id": "entity123" })
+
+// Find entities by metadata value
+db.metadata.find({ "metadata.department": "Engineering" })
+
+// Search metadata (if text index exists)
+db.metadata.find({ "$text": { "$search": "engineer" } })
+```
+
+**Delete**:
+```javascript
+db.metadata.deleteOne({ "_id": "entity123" })
+```
+
+#### 2. metadata_test
+
+**Purpose**: Test collection for metadata (same schema as `metadata`)
+
+Used during testing to isolate test data from production data.
+
+---
+
+## Neo4j Schema
+
+### Database Information
+
+**Connection**: 
+- Bolt: `bolt://neo4j:7687`
+- HTTP: `http://neo4j:7474`
+- Credentials: `neo4j/neo4j123`
+
+### Node Types
+
+#### Entity Node
+
+**Label**: `:Entity`
+
+**Properties**:
+```cypher
+{
+    id: String,              // Unique entity identifier (REQUIRED)
+    kind_major: String,      // Major entity classification (REQUIRED)
+    kind_minor: String,      // Minor entity classification (optional)
+    name: String,            // Entity name (REQUIRED)
+    created: String,         // ISO 8601 timestamp (REQUIRED)
+    terminated: String       // ISO 8601 timestamp (optional, null = active)
+}
+```
+
+**Example**:
+```cypher
+(:Entity {
+    id: "employee_001",
+    kind_major: "Person",
+    kind_minor: "Employee",
+    name: "John Doe",
+    created: "2024-01-01T00:00:00Z",
+    terminated: null
+})
+```
+
+**Indexes and Constraints**:
+```cypher
+// Unique constraint on id
+CREATE CONSTRAINT entity_id_unique IF NOT EXISTS
+FOR (e:Entity) REQUIRE e.id IS UNIQUE;
+
+// Index on id for fast lookups
+CREATE INDEX entity_id_index IF NOT EXISTS
+FOR (e:Entity) ON (e.id);
+
+// Index on kind for filtering
+CREATE INDEX entity_kind_major_index IF NOT EXISTS
+FOR (e:Entity) ON (e.kind_major);
+
+// Composite index
+CREATE INDEX entity_kind_composite_index IF NOT EXISTS
+FOR (e:Entity) ON (e.kind_major, e.kind_minor);
+```
+
+### Relationship Types
+
+**Dynamic Relationship System**: Nexoan uses a completely generic relationship model where relationship types are not predefined. Users can create any relationship type they need by simply providing a `name` field in the relationship data.
+
+**How it works**:
+1. User provides relationship with `name` field (e.g., "reports_to", "depends_on", "manages")
+2. System dynamically creates Neo4j relationship with that type
+3. Neo4j relationship type becomes the uppercased version or exact value of the `name` field
+4. No schema validation or predefined list of relationship types
+
+**Implementation** (from `neo4j_client.go`):
+```go
+// Relationship type is dynamically injected into Cypher query
+createQuery := `MATCH (p {Id: $parentID}), (c {Id: $childID})
+                MERGE (p)-[r:` + rel.Name + ` {Id: $relationshipID}]->(c)
+                SET r.Created = datetime($startDate)`
+```
+
+#### Relationship Structure
+
+All relationships in Neo4j store the following properties:
+
+**Neo4j Properties** (what's actually stored in the graph):
+```cypher
+{
+    Id: String,              // Relationship identifier (uppercase I)
+    Created: DateTime,       // When relationship started (Neo4j datetime type)
+    Terminated: DateTime     // When relationship ended (Neo4j datetime type, null = active)
+}
+```
+
+**Important**: The `name` field from the API/Protobuf becomes the **relationship TYPE** in Neo4j, not a property. It appears in the Cypher syntax as `[:relationshipType]`.
+
+**Example in Neo4j**:
+```cypher
+(:Entity {Id: "employee_001"})-[
+    :reports_to {
+        Id: "rel_001",
+        Created: datetime("2024-01-01T00:00:00Z"),
+        Terminated: null
+    }
+]->(:Entity {Id: "manager_123"})
+```
+
+**Note**: The `direction` field is not stored in Neo4j - it's determined by the direction of the arrow in the graph (→ for outgoing, ← for incoming).
+
+**Relationship Types**:
+Relationship types are **completely dynamic and user-defined**. The system does not enforce any predefined relationship types. When creating a relationship, the `name` field from the `Relationship` protobuf message becomes the Neo4j relationship type.
+
+Examples from tests and usage:
+- `reports_to`: Organizational hierarchy (from E2E tests)
+- `depends_on`: Package dependencies (from unit tests)
+- Any other name: Users can define any relationship type they need
+
+### Cypher Queries
+
+#### Create Entity Node
+
+```cypher
+CREATE (e:Entity {
+    id: $id,
+    kind_major: $kind_major,
+    kind_minor: $kind_minor,
+    name: $name,
+    created: $created,
+    terminated: $terminated
+})
+RETURN e
+```
+
+#### Create Relationship
+
+**Note**: The relationship type in the Cypher query is dynamically generated from the `name` field. The example below shows the pattern, but `[relationshipType]` is replaced with the actual value from `relationship.Name` at runtime.
+
+```cypher
+MATCH (source:Entity {id: $sourceId})
+MATCH (target:Entity {id: $targetId})
+MERGE (source)-[r:[relationshipType] {
+    Id: $relationshipId
+}]->(target)
+SET r.Created = datetime($startTime)
+SET r.Terminated = datetime($endTime)  -- if endTime is provided
+RETURN r
+```
+
+**Actual Go code** (from `neo4j_client.go`):
+```go
+createQuery := `MATCH (p {Id: $parentID}), (c {Id: $childID})
+                MERGE (p)-[r:` + rel.Name + ` {Id: $relationshipID}]->(c)
+                SET r.Created = datetime($startDate)`
+```
+
+#### Query Entity with Relationships
+
+```cypher
+MATCH (e:Entity {id: $entityId})
+OPTIONAL MATCH (e)-[r]->(related:Entity)
+RETURN e, collect(r) as relationships, collect(related) as relatedEntities
+```
+
+#### Temporal Relationship Query
+
+**Note**: Replace `[relationshipType]` with the actual relationship type (e.g., `reports_to`, `depends_on`, etc.) or use a variable relationship pattern `[r]` to match any type.
+
+```cypher
+-- Query specific relationship type at a point in time
+MATCH (e:Entity {id: $entityId})-[r:reports_to]->(m:Entity)
+WHERE r.Created <= $activeAt
+  AND (r.Terminated IS NULL OR r.Terminated >= $activeAt)
+RETURN e, r, m
+
+-- Query ANY relationship type at a point in time
+MATCH (e:Entity {id: $entityId})-[r]->(m:Entity)
+WHERE r.Created <= $activeAt
+  AND (r.Terminated IS NULL OR r.Terminated >= $activeAt)
+RETURN e, r, m, type(r) as relationshipType
+```
+
+#### Find Entities by Kind
+
+```cypher
+MATCH (e:Entity)
+WHERE e.kind_major = $kindMajor 
+  AND e.kind_minor = $kindMinor
+  AND e.terminated IS NULL
+RETURN e
+ORDER BY e.created DESC
+LIMIT 100
+```
+
+#### Graph Traversal Examples
+
+**Example 1: Find All Entities with Specific Relationship (e.g., organizational hierarchy)**
+
+```cypher
+-- Find all entities that have a specific relationship TO this entity
+MATCH (entity:Entity)-[r:reports_to]->(central:Entity {Id: $entityId})
+WHERE entity.Terminated IS NULL
+RETURN entity
+```
+
+**Example 2: Multi-level Traversal (e.g., organizational tree)**
+
+```cypher
+-- Find all entities connected via a relationship path (1 to n levels deep)
+MATCH path = (entity:Entity)-[:reports_to*1..5]->(central:Entity {Id: $entityId})
+WHERE entity.Terminated IS NULL
+RETURN entity, length(path) as depth
+ORDER BY depth
+```
+
+**Example 3: Find All Related Entities (any relationship type)**
+
+```cypher
+-- Find all entities related to this entity (outgoing relationships)
+MATCH (source:Entity {Id: $entityId})-[r]->(target:Entity)
+RETURN source, type(r) as relationshipType, target
+```
+
+#### Delete Entity and Relationships
+
+```cypher
+MATCH (e:Entity {id: $entityId})
+DETACH DELETE e
+```
+
+### Performance Considerations
+
+**Indexes**: Essential for fast lookups
+- Always index on `id` property
+- Consider indexes on `kind_major` and `kind_minor` for filtering
+- Add indexes on frequently queried properties
+
+**Relationship Traversal**:
+- Use specific relationship types for better performance
+- Limit traversal depth with `*1..3` syntax
+- Use `LIMIT` to avoid large result sets
+
+**Temporal Queries**:
+- Index on `startTime` and `endTime` for temporal queries
+- Use `IS NULL` checks for active relationships
+
+---
+
+## PostgreSQL Schema
+
+### Database Information
+
+**Database Name**: `nexoan`  
+**Connection**: `postgresql://postgres:postgres@postgres:5432/nexoan`
+
+### Core Tables
+
+#### 1. attribute_schemas
+
+**Purpose**: Define attribute schemas for different entity kinds
+
+**Schema**:
+```sql
+CREATE TABLE attribute_schemas (
+    id SERIAL PRIMARY KEY,
+    kind_major VARCHAR(255) NOT NULL,
+    kind_minor VARCHAR(255),
+    attr_name VARCHAR(255) NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    storage_type VARCHAR(50) NOT NULL,
+    is_nullable BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(kind_major, kind_minor, attr_name)
+);
+```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `kind_major`: Entity major classification (e.g., "Person", "Organization")
+- `kind_minor`: Entity minor classification (e.g., "Employee", "Contractor")
+- `attr_name`: Attribute name (e.g., "salary", "address")
+- `data_type`: Inferred data type (`int`, `float`, `string`, `bool`, `date`, `time`, `datetime`)
+- `storage_type`: Storage strategy (`SCALAR`, `LIST`, `MAP`, `TABULAR`, `GRAPH`)
+- `is_nullable`: Whether null values are allowed
+- `created_at`: Schema creation timestamp
+- `updated_at`: Schema last update timestamp
+
+**Example Data**:
+```sql
+INSERT INTO attribute_schemas 
+    (kind_major, kind_minor, attr_name, data_type, storage_type)
+VALUES
+    ('Person', 'Employee', 'salary', 'int', 'SCALAR'),
+    ('Person', 'Employee', 'skills', 'string', 'LIST'),
+    ('Person', 'Employee', 'address', 'string', 'MAP'),
+    ('Project', NULL, 'budget', 'float', 'SCALAR'),
+    ('Project', NULL, 'timeline', 'datetime', 'TABULAR');
+```
+
+**Indexes**:
+```sql
+CREATE INDEX idx_attr_schemas_kind ON attribute_schemas(kind_major, kind_minor);
+CREATE INDEX idx_attr_schemas_name ON attribute_schemas(attr_name);
+```
+
+#### 2. entity_attributes
+
+**Purpose**: Link entities to their attributes
+
+**Schema**:
+```sql
+CREATE TABLE entity_attributes (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    attr_name VARCHAR(255) NOT NULL,
+    schema_id INTEGER REFERENCES attribute_schemas(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(entity_id, attr_name)
+);
+```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `entity_id`: Reference to entity (matches Entity.id from Neo4j)
+- `attr_name`: Attribute name
+- `schema_id`: Foreign key to `attribute_schemas`
+- `created_at`: Link creation timestamp
+
+**Example Data**:
+```sql
+INSERT INTO entity_attributes (entity_id, attr_name, schema_id)
+VALUES
+    ('employee_001', 'salary', 1),
+    ('employee_001', 'skills', 2),
+    ('employee_001', 'address', 3);
+```
+
+**Indexes**:
+```sql
+CREATE INDEX idx_entity_attrs_entity_id ON entity_attributes(entity_id);
+CREATE INDEX idx_entity_attrs_attr_name ON entity_attributes(attr_name);
+```
+
+### Dynamic Attribute Tables
+
+#### Naming Convention
+
+Dynamic tables follow the pattern: `attr_{kind_major}_{attr_name}`
+
+Examples:
+- `attr_Person_salary`
+- `attr_Person_skills`
+- `attr_Project_budget`
+- `attr_Organization_revenue`
+
+#### Scalar Attribute Table
+
+**Example**: `attr_Person_salary`
+
+**Schema**:
+```sql
+CREATE TABLE attr_Person_salary (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (entity_id, attr_name) 
+        REFERENCES entity_attributes(entity_id, attr_name) 
+        ON DELETE CASCADE
+);
+```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `entity_id`: Entity reference
+- `start_time`: When this value became effective
+- `end_time`: When this value stopped being effective (NULL = current)
+- `value`: Actual attribute value (type matches `data_type` from schema)
+- `created_at`: Record creation timestamp
+
+**Example Data**:
+```sql
+INSERT INTO attr_Person_salary (entity_id, start_time, end_time, value)
+VALUES
+    ('employee_001', '2024-01-01 00:00:00', '2024-06-30 23:59:59', 100000),
+    ('employee_001', '2024-07-01 00:00:00', NULL, 110000);
+```
+
+**Query Current Value**:
+```sql
+SELECT value 
+FROM attr_Person_salary
+WHERE entity_id = 'employee_001'
+  AND end_time IS NULL;
+```
+
+**Query Historical Value**:
+```sql
+SELECT value
+FROM attr_Person_salary
+WHERE entity_id = 'employee_001'
+  AND start_time <= '2024-03-15 00:00:00'
+  AND (end_time IS NULL OR end_time >= '2024-03-15 00:00:00');
+```
+
+**Indexes**:
+```sql
+CREATE INDEX idx_attr_Person_salary_entity ON attr_Person_salary(entity_id);
+CREATE INDEX idx_attr_Person_salary_time ON attr_Person_salary(start_time, end_time);
+```
+
+#### List Attribute Table
+
+**Example**: `attr_Person_skills`
+
+**Schema**:
+```sql
+CREATE TABLE attr_Person_skills (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value TEXT[] NOT NULL,                    -- PostgreSQL array type
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Example Data**:
+```sql
+INSERT INTO attr_Person_skills (entity_id, start_time, end_time, value)
+VALUES
+    ('employee_001', '2024-01-01 00:00:00', NULL, 
+     ARRAY['Go', 'Ballerina', 'Neo4j', 'PostgreSQL']);
+```
+
+**Query**:
+```sql
+-- Find entities with specific skill
+SELECT entity_id
+FROM attr_Person_skills
+WHERE 'Go' = ANY(value)
+  AND end_time IS NULL;
+```
+
+#### Map Attribute Table
+
+**Example**: `attr_Person_address`
+
+**Schema**:
+```sql
+CREATE TABLE attr_Person_address (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value JSONB NOT NULL,                     -- PostgreSQL JSONB type
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Example Data**:
+```sql
+INSERT INTO attr_Person_address (entity_id, start_time, end_time, value)
+VALUES
+    ('employee_001', '2024-01-01 00:00:00', NULL,
+     '{"street": "123 Main St", "city": "New York", "state": "NY", "zip": "10001"}');
+```
+
+**Query**:
+```sql
+-- Query by nested field
+SELECT entity_id, value->>'city' as city
+FROM attr_Person_address
+WHERE value->>'state' = 'NY'
+  AND end_time IS NULL;
+
+-- Use GIN index for JSONB queries
+CREATE INDEX idx_attr_Person_address_value ON attr_Person_address USING GIN (value);
+```
+
+#### Tabular Attribute Table
+
+**Example**: `attr_Project_timeline`
+
+**Schema**:
+```sql
+CREATE TABLE attr_Project_timeline (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value JSONB NOT NULL,                     -- Stores tabular data as JSONB
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Example Data**:
+```sql
+INSERT INTO attr_Project_timeline (entity_id, start_time, end_time, value)
+VALUES
+    ('project_001', '2024-01-01 00:00:00', NULL,
+     '{
+        "columns": ["milestone", "dueDate", "status"],
+        "rows": [
+            ["Design", "2024-02-01", "Complete"],
+            ["Development", "2024-04-01", "In Progress"],
+            ["Testing", "2024-05-01", "Pending"]
+        ]
+     }');
+```
+
+### SQL Operations
+
+#### Create Schema
+
+```sql
+INSERT INTO attribute_schemas (kind_major, kind_minor, attr_name, data_type, storage_type)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (kind_major, kind_minor, attr_name) DO NOTHING
+RETURNING id;
+```
+
+#### Create Attribute Table
+
+```sql
+-- For SCALAR type (integer example)
+CREATE TABLE IF NOT EXISTS attr_Person_salary (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- For LIST type
+CREATE TABLE IF NOT EXISTS attr_Person_skills (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value TEXT[] NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- For MAP type
+CREATE TABLE IF NOT EXISTS attr_Person_address (
+    id SERIAL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    value JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Link Entity to Attribute
+
+```sql
+INSERT INTO entity_attributes (entity_id, attr_name, schema_id)
+VALUES ($1, $2, $3)
+ON CONFLICT (entity_id, attr_name) DO NOTHING;
+```
+
+#### Insert Attribute Value
+
+```sql
+INSERT INTO attr_Person_salary (entity_id, start_time, end_time, value)
+VALUES ($1, $2, $3, $4);
+```
+
+#### Query All Attributes for Entity
+
+```sql
+SELECT 
+    ea.attr_name,
+    s.data_type,
+    s.storage_type
+FROM entity_attributes ea
+JOIN attribute_schemas s ON ea.schema_id = s.id
+WHERE ea.entity_id = $1;
+```
+
+#### Delete Entity Attributes
+
+```sql
+-- Delete from entity_attributes (CASCADE will delete from attribute tables)
+DELETE FROM entity_attributes WHERE entity_id = $1;
+```
+
+### Type Mapping
+
+| Inferred Type | PostgreSQL Type | Example |
+|---------------|----------------|---------|
+| int | INTEGER | 42, -100, 0 |
+| float | DOUBLE PRECISION | 3.14, -0.001, 1.5e10 |
+| string | TEXT | "Hello", "12345" |
+| bool | BOOLEAN | true, false |
+| date | DATE | 2024-01-01 |
+| time | TIME | 14:30:00 |
+| datetime | TIMESTAMP | 2024-01-01 14:30:00Z |
+| array | TEXT[] or INTEGER[] | ["a", "b"] or [1, 2, 3] |
+| object/map | JSONB | {"key": "value"} |
+
+### Performance Optimization
+
+#### Indexes
+
+```sql
+-- Entity ID indexes (for all attribute tables)
+CREATE INDEX idx_attr_{kind}_{name}_entity ON attr_{kind}_{name}(entity_id);
+
+-- Temporal indexes (for all attribute tables)
+CREATE INDEX idx_attr_{kind}_{name}_time ON attr_{kind}_{name}(start_time, end_time);
+
+-- JSONB indexes (for MAP and TABULAR types)
+CREATE INDEX idx_attr_{kind}_{name}_value ON attr_{kind}_{name} USING GIN (value);
+
+-- Array indexes (for LIST types)
+CREATE INDEX idx_attr_{kind}_{name}_value ON attr_{kind}_{name} USING GIN (value);
+```
+
+#### Partitioning (for large tables)
+
+```sql
+-- Partition by time range
+CREATE TABLE attr_Person_salary_2024_q1 PARTITION OF attr_Person_salary
+    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
+
+CREATE TABLE attr_Person_salary_2024_q2 PARTITION OF attr_Person_salary
+    FOR VALUES FROM ('2024-04-01') TO ('2024-07-01');
+```
+
+#### Vacuum and Analyze
+
+```sql
+-- Regular maintenance
+VACUUM ANALYZE attribute_schemas;
+VACUUM ANALYZE entity_attributes;
+VACUUM ANALYZE attr_Person_salary;
+```
+
+---
+
+## Cross-Database Consistency
+
+### Entity Lifecycle
+
+1. **Create Entity**:
+   ```
+   MongoDB: Insert metadata document
+   Neo4j:   Create entity node
+   Neo4j:   Create relationships
+   PostgreSQL: Insert attribute schemas, create tables, insert values
+   ```
+
+2. **Read Entity**:
+   ```
+   Neo4j:     Get basic entity info (always)
+   MongoDB:   Get metadata (if requested)
+   Neo4j:     Get relationships (if requested)
+   PostgreSQL: Get attributes (if requested)
+   ```
+
+3. **Update Entity**:
+   ```
+   MongoDB: Update metadata document
+   Neo4j:   Update entity node properties
+   Neo4j:   Update/add relationships
+   PostgreSQL: Insert new time-based attribute values
+   ```
+
+4. **Delete Entity**:
+   ```
+   MongoDB: Delete metadata document
+   Neo4j:   Delete entity node (CASCADE deletes relationships)
+   PostgreSQL: Delete from entity_attributes (CASCADE deletes attribute values)
+   ```
+
+### Data Integrity
+
+**No Distributed Transactions**: Currently, Nexoan doesn't use distributed transactions. Each database operation is independent.
+
+**Eventual Consistency**: System relies on application-level consistency:
+- Entity ID is the common key across all databases
+- CRUD Service orchestrates all operations
+- Errors are logged but don't rollback previous successful operations
+
+**Future Enhancement**: Implement two-phase commit or saga pattern for true distributed transactions.
+
+---
+
+## Backup and Restore
+
+### MongoDB Backup
+
+```bash
+mongodump --uri="mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin" \
+    --out=/backup/mongodb/
+```
+
+### Neo4j Backup
+
+```bash
+neo4j-admin dump --database=neo4j --to=/backup/neo4j/neo4j.dump
+```
+
+### PostgreSQL Backup
+
+```bash
+pg_dump -h postgres -U postgres -d nexoan -F tar -f /backup/postgres/nexoan.tar
+```
+
+See [Backup Integration Guide](../deployment/BACKUP_INTEGRATION.md) for complete backup/restore workflow.
+
+---
+
+## Schema Evolution
+
+### Adding New Entity Kind
+
+1. No changes needed in MongoDB or Neo4j
+2. PostgreSQL: Schemas and tables created automatically on first use
+
+### Adding New Attribute
+
+1. First entity with new attribute triggers schema creation
+2. New table created: `attr_{kind_major}_{attr_name}`
+3. Future entities of same kind use existing schema
+
+### Modifying Attribute Type
+
+**Challenge**: Type changes are complex
+- Requires data migration
+- May need new table with different column types
+
+**Recommendation**: Design attribute types carefully upfront
+
+### Deleting Entity Kind
+
+1. MongoDB: Manual cleanup of metadata documents
+2. Neo4j: Delete all entities of that kind
+3. PostgreSQL: Drop attribute tables, clean up schemas
+
+---
+
+## Related Documentation
+
+- [Main Architecture Overview](./overview.md)
+- [CRUD Service Details](./crud-service-details.md)
+- [How It Works](../how_it_works.md)
+- [Data Types](../datatype.md)
+- [Storage Types](../storage.md)
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: October 2024  
+**Component**: Database Schemas
+
