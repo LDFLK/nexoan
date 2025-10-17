@@ -9,8 +9,16 @@ paths:
   /entities:
     post:
       summary: Create a new entity
+      description: |
+        This endpoint allows you to create a new entity.
+
       requestBody:
         required: true
+        description: |
+          It is required to provide the `id`, `kind`, `name` and `created` of the entity to be created. The `id` must not be an existing id.
+
+          If adding relationships, it is required to provide the `id`, `relatedEntityId`, `name`, and `startTime` of the relationship to be added. The `id` must not be an existing id and the `relatedEntityId` must be an existing id.
+
         content:
           application/json:
             schema:
@@ -41,8 +49,9 @@ paths:
         required: true
         description: |
           This request body corresponds to the entity to be updated.
-          - It is required to provide the `id` of the entity to be updated.
-          
+          - It is required to provide the `id` of the entity to be updated. 
+          - The `id` must be an existing id.
+
           Updating core attributes:
           - Only `name`, `created` and `terminated` can be updated.
 
