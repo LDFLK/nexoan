@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"lk/datafoundation/crud-api/db/config"
@@ -4129,385 +4130,185 @@ func TestServiceUpdateEntityAddInvalidAttributeType(t *testing.T) {
 	log.Printf("Successfully verified that invalid attribute types are rejected during update")
 }
 
-// TestServiceUpdateExistingAttributes tests updating attributes that already exist on an entity
-// func TestServiceUpdateExistingAttributes(t *testing.T) {
-// 	ctx := context.Background()
+// TestServiceAppendDataToTabularAttribute tests that updating a tabular attribute appends new rows
+func TestServiceAppendDataToTabularAttribute(t *testing.T) {
+	ctx := context.Background()
 
-// 	// Create entity with initial attributes - all three types
-// 	initialAttributes := make(map[string]*pb.TimeBasedValueList)
+	// Create entity with initial tabular attribute
+	initialAttributes := make(map[string]*pb.TimeBasedValueList)
 
-// 	// Tabular type
-// 	salaryData := map[string]interface{}{
-// 		"columns": []interface{}{"amount", "currency"},
-// 		"rows":    []interface{}{[]interface{}{"100000", "USD"}},
-// 	}
-// 	salaryStruct, _ := structpb.NewStruct(salaryData)
-// 	salaryValue, _ := anypb.New(salaryStruct)
+	// Create initial salary history with 2 entries
+	salaryData := map[string]interface{}{
+		"columns": []interface{}{"year", "amount", "currency"},
+		"rows": []interface{}{
+			[]interface{}{"2023", "90000", "USD"},
+			[]interface{}{"2024", "100000", "USD"},
+		},
+	}
+	salaryStruct, _ := structpb.NewStruct(salaryData)
+	salaryValue, _ := anypb.New(salaryStruct)
 
-// 	initialAttributes["salary"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-04-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     salaryValue,
-// 			},
-// 		},
-// 	}
+	initialAttributes["salary_history"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-04-01T00:00:00Z",
+				EndTime:   "",
+				Value:     salaryValue,
+			},
+		},
+	}
 
-// 	// Graph type
-// 	orgData := map[string]interface{}{
-// 		"nodes": []interface{}{
-// 			map[string]interface{}{"id": "dept1", "name": "Engineering"},
-// 		},
-// 		"edges": []interface{}{},
-// 	}
-// 	orgStruct, _ := structpb.NewStruct(orgData)
-// 	orgValue, _ := anypb.New(orgStruct)
+	entity := &pb.Entity{
+		Id: "service_append_tabular_entity_1",
+		Kind: &pb.Kind{
+			Major: "Person",
+			Minor: "Employee",
+		},
+		Name:       createNameValue("2025-04-01T00:00:00Z", "Salary History User"),
+		Created:    "2025-04-01T00:00:00Z",
+		Attributes: initialAttributes,
+	}
 
-// 	initialAttributes["department_graph"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-04-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     orgValue,
-// 			},
-// 		},
-// 	}
+	_, err := server.CreateEntity(ctx, entity)
+	if err != nil {
+		t.Fatalf("CreateEntity() error = %v", err)
+	}
 
-// 	// Map type
-// 	settingsData := map[string]interface{}{
-// 		"theme":         "dark",
-// 		"notifications": true,
-// 	}
-// 	settingsStruct, _ := structpb.NewStruct(settingsData)
-// 	settingsValue, _ := anypb.New(settingsStruct)
+	// Read initial attribute to verify 2 rows
+	readReq := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_append_tabular_entity_1",
+			Attributes: initialAttributes,
+		},
+		Output: []string{"attributes"},
+	}
 
-// 	initialAttributes["user_settings"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-04-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     settingsValue,
-// 			},
-// 		},
-// 	}
+	readResp, err := server.ReadEntity(ctx, readReq)
+	if err != nil {
+		t.Fatalf("ReadEntity() before update error = %v", err)
+	}
 
-// 	entity := &pb.Entity{
-// 		Id: "service_update_attributes_entity_1",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:       createNameValue("2025-04-01T00:00:00Z", "Attributes Update User"),
-// 		Created:    "2025-04-01T00:00:00Z",
-// 		Attributes: initialAttributes,
-// 	}
+	// Verify initial data has 2 rows
+	if salaryHistoryList, exists := readResp.Attributes["salary_history"]; exists {
+		if len(salaryHistoryList.Values) > 0 {
+			var initialSalaryStruct structpb.Struct
+			err := salaryHistoryList.Values[0].Value.UnmarshalTo(&initialSalaryStruct)
+			if err != nil {
+				t.Fatalf("Error unpacking initial salary_history: %v", err)
+			}
+			if rowsField, ok := initialSalaryStruct.Fields["rows"]; ok {
+				if rowsList := rowsField.GetListValue(); rowsList != nil {
+					if len(rowsList.Values) != 2 {
+						t.Errorf("Expected 2 initial rows, got %d", len(rowsList.Values))
+					}
+				}
+			}
+		}
+	} else {
+		t.Fatal("Expected 'salary_history' attribute not found in initial read")
+	}
 
-// 	_, err := server.CreateEntity(ctx, entity)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity() error = %v", err)
-// 	}
+	// Now update with same attribute name to append new row (2025 salary)
+	appendAttributes := make(map[string]*pb.TimeBasedValueList)
 
-// 	// Update all three existing attributes and add a new one
-// 	updatedAttributes := make(map[string]*pb.TimeBasedValueList)
+	newSalaryData := map[string]interface{}{
+		"columns": []interface{}{"year", "amount", "currency"},
+		"rows": []interface{}{
+			[]interface{}{"2025", "115000", "USD"}, // New row to append
+		},
+	}
+	newSalaryStruct, _ := structpb.NewStruct(newSalaryData)
+	newSalaryValue, _ := anypb.New(newSalaryStruct)
 
-// 	// Update existing salary attribute (tabular)
-// 	newSalaryData := map[string]interface{}{
-// 		"columns": []interface{}{"amount", "currency"},
-// 		"rows":    []interface{}{[]interface{}{"150000", "EUR"}}, // Changed amount and currency
-// 	}
-// 	newSalaryStruct, _ := structpb.NewStruct(newSalaryData)
-// 	newSalaryValue, _ := anypb.New(newSalaryStruct)
+	appendAttributes["salary_history"] = &pb.TimeBasedValueList{
+		Values: []*pb.TimeBasedValue{
+			{
+				StartTime: "2025-05-01T00:00:00Z",
+				EndTime:   "",
+				Value:     newSalaryValue,
+			},
+		},
+	}
 
-// 	updatedAttributes["salary"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-06-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     newSalaryValue,
-// 			},
-// 		},
-// 	}
+	updateReq := &pb.UpdateEntityRequest{
+		Id: "service_append_tabular_entity_1",
+		Entity: &pb.Entity{
+			Attributes: appendAttributes,
+		},
+	}
 
-// 	// Update existing department_graph attribute (graph)
-// 	newOrgData := map[string]interface{}{
-// 		"nodes": []interface{}{
-// 			map[string]interface{}{"id": "dept1", "name": "Product"}, // Changed from Engineering
-// 			map[string]interface{}{"id": "dept2", "name": "Sales"},   // Added new node
-// 		},
-// 		"edges": []interface{}{
-// 			map[string]interface{}{"from": "dept1", "to": "dept2", "type": "collaborates"}, // Added edge
-// 		},
-// 	}
-// 	newOrgStruct, _ := structpb.NewStruct(newOrgData)
-// 	newOrgValue, _ := anypb.New(newOrgStruct)
+	updateResp, err := server.UpdateEntity(ctx, updateReq)
+	if err != nil {
+		t.Fatalf("UpdateEntity() to append tabular data error = %v", err)
+	}
+	if updateResp == nil {
+		t.Fatal("UpdateEntity() returned nil response")
+	}
 
-// 	updatedAttributes["department_graph"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-06-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     newOrgValue,
-// 			},
-// 		},
-// 	}
+	// Read entity back and verify data was appended (should now have 3 rows total)
+	readReq2 := &pb.ReadEntityRequest{
+		Entity: &pb.Entity{
+			Id:         "service_append_tabular_entity_1",
+			Attributes: appendAttributes,
+		},
+		Output: []string{"attributes"},
+	}
 
-// 	// Update existing user_settings attribute (map)
-// 	newSettingsData := map[string]interface{}{
-// 		"theme":         "light", // Changed from dark
-// 		"notifications": false,   // Changed from true
-// 		"language":      "en",    // Added new field
-// 	}
-// 	newSettingsStruct, _ := structpb.NewStruct(newSettingsData)
-// 	newSettingsValue, _ := anypb.New(newSettingsStruct)
+	readResp2, err := server.ReadEntity(ctx, readReq2)
+	if err != nil {
+		t.Fatalf("ReadEntity() after update error = %v", err)
+	}
 
-// 	updatedAttributes["user_settings"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-06-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     newSettingsValue,
-// 			},
-// 		},
-// 	}
+	// Verify attribute still exists
+	if _, exists := readResp2.Attributes["salary_history"]; !exists {
+		t.Fatal("Expected 'salary_history' attribute not found after update")
+	}
 
-// 	// Add new bonus attribute (tabular)
-// 	bonusData := map[string]interface{}{
-// 		"columns": []interface{}{"amount", "currency", "type"},
-// 		"rows":    []interface{}{[]interface{}{"20000", "USD", "performance"}},
-// 	}
-// 	bonusStruct, _ := structpb.NewStruct(bonusData)
-// 	bonusValue, _ := anypb.New(bonusStruct)
+	// Verify data was appended (should have 3 rows now: 2023, 2024, 2025)
+	salaryHistoryList := readResp2.Attributes["salary_history"]
+	if len(salaryHistoryList.Values) == 0 {
+		t.Fatal("Expected salary_history to have values")
+	}
 
-// 	updatedAttributes["bonus"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-06-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     bonusValue,
-// 			},
-// 		},
-// 	}
+	// Unpack the result - data comes back as a JSON string in a "data" field
+	var resultStruct structpb.Struct
+	err = salaryHistoryList.Values[0].Value.UnmarshalTo(&resultStruct)
+	if err != nil {
+		t.Fatalf("Error unpacking salary_history result: %v", err)
+	}
 
-// 	updateReq := &pb.UpdateEntityRequest{
-// 		Id: "service_update_attributes_entity_1",
-// 		Entity: &pb.Entity{
-// 			Attributes: updatedAttributes,
-// 		},
-// 	}
+	// Get the "data" field which contains the JSON string
+	dataField, ok := resultStruct.Fields["data"]
+	if !ok {
+		t.Fatal("Expected 'data' field in salary_history result")
+	}
 
-// 	updateResp, err := server.UpdateEntity(ctx, updateReq)
-// 	if err != nil {
-// 		t.Fatalf("UpdateEntity() to update attributes error = %v", err)
-// 	}
-// 	if updateResp == nil {
-// 		t.Fatal("UpdateEntity() returned nil response")
-// 	}
+	jsonDataStr := dataField.GetStringValue()
+	if jsonDataStr == "" {
+		t.Fatal("Expected non-empty JSON data string")
+	}
 
-// 	// Read entity back with attributes
-// 	readReq := &pb.ReadEntityRequest{
-// 		Entity: &pb.Entity{
-// 			Id:         "service_update_attributes_entity_1",
-// 			Attributes: updatedAttributes,
-// 		},
-// 		Output: []string{"attributes"},
-// 	}
+	// Parse the JSON string to verify the rows
+	// The JSON structure is: {"columns":["year","amount","currency"],"rows":[...]}
+	// We'll do a simple check by counting occurrences of row data
+	if !strings.Contains(jsonDataStr, `"2023"`) {
+		t.Error("Expected to find 2023 row in data")
+	}
+	if !strings.Contains(jsonDataStr, `"2024"`) {
+		t.Error("Expected to find 2024 row in data")
+	}
+	if !strings.Contains(jsonDataStr, `"2025"`) {
+		t.Error("Expected to find 2025 row in data (newly appended)")
+	}
+	if !strings.Contains(jsonDataStr, `"115000"`) {
+		t.Error("Expected to find new salary amount 115000 in data")
+	}
 
-// 	readResp, err := server.ReadEntity(ctx, readReq)
-// 	if err != nil {
-// 		t.Fatalf("ReadEntity() error = %v", err)
-// 	}
+	// Count rows by counting array elements in the JSON
+	rowCount := strings.Count(jsonDataStr, `["2023"`) + strings.Count(jsonDataStr, `["2024"`) + strings.Count(jsonDataStr, `["2025"`)
+	if rowCount != 3 {
+		t.Errorf("Expected 3 rows in data, found %d", rowCount)
+	}
 
-// 	// Verify all attributes were updated (3 existing + 1 new = 4 total)
-// 	if len(readResp.Attributes) == 0 {
-// 		t.Error("Expected attributes to exist, but got empty attributes")
-// 	}
-
-// 	// Verify all four attributes exist (3 updated + 1 new)
-// 	if _, exists := readResp.Attributes["salary"]; !exists {
-// 		t.Error("Expected updated 'salary' (tabular) attribute not found")
-// 	}
-
-// 	if _, exists := readResp.Attributes["department_graph"]; !exists {
-// 		t.Error("Expected updated 'department_graph' (graph) attribute not found")
-// 	}
-
-// 	if _, exists := readResp.Attributes["user_settings"]; !exists {
-// 		t.Error("Expected updated 'user_settings' (map) attribute not found")
-// 	}
-
-// 	if _, exists := readResp.Attributes["bonus"]; !exists {
-// 		t.Error("Expected new 'bonus' (tabular) attribute not found")
-// 	}
-
-// 	log.Printf("Successfully updated all three attribute types and added new attribute")
-// }
-
-// TestServiceUpdateEntityWithCoreAttributesMetadataRelationshipsAndAttributes tests updating all entity components together
-// NOTE: This test is commented out because updating attributes with different startTime currently fails
-// due to an issue with updating the IS_ATTRIBUTE relationship's immutable fields
-// TODO: Fix attribute update logic to support updating existing attributes
-// func TestServiceUpdateEntityWithAllComponents(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	// Create two entities
-// 	entity1 := &pb.Entity{
-// 		Id: "service_all_components_entity_1",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Employee",
-// 		},
-// 		Name:    createNameValue("2025-04-01T00:00:00Z", "Target Entity"),
-// 		Created: "2025-04-01T00:00:00Z",
-// 	}
-
-// 	// Create entity with metadata, attributes, and relationship
-// 	metadata := make(map[string]*anypb.Any)
-// 	metadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "IT"})
-
-// 	attributes := make(map[string]*pb.TimeBasedValueList)
-// 	salaryData := map[string]interface{}{
-// 		"columns": []interface{}{"amount", "currency"},
-// 		"rows":    []interface{}{[]interface{}{"110000", "USD"}},
-// 	}
-// 	salaryStruct, _ := structpb.NewStruct(salaryData)
-// 	salaryValue, _ := anypb.New(salaryStruct)
-
-// 	attributes["salary"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-04-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     salaryValue,
-// 			},
-// 		},
-// 	}
-
-// 	entity2 := &pb.Entity{
-// 		Id: "service_all_components_entity_2",
-// 		Kind: &pb.Kind{
-// 			Major: "Person",
-// 			Minor: "Manager",
-// 		},
-// 		Name:       createNameValue("2025-04-01T00:00:00Z", "Manager User"),
-// 		Created:    "2025-04-01T00:00:00Z",
-// 		Metadata:   metadata,
-// 		Attributes: attributes,
-// 		Relationships: map[string]*pb.Relationship{
-// 			"service_all_components_rel_1": {
-// 				Id:              "service_all_components_rel_1",
-// 				Name:            "MANAGES",
-// 				RelatedEntityId: "service_all_components_entity_1",
-// 				StartTime:       "2025-04-01T00:00:00Z",
-// 			},
-// 		},
-// 	}
-
-// 	_, err := server.CreateEntity(ctx, entity1)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity(entity1) error = %v", err)
-// 	}
-
-// 	_, err = server.CreateEntity(ctx, entity2)
-// 	if err != nil {
-// 		t.Fatalf("CreateEntity(entity2) error = %v", err)
-// 	}
-
-// 	// Update all components: core attributes, metadata, relationships, and attributes
-// 	updatedMetadata := make(map[string]*anypb.Any)
-// 	updatedMetadata["department"], _ = anypb.New(&wrapperspb.StringValue{Value: "HR"})
-// 	updatedMetadata["title"], _ = anypb.New(&wrapperspb.StringValue{Value: "Senior Manager"})
-
-// 	updatedAttributes := make(map[string]*pb.TimeBasedValueList)
-// 	newSalaryData := map[string]interface{}{
-// 		"columns": []interface{}{"amount", "currency"},
-// 		"rows":    []interface{}{[]interface{}{"140000", "USD"}},
-// 	}
-// 	newSalaryStruct, _ := structpb.NewStruct(newSalaryData)
-// 	newSalaryValue, _ := anypb.New(newSalaryStruct)
-
-// 	updatedAttributes["salary"] = &pb.TimeBasedValueList{
-// 		Values: []*pb.TimeBasedValue{
-// 			{
-// 				StartTime: "2025-07-01T00:00:00Z",
-// 				EndTime:   "",
-// 				Value:     newSalaryValue,
-// 			},
-// 		},
-// 	}
-
-// 	updateReq := &pb.UpdateEntityRequest{
-// 		Id: "service_all_components_entity_2",
-// 		Entity: &pb.Entity{
-// 			Name:       createNameValue("2025-04-01T00:00:00Z", "Updated Manager"),
-// 			Terminated: "2025-12-31T00:00:00Z",
-// 			Metadata:   updatedMetadata,
-// 			Attributes: updatedAttributes,
-// 			Relationships: map[string]*pb.Relationship{
-// 				"service_all_components_rel_1": {
-// 					Id:      "service_all_components_rel_1",
-// 					EndTime: "2025-12-31T00:00:00Z",
-// 				},
-// 			},
-// 		},
-// 	}
-
-// 	updateResp, err := server.UpdateEntity(ctx, updateReq)
-// 	if err != nil {
-// 		t.Fatalf("UpdateEntity() error = %v", err)
-// 	}
-// 	if updateResp == nil {
-// 		t.Fatal("UpdateEntity() returned nil response")
-// 	}
-
-// 	// Read entity back with all fields
-// 	readReq := &pb.ReadEntityRequest{
-// 		Entity: &pb.Entity{
-// 			Id:         "service_all_components_entity_2",
-// 			Attributes: updatedAttributes,
-// 		},
-// 		Output: []string{"metadata", "relationships", "attributes"},
-// 	}
-
-// 	readResp, err := server.ReadEntity(ctx, readReq)
-// 	if err != nil {
-// 		t.Fatalf("ReadEntity() error = %v", err)
-// 	}
-
-// 	// Verify core attributes were updated
-// 	var stringValue wrapperspb.StringValue
-// 	err = readResp.Name.GetValue().UnmarshalTo(&stringValue)
-// 	if err != nil {
-// 		t.Fatalf("Error unpacking Name value: %v", err)
-// 	}
-// 	if stringValue.Value != "Updated Manager" {
-// 		t.Errorf("Name = %v, want 'Updated Manager'", stringValue.Value)
-// 	}
-// 	if readResp.Terminated != "2025-12-31T00:00:00Z" {
-// 		t.Errorf("Terminated = %v, want '2025-12-31T00:00:00Z'", readResp.Terminated)
-// 	}
-
-// 	// Verify metadata was updated
-// 	if len(readResp.Metadata) != 2 {
-// 		t.Errorf("Expected 2 metadata fields, got %d", len(readResp.Metadata))
-// 	}
-
-// 	// Verify relationship was updated
-// 	rel := readResp.Relationships["service_all_components_rel_1"]
-// 	if rel == nil {
-// 		t.Fatal("Relationship 'service_all_components_rel_1' not found")
-// 	}
-// 	if rel.EndTime != "2025-12-31T00:00:00Z" {
-// 		t.Errorf("Relationship EndTime = %v, want '2025-12-31T00:00:00Z'", rel.EndTime)
-// 	}
-
-// 	// Verify attributes were updated
-// 	if len(readResp.Attributes) == 0 {
-// 		t.Error("Expected attributes to exist, but got empty attributes")
-// 	}
-// 	if _, exists := readResp.Attributes["salary"]; !exists {
-// 		t.Error("Expected 'salary' attribute not found")
-// 	}
-
-// 	log.Printf("Successfully updated core attributes, metadata, relationships, and attributes together")
-// }
+	log.Printf("Successfully appended new row to tabular attribute (3 total rows now)")
+}
