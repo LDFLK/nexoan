@@ -14,8 +14,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 1. **[Architecture Overview](./architecture/overview.md)** - High-level system understanding
 2. **[How It Works](./how_it_works.md)** - End-to-end data flow explanation  
-3. **[Architecture Diagrams](./architecture/diagrams.md)** - Visual system representation
-4. **[Getting Started Guide](../README.md)** - Setup and installation
+3. **[Getting Started Guide](../README.md)** - Setup and installation
 
 ---
 
@@ -26,7 +25,6 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | Document | Description | Audience |
 |----------|-------------|----------|
 | **[Architecture Overview](./architecture/overview.md)** | Complete system architecture, data flows, and design decisions | Everyone |
-| **[Architecture Diagrams](./architecture/diagrams.md)** | Visual diagrams in Mermaid format | Architects, Presenters |
 | **[CRUD Service Details](./architecture/crud-service-details.md)** | In-depth CRUD service implementation | Backend Developers |
 | **[API Layer Details](./architecture/api-layer-details.md)** | Complete API documentation and contracts | API Consumers, Frontend Devs |
 | **[Database Schemas](./architecture/database-schemas.md)** | MongoDB, Neo4j, PostgreSQL schemas | Database Admins, Backend Devs |
@@ -69,7 +67,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 ### 👨‍💻 **I'm a Developer**
 
 **Getting Started:**
-- [Architecture Overview](./architecture/overview.md) → [How It Works](./how_it_works.md) → [Architecture Diagrams](./architecture/diagrams.md)
+- [Architecture Overview](./architecture/overview.md) → [How It Works](./how_it_works.md)
 
 **Working on APIs:**
 - [API Layer Details](./architecture/api-layer-details.md) → [Data Types](./datatype.md) → [Storage Types](./storage.md)
