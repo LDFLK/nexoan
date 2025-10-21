@@ -1,6 +1,6 @@
-# Nexoan Architecture Documentation
+# OpenGIN Architecture Documentation
 
-Welcome to the Nexoan architecture documentation. This folder contains comprehensive documentation about the system's architecture, components, data flows, and design decisions.
+Welcome to the OpenGIN architecture documentation. This folder contains comprehensive documentation about the system's architecture, components, data flows, and design decisions.
 
 ---
 
@@ -118,7 +118,7 @@ Detailed database schema documentation:
 
 ### Multi-Database Strategy
 
-Nexoan uses three databases, each optimized for specific data types:
+OpenGIN uses three databases, each optimized for specific data types:
 
 | Database | Purpose | Reason |
 |----------|---------|--------|
@@ -416,9 +416,9 @@ When updating Mermaid diagrams:
 - [Data Types](../datatype.md) - Type inference system
 - [Storage Types](../storage.md) - Storage inference system
 - [Deployment Guide](../deployment/BACKUP_INTEGRATION.md) - Backup and restore
-- [CRUD API README](../../nexoan/crud-api/README.md) - CRUD Service setup
-- [Update API README](../../nexoan/update-api/README.md) - Update API setup
-- [Query API README](../../nexoan/query-api/README.md) - Query API setup
+- [Core API README](../../nexoan/crud-api/README.md) - Polyglot Database Query Processing
+- [Ingestion API README](../../nexoan/update-api/README.md) - Ingestion API setup
+- [Read API README](../../nexoan/query-api/README.md) - Read API setup
 
 ### External Resources
 
@@ -437,7 +437,7 @@ When updating Mermaid diagrams:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | October 2024 | Initial comprehensive architecture documentation |
+| 1.0.0 - alpha | October 2024 | Initial comprehensive architecture documentation |
 
 ---
 
@@ -453,5 +453,5 @@ For questions about the architecture:
 
 **Last Updated**: October 2024  
 **Documentation Status**: ✅ Complete and Current  
-**Maintained By**: Nexoan Development Team
+**Maintained By**: OpenGIN Development Team
 
