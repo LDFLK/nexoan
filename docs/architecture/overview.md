@@ -290,52 +290,52 @@ The entity data is strategically distributed across three databases:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ MongoDB - Metadata Storage                                    │
+│ MongoDB - Metadata Storage                                   │
 │ ┌──────────────────────────────────────────────────────────┐ │
 │ │ Collection: metadata                                     │ │
 │ │ {                                                        │ │
-│ │   "_id": "entity123",                                   │ │
-│ │   "metadata": {                                         │ │
-│ │     "department": "Engineering",                        │ │
-│ │     "role": "Engineer"                                  │ │
+│ │   "_id": "entity123",                                    │ │
+│ │   "metadata": {                                          │ │
+│ │     "department": "Engineering",                         │ │
+│ │     "role": "Engineer"                                   │ │
 │ │   }                                                      │ │
 │ │ }                                                        │ │
 │ └──────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
-│ Neo4j - Entity & Relationship Storage                         │
+│ Neo4j - Entity & Relationship Storage                        │
 │ ┌──────────────────────────────────────────────────────────┐ │
 │ │ Node:                                                    │ │
-│ │ (entity123:Entity {                                     │ │
-│ │   id: "entity123",                                      │ │
-│ │   kind_major: "Person",                                 │ │
-│ │   kind_minor: "Employee",                               │ │
-│ │   name: "John Doe",                                     │ │
-│ │   created: "2024-01-01T00:00:00Z"                       │ │
+│ │ (entity123:Entity {                                      │ │
+│ │   id: "entity123",                                       │ │
+│ │   kind_major: "Person",                                  │ │
+│ │   kind_minor: "Employee",                                │ │
+│ │   name: "John Doe",                                      │ │
+│ │   created: "2024-01-01T00:00:00Z"                        │ │
 │ │ })                                                       │ │
 │ │                                                          │ │
 │ │ Relationship:                                            │ │
-│ │ (entity123)-[:REPORTS_TO {                              │ │
-│ │   id: "rel123",                                         │ │
-│ │   startTime: "2024-01-01T00:00:00Z"                     │ │
+│ │ (entity123)-[:REPORTS_TO {                               │ │
+│ │   id: "rel123",                                          │ │
+│ │   startTime: "2024-01-01T00:00:00Z"                      │ │
 │ │ }]->(manager123)                                         │ │
 │ └──────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
-│ PostgreSQL - Attribute Storage                                │
+│ PostgreSQL - Attribute Storage                               │
 │ ┌──────────────────────────────────────────────────────────┐ │
-│ │ Table: attribute_schemas                                │ │
-│ │   {kind_major: "Person", attr_name: "salary",           │ │
-│ │    data_type: "int", storage_type: "scalar"}            │ │
+│ │ Table: attribute_schemas                                 │ │
+│ │   {kind_major: "Person", attr_name: "salary",            │ │
+│ │    data_type: "int", storage_type: "scalar"}             │ │
 │ │                                                          │ │
 │ │ Table: entity_attributes                                 │ │
-│ │   {entity_id: "entity123", attr_name: "salary"}         │ │
+│ │   {entity_id: "entity123", attr_name: "salary"}          │ │
 │ │                                                          │ │
 │ │ Table: attr_Person_salary                                │ │
-│ │   {entity_id: "entity123",                              │ │
-│ │    start_time: "2024-01",                               │ │
+│ │   {entity_id: "entity123",                               │ │
+│ │    start_time: "2024-01",                                │ │
 │ │    end_time: NULL,                                       │ │
 │ │    value: 100000}                                        │ │
 │ └──────────────────────────────────────────────────────────┘ │
@@ -394,9 +394,9 @@ The entity data is strategically distributed across three databases:
 ### Read Entity Flow
 
 ```
-┌────────┐         ┌───────────┐         ┌──────────────┐         ┌──────────┐
-│ Client │         │ Query API │         │ CRUD Service │         │ Databases│
-└───┬────┘         └─────┬─────┘         └──────┬───────┘         └────┬─────┘
+┌────────┐         ┌───────────┐          ┌──────────────┐         ┌──────────┐
+│ Client │         │ Query API │          │ CRUD Service │         │ Databases│
+└───┬────┘         └─────┬─────┘          └──────┬───────┘         └────┬─────┘
     │                    │                       │                      │
     │ GET /entities/123  │                       │                      │
     │ ?output=metadata,  │                       │                      │
