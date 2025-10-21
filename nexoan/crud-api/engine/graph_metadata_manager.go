@@ -113,7 +113,7 @@ func (g *GraphMetadataManager) CreateAttribute(ctx context.Context, metadata *At
 func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, metadata *AttributeMetadata) error {
 	fmt.Printf("Creating attribute look up graph: Entity=%s, Attribute=%s, StorageType=%s, Path=%s\n",
 		metadata.EntityID, metadata.AttributeName, metadata.StorageType, metadata.StoragePath)
-	// TODO: Explore a way to update the Look up graph 	
+	// TODO: Explore a way to update the Look up graph
 	// FIXME: https://github.com/LDFLK/nexoan/issues/288
 
 	// create the attribute node in the graph
@@ -169,13 +169,15 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 			return err
 		}
 		log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created attribute node for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
-	}
 
-	// create the relationship between the entity and the attribute
-	err = neo4jRepository.HandleGraphRelationshipsUpdate(ctx, parentNode)
-	if err != nil {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Error creating relationship between entity and attribute: %v", err)
-		return err
+		// FIXME: This means that when updating an attribute we cannot update the relationship
+		// FIXME: https://github.com/LDFLK/nexoan/issues/346
+		// create the relationship between the entity and the attribute
+		err = neo4jRepository.HandleGraphRelationshipsUpdate(ctx, parentNode)
+		if err != nil {
+			log.Printf("[GraphMetadataManager.CreateAttribute] Error creating relationship between entity and attribute: %v", err)
+			return err
+		}
 	}
 
 	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created relationship for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
@@ -441,6 +443,7 @@ func GenerateAttributeRelationshipID(entityID, attributeName string) string {
 }
 
 func GenerateAttributeID(entityID, attributeName string) string {
+	// attribute name should be unique within an entity
 	return fmt.Sprintf("%s_attr_%s", entityID, attributeName)
 }
 
