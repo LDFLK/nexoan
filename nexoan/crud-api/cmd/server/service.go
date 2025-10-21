@@ -172,7 +172,6 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 		case "attributes":
 			log.Printf("Processing attributes for entity: %s", req.Entity.Id)
 
-			// TODO: Fetch the actual entity with attributes from storage
 			// For now, create a minimal entity with test attributes to demonstrate the conversion
 
 			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
@@ -221,12 +220,9 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 				}
 			}
 
-		case "kind", "name", "created", "terminated":
-			// These fields are already fetched at the start
-			continue
-
 		default:
 			log.Printf("Unknown output field requested: %s", field)
+			return nil, fmt.Errorf("unknown output field requested: %s", field)
 		}
 	}
 	return response, nil
