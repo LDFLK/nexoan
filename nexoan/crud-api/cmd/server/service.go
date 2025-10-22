@@ -315,15 +315,19 @@ func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty,
 	// Check if entity exists before deleting
 	_, err := s.mongoRepo.ReadEntity(ctx, req.Id)
 	if err != nil {
-		log.Printf("[server.DeleteEntity] Entity %s does not exist: %v", req.Id, err)
-		return nil, fmt.Errorf("entity %s does not exist", req.Id)
-	}
-
-	_, err = s.mongoRepo.DeleteEntity(ctx, req.Id)
-	if err != nil {
-		// Log error
-		log.Printf("[server.DeleteEntity] Error deleting metadata for entity %s: %v", req.Id, err)
-		return nil, fmt.Errorf("error deleting metadata for entity %s: %v", req.Id, err)
+		// NOTE: Not returning an error here because we want to delete the 
+		// entity even if it does not contain metadata
+		log.Printf("[server.DeleteEntity] Entity %s does not contain metadata: %v", req.Id, err)
+	} else {
+		log.Printf("[server.DeleteEntity] Entity %s metadata exists.", req.Id)
+		_, err = s.mongoRepo.DeleteEntity(ctx, req.Id)
+		if err != nil {
+			// Log error
+			log.Printf("[server.DeleteEntity] Error deleting metadata for entity %s: %v", req.Id, err)
+			return nil, fmt.Errorf("error deleting metadata for entity %s: %v", req.Id, err)
+		} else {
+			log.Printf("[server.DeleteEntity] Entity %s metadata deleted.", req.Id)
+		}
 	}
 	// TODO: Implement Relationship Deletion in Neo4j
 	// TODO: Implement Entity Deletion in Neo4j
