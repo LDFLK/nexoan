@@ -20,24 +20,7 @@ Complete system architecture overview including:
 
 ---
 
-### 2. [Diagrams](./diagrams.md)
-Visual architecture diagrams in Mermaid format:
-- System architecture (high-level)
-- Create entity data flow
-- Read entity data flow
-- Component architecture
-- Data storage distribution
-- Type inference flow
-- Deployment architecture
-- Entity lifecycle state machine
-- Backup and restore workflow
-- Attribute processing pipeline
-
-**Recommended for**: Visual learners, architects, presentations
-
----
-
-### 3. [CRUD Service Details](./crud-service-details.md)
+### 2. [CRUD Service Details](./crud-service-details.md)
 In-depth documentation of the CRUD Service:
 - Directory structure
 - gRPC server implementation
@@ -53,7 +36,7 @@ In-depth documentation of the CRUD Service:
 
 ---
 
-### 4. [API Layer Details](./api-layer-details.md)
+### 3. [API Layer Details](./api-layer-details.md)
 Complete API layer documentation:
 - Update API (CREATE, UPDATE, DELETE operations)
 - Query API (READ, QUERY operations)
@@ -70,7 +53,7 @@ Complete API layer documentation:
 
 ---
 
-### 5. [Database Schemas](./database-schemas.md)
+### 4. [Database Schemas](./database-schemas.md)
 Detailed database schema documentation:
 - **MongoDB**: Collections, document structures, indexes
 - **Neo4j**: Node types, relationship types, Cypher queries
@@ -131,9 +114,9 @@ OpenGIN uses three databases, each optimized for specific data types:
 ```
 Client Layer (HTTP/JSON)
     ↓
-API Layer (Update API, Query API)
+API Layer (Ingestion API, Read API)
     ↓  gRPC/Protobuf
-Service Layer (CRUD Service)
+Service Layer (Core API)
     ↓  Native Protocols
 Database Layer (MongoDB, Neo4j, PostgreSQL)
 ```
@@ -158,7 +141,7 @@ The system automatically:
 
 ### 1. Separation of Concerns
 - APIs handle HTTP/JSON ↔ gRPC/Protobuf conversion
-- CRUD Service orchestrates business logic
+- Core API orchestrates business logic
 - Repositories handle database-specific operations
 
 ### 2. Database Specialization
@@ -173,7 +156,7 @@ The system automatically:
 
 ### 4. Type Safety
 - Protobuf for internal communication
-- Strong typing in Go (CRUD Service)
+- Strong typing in Go (Core API)
 - Type inference for flexibility
 
 ### 5. Temporal Support
@@ -187,12 +170,12 @@ The system automatically:
 
 ### Entity Creation Flow
 ```
-Client → Update API → CRUD Service → [MongoDB, Neo4j, PostgreSQL] → Response
+Client → Ingestion API → Core API → [MongoDB, Neo4j, PostgreSQL] → Response
 ```
 
 ### Entity Query Flow
 ```
-Client → Query API → CRUD Service → Fetch from DBs based on output param → Response
+Client → Read API → Core API → Fetch from DBs based on output param → Response
 ```
 
 ### Selective Retrieval
@@ -213,9 +196,9 @@ Returns attribute value as it was on specific date.
 
 | Layer | Technology | Language |
 |-------|-----------|----------|
-| Update API | Ballerina | Ballerina |
-| Query API | Ballerina | Ballerina |
-| CRUD Service | Go + gRPC | Go |
+| Ingestion API | Ballerina | Ballerina |
+| Read API | Ballerina | Ballerina |
+| Core API | Go + gRPC | Go |
 | MongoDB | MongoDB 5.0+ | - |
 | Neo4j | Neo4j 5.x | Cypher |
 | PostgreSQL | PostgreSQL 14+ | SQL |
@@ -235,21 +218,19 @@ Returns attribute value as it was on specific date.
        │ HTTP/JSON
 ┌──────┴──────────────┐
 │    API Layer        │
-│ Update API | Query  │
+│ Ingestion | Read    │
 └──────┬──────────────┘
        │ gRPC/Protobuf
 ┌──────┴──────────────┐
-│   CRUD Service      │
+│   Core API          │
 │  (Orchestration)    │
 └──────┬──────────────┘
        │ Native Protocols
 ┌──────┴──────────────────────────┐
 │ MongoDB | Neo4j | PostgreSQL    │
-│ Metadata| Graph | Attributes     │
+│ Metadata| Graph | Attributes    │
 └─────────────────────────────────┘
 ```
-
-See [Diagrams](./diagrams.md) for detailed visual representations.
 
 ---
 
@@ -257,27 +238,26 @@ See [Diagrams](./diagrams.md) for detailed visual representations.
 
 ### 1. Understanding the System
 - Read [Overview](./overview.md)
-- Review [Diagrams](./diagrams.md)
 - Understand data flow
 
 ### 2. Setting Up Development Environment
 - Clone repository
 - Start databases: `docker-compose up -d mongodb neo4j postgres`
-- Start CRUD service: `cd nexoan/crud-api && ./crud-service`
+- Start CRUD service: `cd opengin/crud-api && ./crud-service`
 - Start APIs: Update API (port 8080), Query API (port 8081)
 
 ### 3. Making Changes
 
 **Adding new API endpoint**:
-1. Update OpenAPI contract in `nexoan/contracts/rest/`
+1. Update OpenAPI contract in `opengin/contracts/rest/`
 2. Regenerate service code
 3. Implement endpoint logic
 4. Update [API Layer Details](./api-layer-details.md)
 
-**Adding CRUD Service feature**:
+**Adding Core API feature**:
 1. Implement in appropriate layer (server, engine, repository)
 2. Add tests
-3. Update [CRUD Service Details](./crud-service-details.md)
+3. Update [Core API Details](./crud-service-details.md)
 
 **Modifying database schema**:
 1. Consider impact across all databases
@@ -286,7 +266,7 @@ See [Diagrams](./diagrams.md) for detailed visual representations.
 
 ### 4. Testing
 - Unit tests: `go test ./...` or `bal test`
-- Integration tests: E2E tests in `nexoan/tests/e2e/`
+- Integration tests: E2E tests in `opengin/tests/e2e/`
 - Database tests: Ensure all databases are running
 
 ### 5. Documentation
@@ -303,7 +283,7 @@ See [Diagrams](./diagrams.md) for detailed visual representations.
 - Filter at the source (server-side filtering)
 - Use temporal queries to reduce data transfer
 
-### Service Layer
+### Core Layer
 - Connection pooling for all databases
 - Parallel operations where possible
 - Efficient Protobuf serialization
@@ -352,32 +332,6 @@ See individual docs for detailed optimization strategies.
 
 ---
 
-## Troubleshooting
-
-### Common Issues
-
-**Entity not found**:
-- Check if entity exists in Neo4j
-- Verify entity ID is correct
-- Check if entity was deleted
-
-**Attribute not saving**:
-- Check type inference logs
-- Verify PostgreSQL connection
-- Check if table was created
-
-**Relationship not showing**:
-- Verify both entities exist in Neo4j
-- Check relationship direction
-- Use temporal query to check if relationship was active
-
-**Metadata missing**:
-- Check MongoDB connection
-- Verify entity ID matches
-- Check if metadata was provided in create request
-
----
-
 ## Contributing to Documentation
 
 ### When to Update Documentation
@@ -396,14 +350,6 @@ Update architecture docs when:
 - Add diagrams where helpful
 - Cross-reference related docs
 - Keep examples up to date
-
-### Diagram Updates
-
-When updating Mermaid diagrams:
-1. Test rendering at https://mermaid.live
-2. Ensure consistency with other diagrams
-3. Update ASCII diagrams in overview if needed
-4. Commit with descriptive message
 
 ---
 
@@ -429,7 +375,6 @@ When updating Mermaid diagrams:
 - [Neo4j Documentation](https://neo4j.com/docs/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Docker Documentation](https://docs.docker.com/)
-- [Mermaid Documentation](https://mermaid.js.org/)
 
 ---
 

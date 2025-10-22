@@ -1,14 +1,14 @@
 # API Layer - Detailed Architecture
 
-This document provides comprehensive details about the Update API and Query API layers of the Nexoan system.
+This document provides comprehensive details about the Update API and Query API layers of the OpenGIN system.
 
 ---
 
 ## Overview
 
-The API Layer consists of two Ballerina-based REST services that provide external access to the Nexoan system:
-- **Update API**: Handles entity mutations (CREATE, UPDATE, DELETE)
-- **Query API**: Handles entity queries and retrieval
+The API Layer consists of two Ballerina-based REST services that provide external access to the OpenGIN system:
+- **Ingestion API**: Handles entity mutations (CREATE, UPDATE, DELETE)
+- **Read API**: Handles entity queries and retrieval
 
 Both APIs act as translation layers between external HTTP/JSON clients and the internal gRPC/Protobuf CRUD service.
 
@@ -18,26 +18,11 @@ Both APIs act as translation layers between external HTTP/JSON clients and the i
 
 ### Overview
 
-**Location**: `nexoan/update-api/`  
+**Location**: `opengin/ingestion-api/`  
 **Language**: Ballerina  
 **Protocol**: HTTP/REST + JSON  
 **Port**: 8080  
-**Contract**: `nexoan/contracts/rest/update_api.yaml`
-
-### Directory Structure
-
-```
-nexoan/update-api/
-├── update_api_service.bal      # Main service implementation
-├── types_v1_pb.bal              # Generated protobuf types for Ballerina
-├── Ballerina.toml               # Package configuration
-├── Dependencies.toml            # Dependency versions
-├── env.template                 # Environment variable template
-├── utils/                       # Utility functions
-├── tests/
-│   └── service_test.bal         # Service tests
-└── target/                      # Build outputs
-```
+**Contract**: `opengin/contracts/rest/ingestion_api.yaml`
 
 ### Service Implementation
 
@@ -356,34 +341,34 @@ UPDATE_SERVICE_PORT=8080
 
 **Running Tests**:
 ```bash
-cd nexoan/update-api
+cd opengin/ingestion-api
 bal test
 ```
 
 ---
 
-## Query API
+## Read API
 
 ### Overview
 
-**Location**: `nexoan/query-api/`  
+**Location**: `opengin/read-api/`  
 **Language**: Ballerina  
 **Protocol**: HTTP/REST + JSON  
 **Port**: 8081  
-**Contract**: `nexoan/contracts/rest/query_api.yaml`
+**Contract**: `opengin/contracts/rest/read_api.yaml`
 
 ### Directory Structure
 
 ```
-nexoan/query-api/
-├── query_api_service.bal        # Main service implementation
+opengin/read-api/
+├── read_api_service.bal        # Main service implementation
 ├── types_v1_pb.bal               # Generated protobuf types for Ballerina
 ├── types.bal                     # Type definitions
 ├── Ballerina.toml                # Package configuration
 ├── Dependencies.toml             # Dependency versions
 ├── env.template                  # Environment variable template
 ├── tests/
-│   └── query_api_service_test.bal  # Service tests
+│   └── read_api_service_test.bal  # Service tests
 └── target/                       # Build outputs
 ```
 
@@ -630,7 +615,7 @@ Instead of:
 
 **Running Tests**:
 ```bash
-cd nexoan/query-api
+cd opengin/read-api
 bal test
 ```
 
@@ -638,9 +623,9 @@ bal test
 
 ## OpenAPI Contracts
 
-### Update API Contract
+### Ingestion API Contract
 
-**File**: `nexoan/contracts/rest/update_api.yaml`
+**File**: `opengin/contracts/rest/update_api.yaml`
 
 Defines:
 - Entity schema
@@ -651,12 +636,12 @@ Defines:
 
 **Code Generation**:
 ```bash
-bal openapi -i ../contracts/rest/update_api.yaml --mode service
+bal openapi -i ../contracts/rest/ingestion_api.yaml --mode service
 ```
 
 ### Query API Contract
 
-**File**: `nexoan/contracts/rest/query_api.yaml`
+**File**: `opengin/contracts/rest/query_api.yaml`
 
 Defines:
 - Query parameters
@@ -675,7 +660,7 @@ bal openapi -i ../contracts/rest/query_api.yaml --mode service
 
 ### Overview
 
-**Location**: `nexoan/swagger-ui/`  
+**Location**: `opengin/swagger-ui/`  
 **Purpose**: Interactive API documentation
 
 ### Features
@@ -689,7 +674,7 @@ bal openapi -i ../contracts/rest/query_api.yaml --mode service
 
 ```bash
 # Start Swagger UI
-cd nexoan/swagger-ui
+cd opengin/swagger-ui
 python3 serve.py
 
 # Open browser
@@ -699,66 +684,8 @@ http://localhost:8082
 ### Configuration
 
 The Swagger UI serves the OpenAPI specifications from:
-- `nexoan/contracts/rest/update_api.yaml`
-- `nexoan/contracts/rest/query_api.yaml`
-
----
-
-## Common Patterns
-
-### 1. Request Validation
-
-Both APIs validate incoming requests:
-```ballerina
-// Validate required fields
-if (payload.id is ()) {
-    return error("Entity ID is required");
-}
-
-if (payload.kind is () || payload.kind.major is ()) {
-    return error("Entity kind.major is required");
-}
-```
-
-### 2. Error Response Formatting
-
-Consistent error response structure:
-```ballerina
-function handleError(error err) returns http:InternalServerError {
-    return {
-        body: {
-            error: {
-                message: err.message(),
-                details: err.detail()
-            }
-        }
-    };
-}
-```
-
-### 3. gRPC Communication
-
-Standard pattern for calling CRUD service:
-```ballerina
-// Create gRPC request
-ReadEntityRequest request = {
-    entity: {
-        id: entityId,
-        kind: {},
-        // ... minimal entity
-    },
-    output: ["metadata", "relationships"]
-};
-
-// Call CRUD service
-Entity|grpc:Error result = crudClient->ReadEntity(request);
-
-// Handle response
-if (result is grpc:Error) {
-    return handleGrpcError(result);
-}
-return convertToJson(result);
-```
+- `opengin/contracts/rest/ingestion_api.yaml`
+- `opengin/contracts/rest/read_api.yaml`
 
 ---
 
@@ -868,10 +795,9 @@ GET /v1/entities/entity123/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 ## Related Documentation
 
 - [Main Architecture Overview](./overview.md)
-- [CRUD Service Details](./crud-service-details.md)
-- [Architecture Diagrams](./diagrams.md)
-- [Update API README](../../nexoan/update-api/README.md)
-- [Query API README](../../nexoan/query-api/README.md)
+- [Core API](./crud-service-details.md)
+- [Ingestion API](../../nexoan/update-api/README.md)
+- [Read API](../../nexoan/query-api/README.md)
 
 ---
 
