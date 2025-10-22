@@ -742,7 +742,7 @@ Both APIs log:
 ### Tracing (Planned)
 
 - Distributed tracing with OpenTelemetry
-- Trace request flow: Client → API → CRUD → Database
+- Trace request flow: Client → API → Core → Database
 - Identify bottlenecks
 
 ---
@@ -795,9 +795,8 @@ GET /v1/entities/entity123/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 ## Related Documentation
 
 - [Main Architecture Overview](./overview.md)
-- [Core API](./crud-service-details.md)
-- [Ingestion API](../../nexoan/update-api/README.md)
-- [Read API](../../nexoan/query-api/README.md)
+- [Ingestion API](../../opengin/ingestion-api/README.md)
+- [Read API](../../opengin/read-api/README.md)
 
 ---
 

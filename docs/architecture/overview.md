@@ -18,7 +18,7 @@
 ┌──────────────────────────┴─────────────────────────────────────┐
 │                        API LAYER                               │
 │  ┌─────────────────────┐        ┌──────────────────────┐       │
-│  │   Update API        │        │    Query API         │       │
+│  │   Ingestion API     │        │    Read API          │       │
 │  │   (Ballerina)       │        │    (Ballerina)       │       │
 │  │   Port: 8080        │        │    Port: 8081        │       │
 │  │   - CREATE          │        │    - READ/QUERY      │       │
@@ -30,10 +30,10 @@
              │        gRPC + Protobuf        │
              │                               │
 ┌────────────┴───────────────────────────────┴───────────────────┐
-│                    SERVICE LAYER                               │
+│                    Core LAYER                                  │
 │                                                                │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │              CRUD Service (Go)                           │  │
+│  │              Core API (Go)                               │  │
 │  │              Port: 50051 (gRPC)                          │  │
 │  │                                                          │  │
 │  │  Components:                                             │  │
@@ -89,30 +89,30 @@
 #### Update API (Ballerina, Port 8080)
 - **Purpose**: Handle entity mutations (CREATE, UPDATE, DELETE)
 - **Technology**: Ballerina REST service
-- **Location**: `nexoan/update-api/`
+- **Location**: `opengin/ingestion-api/`
 - **Responsibilities**:
   - Accept JSON payloads from clients
   - Validate request structure
   - Convert JSON to Protobuf Entity messages
   - Communicate with CRUD Service via gRPC
   - Convert Protobuf responses back to JSON
-- **Contract**: OpenAPI specification at `nexoan/contracts/rest/update_api.yaml`
+- **Contract**: OpenAPI specification at `opengin/contracts/rest/ingestion_api.yaml`
 
 #### Query API (Ballerina, Port 8081)
 - **Purpose**: Handle entity queries and retrieval
 - **Technology**: Ballerina REST service
-- **Location**: `nexoan/query-api/`
+- **Location**: `opengin/read-api/`
 - **Responsibilities**:
   - Accept query requests from clients
   - Support selective field retrieval (metadata, relationships, attributes)
   - Filter and search capabilities
   - Communicate with CRUD Service via gRPC
   - Return formatted JSON responses
-- **Contract**: OpenAPI specification at `nexoan/contracts/rest/query_api.yaml`
+- **Contract**: OpenAPI specification at `opengin/contracts/rest/read_api.yaml`
 
 #### Swagger UI
 - **Purpose**: Interactive API documentation
-- **Location**: `nexoan/swagger-ui/`
+- **Location**: `opengin/swagger-ui/`
 - **Serves**: OpenAPI specifications for Update and Query APIs
 
 ### 2. Service Layer (Business Logic)
@@ -120,7 +120,7 @@
 #### CRUD Service (Go, gRPC, Port 50051)
 Central orchestration service that manages all database interactions.
 
-**Location**: `nexoan/crud-api/`
+**Location**: `opengin/core-api/`
 
 **Core Components**:
 
@@ -349,9 +349,9 @@ The entity data is strategically distributed across three databases:
 ### Create Entity Flow
 
 ```
-┌────────┐         ┌────────────┐         ┌──────────────┐         ┌──────────┐
-│ Client │         │ Update API │         │ CRUD Service │         │ Databases│
-└───┬────┘         └─────┬──────┘         └──────┬───────┘         └────┬─────┘
+┌────────┐         ┌───────────────┐      ┌──────────────┐         ┌──────────┐
+│ Client │         │ Ingestion API │      │ Core API     │         │ Databases│
+└───┬────┘         └─────┬─────────┘      └──────┬───────┘         └────┬─────┘
     │                    │                       │                      │
     │ POST /entities     │                       │                      │
     │ (JSON payload)     │                       │                      │
@@ -395,7 +395,7 @@ The entity data is strategically distributed across three databases:
 
 ```
 ┌────────┐         ┌───────────┐          ┌──────────────┐         ┌──────────┐
-│ Client │         │ Query API │          │ CRUD Service │         │ Databases│
+│ Client │         │ Read API  │          │ Core API     │         │ Databases│
 └───┬────┘         └─────┬─────┘          └──────┬───────┘         └────┬─────┘
     │                    │                       │                      │
     │ GET /entities/123  │                       │                      │
@@ -438,7 +438,7 @@ The entity data is strategically distributed across three databases:
 
 ### Type Inference System
 
-**Location**: `nexoan/crud-api/pkg/typeinference/`
+**Location**: `opengin/crud-api/pkg/typeinference/`
 
 **Primitive Types:**
 - `int` - Whole numbers without decimal points
@@ -462,7 +462,7 @@ The entity data is strategically distributed across three databases:
 
 ### Storage Type Inference
 
-**Location**: `nexoan/crud-api/pkg/storageinference/`
+**Location**: `opengin/core-api/pkg/storageinference/`
 
 **Storage Types:**
 1. **Tabular** - Has `columns` and `rows` fields
@@ -496,9 +496,9 @@ The entity data is strategically distributed across three databases:
 
 | Layer | Protocol | Format | Port |
 |-------|----------|--------|------|
-| Client ↔ Update API | HTTP/REST | JSON | 8080 |
-| Client ↔ Query API | HTTP/REST | JSON | 8081 |
-| APIs ↔ CRUD Service | gRPC | Protobuf | 50051 |
+| Client ↔ Ingestion API | HTTP/REST | JSON | 8080 |
+| Client ↔ Read API | HTTP/REST | JSON | 8081 |
+| APIs ↔ Core API | gRPC | Protobuf | 50051 |
 | CRUD ↔ MongoDB | MongoDB Wire Protocol | BSON | 27017 |
 | CRUD ↔ Neo4j | Bolt Protocol | Cypher | 7687 |
 | CRUD ↔ PostgreSQL | PostgreSQL Wire Protocol | SQL | 5432 |
@@ -538,17 +538,17 @@ All services include health check configurations:
 - MongoDB: `mongo --eval "db.adminCommand('ping')"`
 - Neo4j: HTTP endpoint check on port 7474
 - PostgreSQL: `pg_isready`
-- CRUD Service: TCP check on port 50051
-- Update/Query APIs: TCP checks on respective ports
+- Core API: TCP check on port 50051
+- Ingestion/Read APIs: TCP checks on respective ports
 
 ### Dependency Management
 Services start in proper order using Docker Compose `depends_on`:
 ```
 Databases (MongoDB, Neo4j, PostgreSQL)
   ↓
-CRUD Service (waits for all databases to be healthy)
+Core API (waits for all databases to be healthy)
   ↓
-Update & Query APIs (wait for CRUD Service to be healthy)
+Ingestion & Read APIs (wait for Core API to be healthy)
 ```
 
 ### Docker Compose Profiles
@@ -561,9 +561,9 @@ Update & Query APIs (wait for CRUD Service to be healthy)
 
 | Component | Technology | Language | Purpose |
 |-----------|-----------|----------|---------|
-| Update API | Ballerina | Ballerina | REST API for mutations |
-| Query API | Ballerina | Ballerina | REST API for queries |
-| CRUD Service | Go + gRPC | Go | Business logic orchestration |
+| Ingestion API | Ballerina | Ballerina | REST API for mutations |
+| Read API | Ballerina | Ballerina | REST API for queries |
+| Core API | Go + gRPC | Go | Business logic orchestration |
 | MongoDB | MongoDB 5.0+ | - | Metadata storage |
 | Neo4j | Neo4j 5.x | - | Graph storage |
 | PostgreSQL | PostgreSQL 14+ | - | Attribute storage |
@@ -696,14 +696,14 @@ GET    http://localhost:8081/v1/entities/{id}/attributes     # Get attributes
 
 ```bash
 # MongoDB
-mongodb://admin:admin123@localhost:27017/nexoan?authSource=admin
+mongodb://admin:admin123@localhost:27017/opengin?authSource=admin
 
 # Neo4j
 bolt://neo4j:neo4j123@localhost:7687
 http://localhost:7474
 
 # PostgreSQL
-postgresql://postgres:postgres@localhost:5432/nexoan
+postgresql://postgres:postgres@localhost:5432/opengin
 ```
 
 ### Docker Commands
@@ -729,5 +729,5 @@ docker-compose build
 
 **Document Version**: 1.0  
 **Last Updated**: October 2024  
-**Maintained By**: Nexoan Development Team
+**Maintained By**: OpenGIN Development Team
 

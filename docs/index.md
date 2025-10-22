@@ -25,7 +25,6 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | Document | Description | Audience |
 |----------|-------------|----------|
 | **[Architecture Overview](./architecture/overview.md)** | Complete system architecture, data flows, and design decisions | Everyone |
-| **[CRUD Service Details](./architecture/crud-service-details.md)** | In-depth CRUD service implementation | Backend Developers |
 | **[API Layer Details](./architecture/api-layer-details.md)** | Complete API documentation and contracts | API Consumers, Frontend Devs |
 | **[Database Schemas](./architecture/database-schemas.md)** | MongoDB, Neo4j, PostgreSQL schemas | Database Admins, Backend Devs |
 
@@ -72,9 +71,6 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 **Working on APIs:**
 - [API Layer Details](./architecture/api-layer-details.md) → [Data Types](./datatype.md) → [Storage Types](./storage.md)
 
-**Working on Backend:**
-- [CRUD Service Details](./architecture/crud-service-details.md) → [Database Schemas](./architecture/database-schemas.md) → [How It Works](./how_it_works.md)
-
 **Working on Frontend:**
 - [API Layer Details](./architecture/api-layer-details.md) → [UX Guidelines](./ux.md) → [Data Types](./datatype.md)
 
@@ -112,13 +108,13 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 - [Architecture Overview](./architecture/overview.md) + [Architecture Diagrams](./architecture/diagrams.md) + [How It Works](./how_it_works.md)
 
 ### **Adding New Features**
-- [API Layer Details](./architecture/api-layer-details.md) + [CRUD Service Details](./architecture/crud-service-details.md) + [Database Schemas](./architecture/database-schemas.md)
+- [API Layer Details](./architecture/api-layer-details.md) + [Database Schemas](./architecture/database-schemas.md)
 
 ### **Debugging Issues**
 - [How It Works](./how_it_works.md) + [Database Schemas](./architecture/database-schemas.md) + [Issues](./issues.md)
 
 ### **Performance Optimization**
-- [CRUD Service Details](./architecture/crud-service-details.md) + [Database Schemas](./architecture/database-schemas.md) + [Architecture Overview](./architecture/overview.md)
+- [Database Schemas](./architecture/database-schemas.md) + [Architecture Overview](./architecture/overview.md)
 
 ### **Data Migration**
 - [Database Schemas](./architecture/database-schemas.md) + [Backup Integration](./deployment/BACKUP_INTEGRATION.md)
@@ -150,7 +146,7 @@ OpenGIN uses three specialized databases:
 └─────────┬───────┘
           │ gRPC/Protobuf
 ┌─────────▼───────┐
-│ CRUD Service    │ (Orchestration)
+│ Core API        │ (Orchestration)
 └─────────┬───────┘
           │ Native Protocols
 ┌─────────▼─────────────────────────┐
@@ -163,7 +159,7 @@ OpenGIN uses three specialized databases:
 - **Temporal Support**: All data versioned by time with `startTime`/`endTime`
 - **Type Inference**: Automatic data type detection (int, float, string, bool, date, time, datetime)
 - **Storage Inference**: Automatic storage strategy determination (SCALAR, LIST, MAP, TABULAR, GRAPH)
-- **Multi-Database**: Each database optimized for specific data types
+- **Polyglot-Database**: Each database optimized for specific data types
 - **Contract-First**: OpenAPI specifications with Swagger UI
 
 ---
@@ -172,9 +168,9 @@ OpenGIN uses three specialized databases:
 
 | Layer | Technology | Language |
 |-------|-----------|----------|
-| **Update API** | Ballerina | Ballerina |
-| **Query API** | Ballerina | Ballerina |
-| **CRUD Service** | Go + gRPC | Go |
+| **Ingestion API** | Ballerina | Ballerina |
+| **Read API** | Ballerina | Ballerina |
+| **Core API** | Go + gRPC | Go |
 | **MongoDB** | MongoDB 5.0+ | - |
 | **Neo4j** | Neo4j 5.x | Cypher |
 | **PostgreSQL** | PostgreSQL 14+ | SQL |
@@ -196,17 +192,17 @@ OpenGIN uses three specialized databases:
 docker-compose up -d mongodb neo4j postgres
 
 # Start CRUD service
-cd nexoan/crud-api && ./crud-service
+cd opengin/core-api && ./core-service
 
 # Start APIs
-# Update API: http://localhost:8080
-# Query API: http://localhost:8081
+# Ingestion API: http://localhost:8080
+# Read API: http://localhost:8081
 ```
 
 ### Test the System
 ```bash
 # Run E2E tests
-cd nexoan/tests/e2e && ./run_e2e.sh
+cd opengin/tests/e2e && ./run_e2e.sh
 
 # Run performance tests
 cd perf && python performance_test.py
@@ -218,12 +214,12 @@ cd perf && python performance_test.py
 
 ### Entity Creation Flow
 ```
-Client → Update API → CRUD Service → [MongoDB, Neo4j, PostgreSQL] → Response
+Client → Ingestion API → Core API → [MongoDB, Neo4j, PostgreSQL] → Response
 ```
 
 ### Entity Query Flow
 ```
-Client → Query API → CRUD Service → Fetch from DBs based on output param → Response
+Client → Read API → Core API → Fetch from DBs based on output param → Response
 ```
 
 ### Selective Retrieval
@@ -246,13 +242,13 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 - Consult [Database Schemas](./architecture/database-schemas.md) for data structure
 
 ### 2. **Making Changes**
-- **API Changes**: Update OpenAPI contracts in `nexoan/contracts/rest/`
-- **Service Changes**: Modify CRUD service in `nexoan/crud-api/`
+- **API Changes**: Update OpenAPI contracts in `opengin/contracts/rest/`
+- **Service Changes**: Modify CRUD service in `opengin/crud-api/`
 - **Database Changes**: Consider impact across all three databases
 
 ### 3. **Testing**
 - Unit tests: `go test ./...` or `bal test`
-- Integration tests: E2E tests in `nexoan/tests/e2e/`
+- Integration tests: E2E tests in `opengin/tests/e2e/`
 - Performance tests: `perf/performance_test.py`
 
 ### 4. **Documentation**
@@ -293,7 +289,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 ### Getting Help
 1. Review this documentation first
 2. Check [Issues](./issues.md) for known problems
-3. Review service-specific READMEs in `nexoan/` directories
+3. Review service-specific READMEs in `opengin/` directories
 4. Consult the development team
 
 ### Contributing
