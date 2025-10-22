@@ -15,6 +15,8 @@ import (
 var repository *Neo4jRepository
 
 // cleanupDatabase deletes all nodes and relationships in the database
+// Note this functioncannot be called in the test functions as due to Go running tests in parallel it can cause issues
+// SEE: https://github.com/LDFLK/nexoan/issues/348
 func cleanupDatabase(ctx context.Context, repo *Neo4jRepository) error {
 	session := repo.getSession(ctx)
 	defer session.Close(ctx)
@@ -68,7 +70,7 @@ func TestMain(m *testing.M) {
 // TestCreateEntity tests the CreateGraphEntity method of the Neo4jRepository
 func TestCreateEntity(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
+	// defer cleanupDatabase(ctx, repository)
 
 	// Prepare the kind parameter
 	kind := &pb.Kind{
@@ -103,7 +105,6 @@ func TestCreateEntity(t *testing.T) {
 func TestCreateRelationship(t *testing.T) {
 	// Prepare the context
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -151,7 +152,6 @@ func TestCreateRelationship(t *testing.T) {
 // TestReadEntity tests the ReadGraphEntity method of the Neo4jRepository
 func TestReadEntity(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -185,7 +185,6 @@ func TestReadEntity(t *testing.T) {
 // TestReadRelatedEntityIds tests the ReadRelatedGraphEntityIds method of the Neo4jRepository
 func TestReadRelatedEntityIds(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -247,7 +246,6 @@ func TestReadRelatedEntityIds(t *testing.T) {
 
 func TestReadRelationships(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -303,7 +301,6 @@ func TestReadRelationships(t *testing.T) {
 
 func TestReadRelationship(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -356,7 +353,6 @@ func TestReadRelationship(t *testing.T) {
 
 func TestUpdateEntity(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -397,7 +393,6 @@ func TestUpdateEntity(t *testing.T) {
 
 func TestUpdateRelationship(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -458,7 +453,6 @@ func TestUpdateRelationship(t *testing.T) {
 
 func TestDeleteRelationship(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -507,7 +501,6 @@ func TestDeleteRelationship(t *testing.T) {
 
 func TestDeleteEntity(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -569,7 +562,6 @@ func TestDeleteEntity(t *testing.T) {
 
 func TestAddMinistriesAndDepartments(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	// Define ministries and their departments
 	ministries := []struct {
@@ -672,7 +664,6 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 
 func TestCreateRelationshipWithDuplicateId(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -751,7 +742,6 @@ func TestCreateRelationshipWithDuplicateId(t *testing.T) {
 
 func TestUpdateRelationshipWithNonExistentId(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	// Attempt to update a relationship that doesn't exist
 	updateData := map[string]interface{}{
@@ -769,7 +759,6 @@ func TestUpdateRelationshipWithNonExistentId(t *testing.T) {
 
 func TestUpdateRelationshipFields(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -911,7 +900,6 @@ func TestUpdateRelationshipFields(t *testing.T) {
 
 func TestReadFilteredRelationships(t *testing.T) {
 	ctx := context.Background()
-	defer cleanupDatabase(ctx, repository)
 
 	kind := &pb.Kind{
 		Major: "Person",
