@@ -1,8 +1,8 @@
-# Nexoan Architecture Overview
+# OpenGIN Architecture Overview
 
 ## System Overview
 
-**Nexoan** is a multi-database, microservices-based data management system that handles entities with metadata, attributes, and relationships. The architecture follows a layered approach with REST/gRPC communication protocols.
+**OpenGIN** is a multi-database, microservices-based data management system that handles entities with metadata, attributes, and relationships. The architecture follows a layered approach with REST/gRPC communication protocols.
 
 ---
 
@@ -669,9 +669,9 @@ Based on TODOs found in the codebase:
 - [Data Types](../datatype.md) - Type inference system details
 - [Storage Types](../storage.md) - Storage type inference details
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
-- [CRUD API README](../../nexoan/crud-api/README.md) - CRUD Service documentation
-- [Update API README](../../nexoan/update-api/README.md) - Update API documentation
-- [Query API README](../../nexoan/query-api/README.md) - Query API documentation
+- [Core API](../../nexoan/crud-api/README.md) - Core API documentation
+- [Ingestion API](../../nexoan/update-api/README.md) - Ingestion API documentation
+- [Read API](../../nexoan/query-api/README.md) - Read API documentation
 
 ---
 

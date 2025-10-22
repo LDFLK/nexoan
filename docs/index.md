@@ -155,7 +155,7 @@ OpenGIN uses three specialized databases:
           │ Native Protocols
 ┌─────────▼─────────────────────────┐
 │ MongoDB │ Neo4j │ PostgreSQL      │
-│Metadata │ Graph │ Attributes       │
+│Metadata │ Graph │ Attributes      │
 └───────────────────────────────────┘
 ```
 
