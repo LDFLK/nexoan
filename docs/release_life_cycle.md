@@ -1,13 +1,13 @@
-# 🧭 Nexoan Release Lifecycle
+# 🧭 OpenGIN Release Lifecycle
 
-This document defines the **release stages**, **versioning scheme**, and **naming conventions** used in the Nexoan platform.  
+This document defines the **release stages**, **versioning scheme**, and **naming conventions** used in the OpenGIN platform.  
 It ensures consistency, clarity, and traceability across all releases and environments.
 
 ---
 
 ## 📦 Versioning Scheme
 
-Nexoan follows **Semantic Versioning (SemVer)** with optional pre-release identifiers and calendar tags.
+OpenGIN follows **Semantic Versioning (SemVer)** with optional pre-release identifiers and calendar tags.
 
 ```
 MAJOR.MINOR.PATCH[-STAGE.NUMBER]
@@ -90,8 +90,8 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 Each major or minor release can optionally include a **calendar tag** to align with milestones.
 
 **Examples:**
-- `Nexoan 1.0.0 (2025.09)` — September 2025 major release  
-- `Nexoan 1.1.0 (2026.Q1)` — First quarter 2026 update  
+- `OpenGIN 1.0.0 (2025.09)` — September 2025 major release  
+- `OpenGIN 1.1.0 (2026.Q1)` — First quarter 2026 update  
 
 This helps track releases alongside development cycles or roadmap milestones.
 
@@ -136,4 +136,4 @@ To maintain a consistent workflow across teams and CI/CD pipelines:
 
 ---
 
-_This standard ensures Nexoan releases remain consistent, transparent, and traceable across all development and deployment environments._
+_This standard ensures OpenGIN releases remain consistent, transparent, and traceable across all development and deployment environments._

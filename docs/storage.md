@@ -43,6 +43,10 @@ Tabular data represents structured data in a table format with columns and rows.
 
 Graph data represents a network of nodes and their relationships.
 
+> **⚠️ Important Note**
+> 
+> Graph insertion as an attribute is not supported yet. However, the Entity level API can be used to create graphs. 
+
 ```json
 {
   "attributes": {
@@ -94,6 +98,11 @@ List data represents an ordered collection of items.
 }
 ```
 
+> **⚠️ Important Note**
+> 
+> List insertion as an attribute is not supported yet. However, the record can be saved as a table with one row or one column. 
+
+
 #### Features:
 - Must have an `items` field
 - `items` is an array that can contain:
@@ -118,6 +127,11 @@ Map data represents a collection of key-value pairs.
 }
 ```
 
+> **⚠️ Important Note**
+> 
+> Document insertion as an attribute is not supported yet. However, the Entity level API can be used to create metadata which is stored as a document. 
+
+
 #### Features:
 - Can have any number of key-value pairs
 - Keys must be strings
@@ -138,6 +152,11 @@ Scalar data represents a single value.
   }
 }
 ```
+
+> **⚠️ Important Note**
+> 
+> Scalar insertion as an attribute is not supported yet. However, the Entity level API can be used to save as a one row one column table. 
+
 
 #### Features:
 - Must have exactly one field

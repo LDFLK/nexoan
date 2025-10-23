@@ -47,9 +47,9 @@ This guide covers both local backup management and GitHub-based backup restorati
 ```
 backups/
 ├── mongodb/
-│   └── nexoan.tar.gz
+│   └── opengin.tar.gz
 ├── postgres/
-│   └── nexoan.tar.gz
+│   └── opengin.tar.gz
 └── neo4j/
     └── neo4j.dump
 ```
@@ -109,14 +109,14 @@ The system expects this structure in [LDFLK/data-backups](https://github.com/LDF
 
 ```
 data-backups-0.0.1/
-└── nexoan
+└── opengin
     └── version
         └── 0.0.1
             └── development
                 ├── mongodb
-                │   └── nexoan.tar.gz
+                │   └── opengin.tar.gz
                 ├── postgres
-                │   └── nexoan.tar.gz
+                │   └── opengin.tar.gz
                 └── neo4j
                     └── neo4j.dump
 ```
@@ -203,12 +203,12 @@ Configure in `configs/backup.env`:
 # MongoDB
 MONGODB_USERNAME=admin
 MONGODB_PASSWORD=admin123
-MONGODB_DATABASE=nexoan
+MONGODB_DATABASE=opengin
 
 # PostgreSQL
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DATABASE=nexoan
+POSTGRES_DATABASE=opengin
 ```
 
 ---
@@ -237,7 +237,7 @@ wget -O test.zip "https://github.com/LDFLK/data-backups/archive/refs/tags/0.0.1.
 unzip -l test.zip
 
 # Check archive structure
-unzip -l test.zip | grep nexoan
+unzip -l test.zip | grep opengin
 
 # Run with debug output
 bash -x ./deployment/development/init.sh restore_from_github 0.0.1

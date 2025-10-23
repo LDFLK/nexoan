@@ -50,13 +50,12 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 |----------|-------------|----------|
 | **[Release Lifecycle](./release_life_cycle.md)** | Versioning, release stages, and deployment | DevOps, Release Managers |
 | **[Backup Integration](./deployment/BACKUP_INTEGRATION.md)** | Backup and restore workflows | Operations Team |
-| **[UX Guidelines](./ux.md)** | User experience and interface guidelines | Frontend Developers, UX Designers |
 
-### 🐛 Issues & Troubleshooting
+### 🐛 Limitations
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| **[Issues](./issues.md)** | Known issues and troubleshooting | All Users |
+| **[Limitations](./limitations.md)** | Known limitations | All Users |
 
 ---
 
@@ -110,7 +109,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 - [API Layer Details](./architecture/api-layer-details.md) + [Database Schemas](./architecture/database-schemas.md)
 
 ### **Debugging Issues**
-- [How It Works](./how_it_works.md) + [Database Schemas](./architecture/database-schemas.md) + [Issues](./issues.md)
+- [How It Works](./how_it_works.md) + [Database Schemas](./architecture/database-schemas.md) + [Limitations](./limitations.md)
 
 ### **Performance Optimization**
 - [Database Schemas](./architecture/database-schemas.md) + [Architecture Overview](./architecture/overview.md)
@@ -287,7 +286,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ### Getting Help
 1. Review this documentation first
-2. Check [Issues](./issues.md) for known problems
+2. Check [Limitations](./limitations.md) for known problems
 3. Review service-specific READMEs in `opengin/` directories
 4. Consult the development team
 
