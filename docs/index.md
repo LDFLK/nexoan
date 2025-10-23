@@ -253,32 +253,6 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ---
 
-## 🆘 Troubleshooting
-
-### Common Issues
-
-**Entity not found:**
-- Check if entity exists in Neo4j
-- Verify entity ID is correct
-- Check if entity was deleted
-
-**Attribute not saving:**
-- Check type inference logs
-- Verify PostgreSQL connection
-- Check if table was created
-
-**Relationship not showing:**
-- Verify both entities exist in Neo4j
-- Check relationship direction
-- Use temporal query to check if relationship was active
-
-**Metadata missing:**
-- Check MongoDB connection
-- Verify entity ID matches
-- Check if metadata was provided in create request
-
----
-
 ## 📞 Support & Contributing
 
 ### Getting Help
