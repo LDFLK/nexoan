@@ -604,7 +604,7 @@ Instead of:
 
 ### Testing
 
-**Test File**: `tests/query_api_service_test.bal`
+**Test File**: `tests/read_api_service_test.bal`
 
 **Test Coverage**:
 - Get metadata
