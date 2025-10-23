@@ -1,6 +1,6 @@
 # API Layer - Detailed Architecture
 
-This document provides comprehensive details about the Update API and Query API layers of the OpenGIN system.
+This document provides comprehensive details about the Ingestion API and Read API layers of the OpenGIN system.
 
 ---
 
@@ -14,7 +14,7 @@ Both APIs act as translation layers between external HTTP/JSON clients and the i
 
 ---
 
-## Update API
+## Ingestion API
 
 ### Overview
 
@@ -26,7 +26,7 @@ Both APIs act as translation layers between external HTTP/JSON clients and the i
 
 ### Service Implementation
 
-**File**: `update_api_service.bal`
+**File**: `ingestion_api_service.bal`
 
 The service exposes REST endpoints following OpenAPI specification:
 
@@ -206,7 +206,7 @@ Content-Type: application/json
 - `200 OK`: Entity successfully updated
 - `404 Not Found`: Entity doesn't exist
 - `400 Bad Request`: Invalid update data
-- `500 Internal Server Error`: CRUD service error
+- `500 Internal Server Error`: Core API error
 
 #### DELETE Entity
 
@@ -227,7 +227,7 @@ DELETE /entities/entity123
 
 ### JSON to Protobuf Conversion
 
-The Update API performs complex conversion between JSON and Protobuf formats:
+The Ingestion API performs complex conversion between JSON and Protobuf formats:
 
 **Key Conversions**:
 
@@ -374,9 +374,9 @@ opengin/read-api/
 
 ### Service Implementation
 
-**File**: `query_api_service.bal`
+**File**: `read_api_service.bal`
 
-The Query API provides specialized endpoints for retrieving entity data:
+The Read API provides specialized endpoints for retrieving entity data:
 
 ```ballerina
 service /v1/entities on new http:Listener(8081) {
@@ -543,7 +543,7 @@ GET /v1/entities/entity123?output=metadata,relationships
 
 ### Temporal Queries
 
-The Query API supports temporal queries using the `activeAt` parameter:
+The Read API supports temporal queries using the `activeAt` parameter:
 
 **Example**: Get employee's salary on specific date
 ```bash
@@ -639,9 +639,9 @@ Defines:
 bal openapi -i ../contracts/rest/ingestion_api.yaml --mode service
 ```
 
-### Query API Contract
+### Read API Contract
 
-**File**: `opengin/contracts/rest/query_api.yaml`
+**File**: `opengin/contracts/rest/read_api.yaml`
 
 Defines:
 - Query parameters
@@ -651,7 +651,7 @@ Defines:
 
 **Code Generation**:
 ```bash
-bal openapi -i ../contracts/rest/query_api.yaml --mode service
+bal openapi -i ../contracts/rest/read_api.yaml --mode service
 ```
 
 ---

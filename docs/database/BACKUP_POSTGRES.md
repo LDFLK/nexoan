@@ -9,16 +9,16 @@ Backups are stored in a structured repository following this hierarchy:
 ```
 data-backups/
 ├── README.md
-└── nexoan
+└── opengin
     └── version
         └── 0.0.1
             ├── development
             │   ├── mongodb
-            │   │   └── nexoan.tar.gz
+            │   │   └── opengin.tar.gz
             │   ├── neo4j
             │   │   └── neo4j.dump
             │   └── postgres
-            │       └── nexoan.tar.gz
+            │       └── opengin.tar.gz
             ├── production
             │   ├── mongodb
             │   └── neo4j
@@ -51,35 +51,35 @@ This structure allows for:
 mkdir -p ./backups/postgres
 
 # Create PostgreSQL dump
-docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -f /var/lib/postgresql/backup/opengin.sql
 
 # Copy backup from container to host
-docker cp postgres:/var/lib/postgresql/backup/nexoan.sql ./backups/postgres/
+docker cp postgres:/var/lib/postgresql/backup/opengin.sql ./backups/postgres/
 
 # Create compressed archive
 cd ./backups/postgres
-tar -czf nexoan.tar.gz nexoan.sql
-rm -rf nexoan.sql
+tar -czf opengin.tar.gz opengin.sql
+rm -rf opengin.sql
 
 # Clean up container backup
-docker exec postgres rm -rf /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres rm -rf /var/lib/postgresql/backup/opengin.sql
 ```
 
 #### 1.2 Restore PostgreSQL from Backup
 
 ```bash
 # Extract backup file
-tar -xzf nexoan.tar.gz
+tar -xzf opengin.tar.gz
 
 # Copy backup to container
-docker cp nexoan.sql postgres:/var/lib/postgresql/backup/
+docker cp opengin.sql postgres:/var/lib/postgresql/backup/
 
 # Restore database
-docker exec postgres psql -U <your_username> -d <your_database> -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres psql -U <your_username> -d <your_database> -f /var/lib/postgresql/backup/opengin.sql
 
 # Clean up
-docker exec postgres rm -rf /var/lib/postgresql/backup/nexoan.sql
-rm -rf nexoan.sql
+docker exec postgres rm -rf /var/lib/postgresql/backup/opengin.sql
+rm -rf opengin.sql
 ```
 
 ### Method 2: Using Docker Volume Mounts
@@ -96,19 +96,19 @@ docker run --rm \
     --volume=postgres_data:/var/lib/postgresql/data \
     --volume=$(pwd)/backups/postgres:/backups \
     postgres:16 \
-    pg_dump -U <your_username> -h postgres -d <your_database> -f /backups/nexoan.sql
+    pg_dump -U <your_username> -h postgres -d <your_database> -f /backups/opengin.sql
 
 # Create compressed archive
 cd ./backups/postgres
-tar -czf nexoan.tar.gz nexoan.sql
-rm -rf nexoan.sql
+tar -czf opengin.tar.gz opengin.sql
+rm -rf opengin.sql
 ```
 
 #### 2.2 Restore with Volume Mount
 
 ```bash
 # Extract backup file
-tar -xzf nexoan.tar.gz
+tar -xzf opengin.tar.gz
 
 # Run psql with volume mount
 docker run --rm \
@@ -116,10 +116,10 @@ docker run --rm \
     --volume=postgres_data:/var/lib/postgresql/data \
     --volume=$(pwd)/backups/postgres:/backups \
     postgres:16 \
-    psql -U <your_username> -h postgres -d <your_database> -f /backups/nexoan.sql
+    psql -U <your_username> -h postgres -d <your_database> -f /backups/opengin.sql
 
 # Clean up
-rm -rf nexoan.sql
+rm -rf opengin.sql
 ```
 
 ## Configuration
@@ -133,7 +133,7 @@ The backup process uses the following environment variables from `configs/backup
 POSTGRES_BACKUP_DIR=/path/to/backup/directory
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DATABASE=nexoan
+POSTGRES_DATABASE=opengin
 ```
 
 ### Docker Compose Volumes
@@ -152,7 +152,7 @@ volumes:
 
 ```bash
 # Backup entire database
-docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -f /var/lib/postgresql/backup/opengin.sql
 ```
 
 ### 2. Specific Schema Backup
@@ -166,14 +166,14 @@ docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> 
 
 ```bash
 # Create compressed backup
-docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -Z 9 -f /var/lib/postgresql/backup/nexoan.sql.gz
+docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -Z 9 -f /var/lib/postgresql/backup/opengin.sql.gz
 ```
 
 ### 4. Custom Format Backup
 
 ```bash
 # Create custom format backup (binary format)
-docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -Fc -f /var/lib/postgresql/backup/nexoan.dump
+docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> -Fc -f /var/lib/postgresql/backup/opengin.dump
 ```
 
 ## Restore Strategies
@@ -182,14 +182,14 @@ docker exec postgres pg_dump -U <your_username> -h localhost -d <your_database> 
 
 ```bash
 # Restore entire database
-docker exec postgres psql -U <your_username> -d <your_database> -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres psql -U <your_username> -d <your_database> -f /var/lib/postgresql/backup/opengin.sql
 ```
 
 ### 2. Custom Format Restore
 
 ```bash
 # Restore from custom format backup
-docker exec postgres pg_restore -U <your_username> -h localhost -d <your_database> /var/lib/postgresql/backup/nexoan.dump
+docker exec postgres pg_restore -U <your_username> -h localhost -d <your_database> /var/lib/postgresql/backup/opengin.dump
 ```
 
 ### 3. Schema-only Restore
@@ -269,7 +269,7 @@ docker exec postgres psql -U postgres -c "SELECT * FROM pg_stat_activity;"
 ## Restoring in Neon 
 
 ```bash
-psql "<connection-string-from-neon>" -f <path-to-backup-folder>/nexoan.sql
+psql "<connection-string-from-neon>" -f <path-to-backup-folder>/opengin.sql
 ```
 
 ## Best Practices
@@ -304,16 +304,16 @@ psql "<connection-string-from-neon>" -f <path-to-backup-folder>/nexoan.sql
 
 ```bash
 # Create backup
-docker exec postgres pg_dump -U postgres -h localhost -d nexoan -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres pg_dump -U postgres -h localhost -d opengin -f /var/lib/postgresql/backup/opengin.sql
 
 # Restore backup
-docker exec postgres psql -U postgres -d nexoan -f /var/lib/postgresql/backup/nexoan.sql
+docker exec postgres psql -U postgres -d opengin -f /var/lib/postgresql/backup/opengin.sql
 
 # List databases
 docker exec postgres psql -U postgres -c "\l"
 
 # List tables
-docker exec postgres psql -U postgres -d nexoan -c "\dt"
+docker exec postgres psql -U postgres -d opengin -c "\dt"
 
 # Check connection
 docker exec postgres pg_isready -U postgres

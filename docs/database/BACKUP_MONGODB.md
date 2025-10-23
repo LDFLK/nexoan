@@ -9,16 +9,16 @@ Backups are stored in a structured repository following this hierarchy:
 ```
 data-backups/
 ├── README.md
-└── nexoan
+└── opengin
     └── version
         └── 0.0.1
             ├── development
             │   ├── mongodb
-            │   │   └── nexoan.tar.gz
+            │   │   └── opengin.tar.gz
             │   ├── neo4j
             │   │   └── neo4j.dump
             │   └── postgres
-            │       └── nexoan.tar.gz
+            │       └── opengin.tar.gz
             ├── production
             │   ├── mongodb
             │   └── neo4j
@@ -56,7 +56,7 @@ docker exec mongodb mongodump \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --out=/data/backup/mongodb_backup_$(date +%Y%m%d_%H%M%S)
 
 # Copy backup from container to host
@@ -86,9 +86,9 @@ docker exec mongodb mongorestore \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --drop \
-    /data/backup/mongodb_backup_20241215_143022/nexoan
+    /data/backup/mongodb_backup_20241215_143022/opengin
 
 # Clean up
 docker exec mongodb rm -rf /data/backup/mongodb_backup_20241215_143022
@@ -114,7 +114,7 @@ docker run --rm \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --out=/backups/mongodb_backup_$(date +%Y%m%d_%H%M%S)
 
 # Create compressed archive
@@ -140,9 +140,9 @@ docker run --rm \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --drop \
-    /backups/mongodb_backup_20241215_143022/nexoan
+    /backups/mongodb_backup_20241215_143022/opengin
 
 # Clean up
 rm -rf mongodb_backup_20241215_143022
@@ -161,7 +161,7 @@ MONGODB_BACKUP_DIR=/path/to/your/backups/mongodb
 # MongoDB Credentials
 MONGO_USER=admin
 MONGO_PASSWORD=admin123
-MONGO_DATABASE=nexoan
+MONGO_DATABASE=opengin
 ```
 
 ### Docker Compose Volumes
@@ -186,7 +186,7 @@ docker exec mongodb mongodump \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --out=/data/backup/mongodb_backup_$(date +%Y%m%d_%H%M%S)
 ```
 
@@ -199,7 +199,7 @@ docker exec mongodb mongodump \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --collection=your_collection \
     --out=/data/backup/collection_backup
 ```
@@ -213,7 +213,7 @@ docker exec mongodb mongodump \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --archive=/data/backup/mongodb_backup.gz \
     --gzip
 ```
@@ -229,9 +229,9 @@ docker exec mongodb mongorestore \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --drop \
-    /data/backup/mongodb_backup_20241215_143022/nexoan
+    /data/backup/mongodb_backup_20241215_143022/opengin
 ```
 
 ### 2. Specific Collection Restore
@@ -243,9 +243,9 @@ docker exec mongodb mongorestore \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --collection=your_collection \
-    /data/backup/collection_backup/nexoan/your_collection.bson
+    /data/backup/collection_backup/opengin/your_collection.bson
 ```
 
 ### 3. Compressed Restore
@@ -257,7 +257,7 @@ docker exec mongodb mongorestore \
     --username=<your_username> \
     --password=<your_password> \
     --authenticationDatabase=admin \
-    --db=nexoan \
+    --db=opengin \
     --archive=/data/backup/mongodb_backup.gz \
     --gzip
 ```
@@ -320,10 +320,10 @@ docker exec mongodb mongo --eval "db.your_collection.count()"
 
 ## Restore to Mongodb Atlas
 
-Note that this dump must be taken from Nexoan dump program. 
+Note that this dump must be taken from OpenGIN dump program. 
 
 ```bash
-mongorestore --uri="<mongodb-service-uri>" --db=nexoan --drop "<path-to-the-dump-folder>"
+mongorestore --uri="<mongodb-service-uri>" --db=opengin --drop "<path-to-the-dump-folder>"
 ```
 
 ## Best Practices
@@ -351,15 +351,6 @@ mongorestore --uri="<mongodb-service-uri>" --db=nexoan --drop "<path-to-the-dump
 - Use strong authentication credentials
 - Limit backup access permissions
 - Encrypt backup files
-
-## Automation
-
-### Cron Job Example
-
-```bash
-# Add to crontab for daily backups at 2 AM
-0 2 * * * /path/to/deployment/development/init.sh backup_mongodb
-```
 
 ### Backup Script Example
 

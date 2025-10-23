@@ -9,16 +9,16 @@ Backups are stored in a structured repository following this hierarchy:
 ```
 data-backups/
 ├── README.md
-└── nexoan
+└── opengin
     └── version
         └── 0.0.1
             ├── development
             │   ├── mongodb
-            │   │   └── nexoan.tar.gz
+            │   │   └── opengin.tar.gz
             │   ├── neo4j
             │   │   └── neo4j.dump
             │   └── postgres
-            │       └── nexoan.tar.gz
+            │       └── opengin.tar.gz
             ├── production
             │   ├── mongodb
             │   └── neo4j

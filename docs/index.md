@@ -35,7 +35,6 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | **[How It Works](./how_it_works.md)** | End-to-end data flow and processing | Developers, Architects |
 | **[Data Types](./datatype.md)** | Type inference system and supported types | Developers |
 | **[Storage Types](./storage.md)** | Storage inference and data organization | Backend Developers |
-| **[Architecture](./architecture.md)** | Core architectural concepts | Developers |
 
 ### 🗄️ Database & Storage
 
@@ -142,7 +141,7 @@ OpenGIN uses three specialized databases:
 └─────────┬───────┘
           │
 ┌─────────▼───────┐
-│   API Layer     │ (Update API, Query API)
+│   API Layer     │ (Ingestion API, Read API)
 └─────────┬───────┘
           │ gRPC/Protobuf
 ┌─────────▼───────┐
