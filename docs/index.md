@@ -137,24 +137,24 @@ OpenGIN uses three specialized databases:
 └─────────┬───────┘
           │
 ┌─────────▼───────┐
-│   API Layer     │ (Ingestion API, Read API)
+│     API Layer   │ (Ingestion API, Read API)
 └─────────┬───────┘
           │ gRPC/Protobuf
 ┌─────────▼───────┐
-│ Core API        │ (Orchestration)
+│     Core API    │ (Orchestration)
 └─────────┬───────┘
           │ Native Protocols
-┌─────────▼─────────────────────────┐
-│ MongoDB │ Neo4j │ PostgreSQL      │
-│Metadata │ Graph │ Attributes      │
-└───────────────────────────────────┘
+┌─────────▼───────────────────┐
+│ MongoDB │ Neo4j │ PostgreSQL│
+│ Metadata│ Graph │ Attributes│
+└─────────────────────────────┘
 ```
 
 ### Key Features
 - **Temporal Support**: All data versioned by time with `startTime`/`endTime`
 - **Type Inference**: Automatic data type detection (int, float, string, bool, date, time, datetime)
 - **Storage Inference**: Automatic storage strategy determination (SCALAR, LIST, MAP, TABULAR, GRAPH)
-- **Polyglot-Database**: Each database optimized for specific data types
+- **Polyglot Database**: Each database optimized for specific data types
 - **Contract-First**: OpenAPI specifications with Swagger UI
 
 ---
