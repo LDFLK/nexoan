@@ -69,9 +69,6 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 **Working on APIs:**
 - [API Layer Details](./architecture/api-layer-details.md) → [Data Types](./datatype.md) → [Storage Types](./storage.md)
 
-**Working on Frontend:**
-- [API Layer Details](./architecture/api-layer-details.md) → [UX Guidelines](./ux.md) → [Data Types](./datatype.md)
-
 ### 🏗️ **I'm an Architect**
 
 **System Design:**

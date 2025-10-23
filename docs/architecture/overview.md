@@ -2,7 +2,7 @@
 
 ## System Overview
 
-**OpenGIN** is a multi-database, microservices-based data management system that handles entities with metadata, attributes, and relationships. The architecture follows a layered approach with REST/gRPC communication protocols.
+**OpenGIN** is a data orchestration and networking framework. It is based on a polyglot database and a microservices-based design that handles entities with metadata, attributes, and relationships. The architecture follows a layered approach with REST/gRPC communication protocols.
 
 ---
 
@@ -86,7 +86,7 @@
 
 ### 1. API Layer (Client-Facing Services)
 
-#### Update API (Ballerina, Port 8080)
+#### Ingestion API (Ballerina, Port 8080)
 - **Purpose**: Handle entity mutations (CREATE, UPDATE, DELETE)
 - **Technology**: Ballerina REST service
 - **Location**: `opengin/ingestion-api/`
@@ -98,7 +98,7 @@
   - Convert Protobuf responses back to JSON
 - **Contract**: OpenAPI specification at `opengin/contracts/rest/ingestion_api.yaml`
 
-#### Query API (Ballerina, Port 8081)
+#### Read API (Ballerina, Port 8081)
 - **Purpose**: Handle entity queries and retrieval
 - **Technology**: Ballerina REST service
 - **Location**: `opengin/read-api/`
@@ -113,12 +113,12 @@
 #### Swagger UI
 - **Purpose**: Interactive API documentation
 - **Location**: `opengin/swagger-ui/`
-- **Serves**: OpenAPI specifications for Update and Query APIs
+- **Serves**: OpenAPI specifications for Ingestion and Read APIs
 
-### 2. Service Layer (Business Logic)
+### 2. Service Layer
 
-#### CRUD Service (Go, gRPC, Port 50051)
-Central orchestration service that manages all database interactions.
+#### Core API (Go, gRPC, Port 50051)
+Central orchestration service that manages data networking and all database interactions.
 
 **Location**: `opengin/core-api/`
 
@@ -281,7 +281,16 @@ The entity data is strategically distributed across three databases:
   "name": "John Doe",
   "created": "2024-01-01T00:00:00Z",
   "metadata": {"department": "Engineering", "role": "Engineer"},
-  "attributes": {"salary": [{"startTime": "2024-01", "value": 100000}]},
+  "attributes": {
+    "expenses": {
+      "columns": ["type", "amount", "date", "category"],
+      "rows": [
+        ["Travel", 500, "2024-01-15", "Business"],
+        ["Meals", 120, "2024-01-16", "Entertainment"],
+        ["Equipment", 300, "2024-01-17", "Office"]
+      ]
+    }
+  },
   "relationships": {"reports_to": "manager123"}
 }
 ```
@@ -327,17 +336,22 @@ The entity data is strategically distributed across three databases:
 │ PostgreSQL - Attribute Storage                               │
 │ ┌──────────────────────────────────────────────────────────┐ │
 │ │ Table: attribute_schemas                                 │ │
-│ │   {kind_major: "Person", attr_name: "salary",            │ │
-│ │    data_type: "int", storage_type: "scalar"}             │ │
+│ │   {kind_major: "Person", attr_name: "expenses",          │ │
+│ │    data_type: "table", storage_type: "tabular"}          │ │
 │ │                                                          │ │
 │ │ Table: entity_attributes                                 │ │
-│ │   {entity_id: "entity123", attr_name: "salary"}          │ │
+│ │   {entity_id: "entity123", attr_name: "expenses"}        │ │
 │ │                                                          │ │
-│ │ Table: attr_Person_salary                                │ │
-│ │   {entity_id: "entity123",                               │ │
-│ │    start_time: "2024-01",                                │ │
-│ │    end_time: NULL,                                       │ │
-│ │    value: 100000}                                        │ │
+│ │ Table: attr_expenses                                     │ │
+│ │   {row_id: 1,                                            │ │
+│ │    type: "Travel", amount: 500,                          │ │
+│ │    date: "2024-01-15", category: "Business"}             │ │
+│ │   {row_id: 2,                                            │ │
+│ │    type: "Meals", amount: 120,                           │ │
+│ │    date: "2024-01-16", category: "Entertainment"}        │ │
+│ │   {row_id: 3,                                            │ │
+│ │    type: "Equipment", amount: 300,                       │ │
+│ │    date: "2024-01-17", category: "Office"}               │ │
 │ └──────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 ```
