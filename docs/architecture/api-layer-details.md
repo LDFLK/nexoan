@@ -286,7 +286,7 @@ foreach var rel in relationships {
 **Connection Setup**:
 ```ballerina
 final grpc:Client crudClient = check new (
-    string `${CRUD_SERVICE_URL}`,
+    string `${CORE_SERVICE_URL}`,
     {
         timeout: 30,  // 30 second timeout
         retryConfiguration: {
@@ -300,10 +300,10 @@ final grpc:Client crudClient = check new (
 
 **Environment Variables**:
 ```bash
-CRUD_SERVICE_HOST=localhost
-CRUD_SERVICE_PORT=50051
-UPDATE_SERVICE_HOST=0.0.0.0
-UPDATE_SERVICE_PORT=8080
+CORE_SERVICE_HOST=localhost
+CORE_SERVICE_PORT=50051
+INGESTION_SERVICE_HOST=0.0.0.0
+INGESTION_SERVICE_PORT=8080
 ```
 
 ### Error Handling
@@ -563,7 +563,7 @@ This returns only the attribute value that was active on March 15, 2024.
 **Connection Setup**:
 ```ballerina
 final grpc:Client crudClient = check new (
-    string `${CRUD_SERVICE_URL}`,
+    string `${CORE_SERVICE_URL}`,
     {
         timeout: 30,
         retryConfiguration: {
@@ -577,10 +577,10 @@ final grpc:Client crudClient = check new (
 
 **Environment Variables**:
 ```bash
-CRUD_SERVICE_HOST=localhost
-CRUD_SERVICE_PORT=50051
-QUERY_SERVICE_HOST=0.0.0.0
-QUERY_SERVICE_PORT=8081
+CORE_SERVICE_HOST=localhost
+CORE_SERVICE_PORT=50051
+READ_SERVICE_HOST=0.0.0.0
+READ_SERVICE_PORT=8081
 ```
 
 ### Performance Optimization
