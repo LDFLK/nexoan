@@ -150,7 +150,7 @@ Central orchestration service that manages data networking and all database inte
      - Processes entity attributes
      - Determines storage strategy
      - Handles time-based attribute values
-     - Manages attribute schema evolution
+     - Manages attribute schema evolution (partial support)
    
    - **GraphMetadataManager** (`graph_metadata_manager.go`)
      - Manages graph metadata
@@ -432,6 +432,10 @@ The entity data is strategically distributed across three databases:
     │                    │                       ├─────────────────────>│
     │                    │                       │  (Neo4j - if req'd)  │
     │                    │                       │                      │
+    │                    │                       │ Get attributes       │
+    │                    │                       ├─────────────────────>│
+    │                    │                       │ (PostgreSQL -        │
+    │                    │                       │             if req'd)│
     │                    │                       │ Assemble entity      │
     │                    │                       │                      │
     │                    │    Entity (Protobuf)  │                      │
@@ -513,16 +517,15 @@ The entity data is strategically distributed across three databases:
 | Client ↔ Ingestion API | HTTP/REST | JSON | 8080 |
 | Client ↔ Read API | HTTP/REST | JSON | 8081 |
 | APIs ↔ Core API | gRPC | Protobuf | 50051 |
-| CRUD ↔ MongoDB | MongoDB Wire Protocol | BSON | 27017 |
-| CRUD ↔ Neo4j | Bolt Protocol | Cypher | 7687 |
-| CRUD ↔ PostgreSQL | PostgreSQL Wire Protocol | SQL | 5432 |
+| Core API ↔ MongoDB | MongoDB Wire Protocol | BSON | 27017 |
+| Core API ↔ Neo4j | Bolt Protocol | Cypher | 7687 |
+| Core API ↔ PostgreSQL | PostgreSQL Wire Protocol | SQL | 5432 |
 
 ---
 
 ## Network Architecture
 
 **Docker Network**: `ldf-network` (bridge network)
-
 All services run within the same Docker network:
 - Container-based service discovery
 - Internal communication via container names
@@ -530,9 +533,9 @@ All services run within the same Docker network:
 - Volume persistence for data storage
 
 **Exposed Ports:**
-- `8080` - Update API (external access)
-- `8081` - Query API (external access)
-- `50051` - CRUD Service (can be internal only)
+- `8080` - Ingestion API (external access)
+- `8081` - Read API (external access)
+- `50051` - Core API (can be internal only)
 - `27017` - MongoDB (development access)
 - `7474/7687` - Neo4j (development access)
 - `5432` - PostgreSQL (development access)
@@ -548,6 +551,7 @@ All services run within the same Docker network:
 - **Volumes**: Persistent storage for all databases
 
 ### Health Checks
+
 All services include health check configurations:
 - MongoDB: `mongo --eval "db.adminCommand('ping')"`
 - Neo4j: HTTP endpoint check on port 7474
@@ -556,7 +560,9 @@ All services include health check configurations:
 - Ingestion/Read APIs: TCP checks on respective ports
 
 ### Dependency Management
+
 Services start in proper order using Docker Compose `depends_on`:
+
 ```
 Databases (MongoDB, Neo4j, PostgreSQL)
   ↓
@@ -589,7 +595,7 @@ Ingestion & Read APIs (wait for Core API to be healthy)
 
 ## Key Features
 
-### 1. Multi-Database Strategy
+### 1. Polyglot Database Strategy
 - **Optimized Storage**: Each database serves its best use case
 - **Data Separation**: Clear boundaries between metadata, entities, and attributes
 - **Scalability**: Independent scaling of each database
@@ -604,7 +610,7 @@ Ingestion & Read APIs (wait for Core API to be healthy)
 - **Rich Type System**: Supports primitives and special types
 - **Storage Optimization**: Determines optimal storage based on data structure
 
-### 4. Schema Evolution
+### 4. Schema Evolution (Not Fully Supported)
 - **Dynamic Schemas**: PostgreSQL tables created on-demand
 - **Attribute Flexibility**: New attributes don't require migrations
 - **Kind-Based Organization**: Attributes organized by entity kind
@@ -615,7 +621,7 @@ Ingestion & Read APIs (wait for Core API to be healthy)
 - **Relationship Properties**: Rich metadata on relationships
 
 ### 6. Backup & Restore
-- **Multi-Database Backup**: Coordinated backups across all databases
+- **Polyglot Database Backup**: Coordinated backups across all databases
 - **Version Management**: GitHub-based version control
 - **One-Command Restore**: Simple restoration from any version
 
@@ -674,6 +680,7 @@ Based on TODOs found in the codebase:
 6. **GraphQL API** - Alternative query interface
 7. **Event Streaming** - Kafka integration for event-driven architecture
 8. **Observability** - Distributed tracing and metrics
+9. **Advanced Querying** - Join, Aggregation, filters across the polyglot database
 
 ---
 
@@ -683,7 +690,7 @@ Based on TODOs found in the codebase:
 - [Data Types](../datatype.md) - Type inference system details
 - [Storage Types](../storage.md) - Storage type inference details
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
-- [Core API](../../nexoan/crud-api/README.md) - Core API documentation
+- [Core API](../architecture/core-api.md) - Core API documentation
 - [Ingestion API](../../nexoan/update-api/README.md) - Ingestion API documentation
 - [Read API](../../nexoan/query-api/README.md) - Read API documentation
 

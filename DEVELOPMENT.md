@@ -192,9 +192,9 @@ docker exec crud which nc
 - **Test health checks manually**: Use `docker exec` to run health check commands directly
 - **Consider service dependencies**: Ensure dependent services are healthy before starting
 
-### Using CRUD API services via Ballerina
+### Using Core API services via Ballerina
 
-When using any CRUD services such as `ReadEntity`, `UpdateEntity` etc via Ballerina (for example in the query api or update api layer) pay special attention to the name field in Entity objects.
+When using any Core API such as `ReadEntity`, `UpdateEntity` etc via Ballerina (for example in the query api or ingestion api layer) pay special attention to the name field in Entity objects.
 
 The name field is a TimeBasedValue of the following structure:
 

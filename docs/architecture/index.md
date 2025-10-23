@@ -20,7 +20,7 @@ Complete system architecture overview including:
 
 ---
 
-### 2. [CRUD Service Details](./crud-service-details.md)
+### 2. [Core API](./crud-service-details.md)
 In-depth documentation of the CRUD Service:
 - Directory structure
 - gRPC server implementation
@@ -38,8 +38,8 @@ In-depth documentation of the CRUD Service:
 
 ### 3. [API Layer Details](./api-layer-details.md)
 Complete API layer documentation:
-- Update API (CREATE, UPDATE, DELETE operations)
-- Query API (READ, QUERY operations)
+- Ingestion API (CREATE, UPDATE, DELETE operations)
+- Read API (READ, QUERY operations)
 - Request/response formats
 - JSON to Protobuf conversion
 - OpenAPI contracts
@@ -59,7 +59,7 @@ Detailed database schema documentation:
 - **Neo4j**: Node types, relationship types, Cypher queries
 - **PostgreSQL**: Core tables, dynamic attribute tables, type mapping
 - Cross-database consistency
-- Schema evolution strategies
+- Schema evolution strategies (Not Implemented)
 - Backup and restore procedures
 - Performance optimization
 
@@ -99,7 +99,7 @@ Detailed database schema documentation:
 
 ## Key Concepts
 
-### Multi-Database Strategy
+### Polyglot Database Strategy
 
 OpenGIN uses three databases, each optimized for specific data types:
 

@@ -121,7 +121,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 ## 🏛️ Architecture at a Glance
 
-### Multi-Database Strategy
+### Polyglot Database Strategy
 OpenGIN uses three specialized databases:
 
 | Database | Purpose | Use Case |
