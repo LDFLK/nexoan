@@ -1,9 +1,3 @@
----
-title: "🥽 OpenGIN — Open General Information Network"
-layout: default
-description: "Comprehensive documentation for the OpenGIN platform - a multi-database system for entity management with temporal support"
----
-
 # 🥽 OpenGIN Documentation Hub
 
 Welcome to the **OpenGIN (Open General Information Network)** documentation. This is your central hub for understanding, implementing, and contributing to the OpenGIN platform.

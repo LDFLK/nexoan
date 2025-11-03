@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenGIN Documentation</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1>OpenGIN</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="#/" class="nav-link" data-path="index.md">Home</a>
+                </li>
+                <li class="nav-section">
+                    <div class="nav-section-header" data-section="architecture">
+                        <span>Architecture</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <ul class="nav-subsection" data-subsection="architecture">
+                        <li><a href="#/architecture/overview" class="nav-link" data-path="architecture/overview.md">Overview</a></li>
+                        <li><a href="#/architecture/api-layer-details" class="nav-link" data-path="architecture/api-layer-details.md">API Layer Details</a></li>
+                        <li><a href="#/architecture/core-api" class="nav-link" data-path="architecture/core-api.md">Core API</a></li>
+                        <li><a href="#/architecture/data-type-detection-patterns" class="nav-link" data-path="architecture/data-type-detection-patterns.md">Data Type Detection Patterns</a></li>
+                        <li><a href="#/architecture/database-schemas" class="nav-link" data-path="architecture/database-schemas.md">Database Schemas</a></li>
+                        <li><a href="#/architecture/diagrams" class="nav-link" data-path="architecture/diagrams.md">Diagrams</a></li>
+                        <li><a href="#/architecture/index" class="nav-link" data-path="architecture/index.md">Index</a></li>
+                    </ul>
+                </li>
+                <li class="nav-section">
+                    <div class="nav-section-header" data-section="database">
+                        <span>Database</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <ul class="nav-subsection" data-subsection="database">
+                        <li><a href="#/database/BACKUP_MONGODB" class="nav-link" data-path="database/BACKUP_MONGODB.md">MongoDB Backup</a></li>
+                        <li><a href="#/database/BACKUP_NEO4J" class="nav-link" data-path="database/BACKUP_NEO4J.md">Neo4j Backup</a></li>
+                        <li><a href="#/database/BACKUP_POSTGRES" class="nav-link" data-path="database/BACKUP_POSTGRES.md">PostgreSQL Backup</a></li>
+                    </ul>
+                </li>
+                <li class="nav-section">
+                    <div class="nav-section-header" data-section="deployment">
+                        <span>Deployment</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <ul class="nav-subsection" data-subsection="deployment">
+                        <li><a href="#/deployment/BACKUP_INTEGRATION" class="nav-link" data-path="deployment/BACKUP_INTEGRATION.md">Backup Integration</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#/how_it_works" class="nav-link" data-path="how_it_works.md">How It Works</a>
+                </li>
+                <li>
+                    <a href="#/datatype" class="nav-link" data-path="datatype.md">Data Types</a>
+                </li>
+                <li>
+                    <a href="#/storage" class="nav-link" data-path="storage.md">Storage Types</a>
+                </li>
+                <li>
+                    <a href="#/release_life_cycle" class="nav-link" data-path="release_life_cycle.md">Release Lifecycle</a>
+                </li>
+                <li>
+                    <a href="#/limitations" class="nav-link" data-path="limitations.md">Limitations</a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content" id="content">
+        <div class="content-wrapper">
+            <div class="markdown-body" id="markdownContent">
+                <div class="loading">Loading documentation...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
+
