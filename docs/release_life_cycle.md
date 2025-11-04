@@ -1,11 +1,11 @@
-# 🧭 OpenGIN Release Lifecycle
+# OpenGIN Release Lifecycle
 
 This document defines the **release stages**, **versioning scheme**, and **naming conventions** used in the OpenGIN platform.  
 It ensures consistency, clarity, and traceability across all releases and environments.
 
 ---
 
-## 📦 Versioning Scheme
+## Versioning Scheme
 
 OpenGIN follows **Semantic Versioning (SemVer)** with optional pre-release identifiers and calendar tags.
 
@@ -21,7 +21,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 
 ---
 
-## 🧪 Alpha Release
+## Alpha Release
 
 **Definition:**  
 > Early internal version used for architecture validation, core integration, and early-stage testing.
@@ -37,7 +37,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 
 ---
 
-## 🧭 Beta Release
+## Beta Release
 
 **Definition:**  
 > Feature-complete version intended for broader testing and validation from selected external users.
@@ -53,7 +53,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 
 ---
 
-## 🧩 Release Candidate (RC)
+## Release Candidate (RC)
 
 **Definition:**  
 > A near-final version that could become the official release if no significant issues are found.
@@ -69,7 +69,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 
 ---
 
-## 🚀 General Availability (GA)
+## General Availability (GA)
 
 **Definition:**  
 > The official, production-ready release validated through testing, review, and documentation.
@@ -85,7 +85,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 
 ---
 
-## 📅 Optional Calendar Tagging
+## Optional Calendar Tagging
 
 Each major or minor release can optionally include a **calendar tag** to align with milestones.
 
@@ -97,7 +97,7 @@ This helps track releases alongside development cycles or roadmap milestones.
 
 ---
 
-## 🌿 Branch Naming Convention
+## Branch Naming Convention
 
 To maintain a consistent workflow across teams and CI/CD pipelines:
 
@@ -116,7 +116,7 @@ To maintain a consistent workflow across teams and CI/CD pipelines:
 
 ---
 
-## 🧠 Summary Table
+## Summary Table
 
 | Stage | Tag Example | Audience | Stability | Purpose |
 |--------|--------------|-----------|------------|----------|
@@ -127,7 +127,7 @@ To maintain a consistent workflow across teams and CI/CD pipelines:
 
 ---
 
-## 🧩 Notes
+## Notes
 
 - Increment numbers (`.1`, `.2`, `.3`, etc.) indicate iterations within a stage.  
 - Only **GA** releases are considered official and stable for production.  

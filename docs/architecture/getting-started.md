@@ -20,7 +20,7 @@ Complete system architecture overview including:
 
 ---
 
-### 2. [Core API](./crud-service-details.md)
+### 2. [Core API](./core-api.md)
 In-depth documentation of the CRUD Service:
 - Directory structure
 - gRPC server implementation
@@ -75,7 +75,7 @@ Detailed database schema documentation:
 
 **I'm working on APIs** → Read [API Layer Details](./api-layer-details.md)
 
-**I'm working on backend** → Read [CRUD Service Details](./crud-service-details.md)
+**I'm working on backend** → Read [Core API](./core-api.md)
 
 **I'm working on databases** → Read [Database Schemas](./database-schemas.md)
 
@@ -87,13 +87,13 @@ Detailed database schema documentation:
 
 **Adding new endpoint** → [API Layer Details](./api-layer-details.md)
 
-**Adding new entity type** → [Database Schemas](./database-schemas.md) + [CRUD Service Details](./crud-service-details.md)
+**Adding new entity type** → [Database Schemas](./database-schemas.md) + [Core API](./core-api.md)
 
 **Debugging data storage** → [Database Schemas](./database-schemas.md)
 
-**Performance tuning** → [CRUD Service Details](./crud-service-details.md) + [Database Schemas](./database-schemas.md)
+**Performance tuning** → [Core API](./core-api.md) + [Database Schemas](./database-schemas.md)
 
-**Understanding types** → [Overview](./overview.md) + [CRUD Service Details](./crud-service-details.md)
+**Understanding types** → [Overview](./overview.md) + [Core API](./core-api.md)
 
 ---
 
@@ -257,7 +257,7 @@ Returns attribute value as it was on specific date.
 **Adding Core API feature**:
 1. Implement in appropriate layer (server, engine, repository)
 2. Add tests
-3. Update [Core API Details](./crud-service-details.md)
+3. Update [Core API Details](./core-api.md)
 
 **Modifying database schema**:
 1. Consider impact across all databases

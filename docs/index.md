@@ -1,8 +1,8 @@
-# 🥽 OpenGIN Documentation Hub
+# OpenGIN Documentation 
 
 Welcome to the **OpenGIN (Open General Information Network)** documentation. This is your central hub for understanding, implementing, and contributing to the OpenGIN platform.
 
-## 🚀 Quick Start
+## Quick Start
 
 **New to OpenGIN?** Start here:
 
@@ -12,9 +12,9 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 ---
 
-## 📚 Documentation Structure
+## Documentation Structure
 
-### 🏗️ Architecture & Design
+### Architecture & Design
 
 | Document | Description | Audience |
 |----------|-------------|----------|
@@ -22,7 +22,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | **[API Layer Details](./architecture/api-layer-details.md)** | Complete API documentation and contracts | API Consumers, Frontend Devs |
 | **[Database Schemas](./architecture/database-schemas.md)** | MongoDB, Neo4j, PostgreSQL schemas | Database Admins, Backend Devs |
 
-### 🔧 Core Systems
+### Core Systems
 
 | Document | Description | Audience |
 |----------|-------------|----------|
@@ -30,7 +30,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | **[Data Types](./datatype.md)** | Type inference system and supported types | Developers |
 | **[Storage Types](./storage.md)** | Storage inference and data organization | Backend Developers |
 
-### 🗄️ Database & Storage
+### Database & Storage
 
 | Document | Description | Audience |
 |----------|-------------|----------|
@@ -38,14 +38,14 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 | **[Neo4j Backup](./database/BACKUP_NEO4J.md)** | Neo4j backup and restore procedures | Database Admins |
 | **[PostgreSQL Backup](./database/BACKUP_POSTGRES.md)** | PostgreSQL backup and restore procedures | Database Admins |
 
-### 🚀 Deployment & Operations
+### Deployment & Operations
 
 | Document | Description | Audience |
 |----------|-------------|----------|
 | **[Release Lifecycle](./release_life_cycle.md)** | Versioning, release stages, and deployment | DevOps, Release Managers |
 | **[Backup Integration](./deployment/BACKUP_INTEGRATION.md)** | Backup and restore workflows | Operations Team |
 
-### 🐛 Limitations
+### Limitations
 
 | Document | Description | Audience |
 |----------|-------------|----------|
@@ -53,7 +53,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 ---
 
-## 🎯 Role-Based Navigation
+## Role-Based Navigation
 
 ### 👨‍💻 **I'm a Developer**
 
@@ -91,7 +91,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 ---
 
-## 🔍 Task-Based Navigation
+## Task-Based Navigation
 
 ### **Understanding the System**
 - [Architecture Overview](./architecture/overview.md) + [Architecture Diagrams](./architecture/diagrams.md) + [How It Works](./how_it_works.md)
@@ -113,7 +113,7 @@ Welcome to the **OpenGIN (Open General Information Network)** documentation. Thi
 
 ---
 
-## 🏛️ Architecture at a Glance
+## Architecture at a Glance
 
 ### Polyglot Database Strategy
 OpenGIN uses three specialized databases:
@@ -153,7 +153,7 @@ OpenGIN uses three specialized databases:
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology | Language |
 |-------|-----------|----------|
@@ -168,7 +168,7 @@ OpenGIN uses three specialized databases:
 
 ---
 
-## 🚀 Quick Development Setup
+## Quick Development Setup
 
 ### Prerequisites
 - Docker and Docker Compose
@@ -199,7 +199,7 @@ cd perf && python performance_test.py
 
 ---
 
-## 📖 Common Patterns
+## Common Patterns
 
 ### Entity Creation Flow
 ```
@@ -223,7 +223,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ---
 
-## 🔧 Development Workflow
+## Development Workflow
 
 ### 1. **Understanding Changes**
 - Review [Architecture Overview](./architecture/overview.md)
@@ -247,7 +247,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ---
 
-## 📞 Support & Contributing
+## Support & Contributing
 
 ### Getting Help
 1. Review this documentation first
@@ -263,7 +263,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ---
 
-## 📊 Documentation Status
+## Documentation Status
 
 | Section | Status | Last Updated |
 |---------|--------|--------------|

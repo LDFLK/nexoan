@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
+
 <body>
     <!-- Sidebar Toggle Button -->
     <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
@@ -18,7 +20,9 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
+            <a href="index.html">
             <h1>OpenGIN</h1>
+            </a>
         </div>
         <nav class="sidebar-nav">
             <ul>
@@ -31,13 +35,21 @@
                         <span class="expand-icon">▼</span>
                     </div>
                     <ul class="nav-subsection" data-subsection="architecture">
-                        <li><a href="#/architecture/overview" class="nav-link" data-path="architecture/overview.md">Overview</a></li>
-                        <li><a href="#/architecture/api-layer-details" class="nav-link" data-path="architecture/api-layer-details.md">API Layer Details</a></li>
-                        <li><a href="#/architecture/core-api" class="nav-link" data-path="architecture/core-api.md">Core API</a></li>
-                        <li><a href="#/architecture/data-type-detection-patterns" class="nav-link" data-path="architecture/data-type-detection-patterns.md">Data Type Detection Patterns</a></li>
-                        <li><a href="#/architecture/database-schemas" class="nav-link" data-path="architecture/database-schemas.md">Database Schemas</a></li>
-                        <li><a href="#/architecture/diagrams" class="nav-link" data-path="architecture/diagrams.md">Diagrams</a></li>
-                        <li><a href="#/architecture/index" class="nav-link" data-path="architecture/index.md">Index</a></li>
+                        <li><a href="#/architecture/getting-started" class="nav-link"
+                                data-path="architecture/getting-started.md">Getting Started</a></li>
+                        <li><a href="#/architecture/overview" class="nav-link"
+                                data-path="architecture/overview.md">Overview</a></li>
+                        <li><a href="#/architecture/api-layer-details" class="nav-link"
+                                data-path="architecture/api-layer-details.md">API Layer Details</a></li>
+                        <li><a href="#/architecture/core-api" class="nav-link" data-path="architecture/core-api.md">Core
+                                API</a></li>
+                        <li><a href="#/architecture/data-type-detection-patterns" class="nav-link"
+                                data-path="architecture/data-type-detection-patterns.md">Data Type Detection
+                                Patterns</a></li>
+                        <li><a href="#/architecture/database-schemas" class="nav-link"
+                                data-path="architecture/database-schemas.md">Database Schemas</a></li>
+                        <li><a href="#/architecture/diagrams" class="nav-link"
+                                data-path="architecture/diagrams.md">Diagrams</a></li>
                     </ul>
                 </li>
                 <li class="nav-section">
@@ -46,9 +58,12 @@
                         <span class="expand-icon">▼</span>
                     </div>
                     <ul class="nav-subsection" data-subsection="database">
-                        <li><a href="#/database/BACKUP_MONGODB" class="nav-link" data-path="database/BACKUP_MONGODB.md">MongoDB Backup</a></li>
-                        <li><a href="#/database/BACKUP_NEO4J" class="nav-link" data-path="database/BACKUP_NEO4J.md">Neo4j Backup</a></li>
-                        <li><a href="#/database/BACKUP_POSTGRES" class="nav-link" data-path="database/BACKUP_POSTGRES.md">PostgreSQL Backup</a></li>
+                        <li><a href="#/database/BACKUP_MONGODB" class="nav-link"
+                                data-path="database/BACKUP_MONGODB.md">MongoDB Backup</a></li>
+                        <li><a href="#/database/BACKUP_NEO4J" class="nav-link"
+                                data-path="database/BACKUP_NEO4J.md">Neo4j Backup</a></li>
+                        <li><a href="#/database/BACKUP_POSTGRES" class="nav-link"
+                                data-path="database/BACKUP_POSTGRES.md">PostgreSQL Backup</a></li>
                     </ul>
                 </li>
                 <li class="nav-section">
@@ -57,7 +72,8 @@
                         <span class="expand-icon">▼</span>
                     </div>
                     <ul class="nav-subsection" data-subsection="deployment">
-                        <li><a href="#/deployment/BACKUP_INTEGRATION" class="nav-link" data-path="deployment/BACKUP_INTEGRATION.md">Backup Integration</a></li>
+                        <li><a href="#/deployment/BACKUP_INTEGRATION" class="nav-link"
+                                data-path="deployment/BACKUP_INTEGRATION.md">Backup Integration</a></li>
                     </ul>
                 </li>
                 <li>
@@ -70,7 +86,8 @@
                     <a href="#/storage" class="nav-link" data-path="storage.md">Storage Types</a>
                 </li>
                 <li>
-                    <a href="#/release_life_cycle" class="nav-link" data-path="release_life_cycle.md">Release Lifecycle</a>
+                    <a href="#/release_life_cycle" class="nav-link" data-path="release_life_cycle.md">Release
+                        Lifecycle</a>
                 </li>
                 <li>
                     <a href="#/limitations" class="nav-link" data-path="limitations.md">Limitations</a>
@@ -88,10 +105,50 @@
         </div>
     </main>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer" class="footer-link">
+                    <p class="footer-text">
+                        <span class="footer-brand">Open Data</span> @<span id="currentYear"></span>. All rights reserved.
+                    </p>
+                </a>
+
+                <div class="footer-social">
+                    <a href="https://discord.gg/wYKFyVEY" target="_blank" rel="noopener noreferrer"
+                        class="footer-social-link" aria-label="Discord">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com/company/lankadata/" target="_blank" rel="noopener noreferrer"
+                        class="footer-social-link" aria-label="LinkedIn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                            <rect x="2" y="9" width="4" height="12"></rect>
+                            <circle cx="4" cy="4" r="2"></circle>
+                        </svg>
+                    </a>
+                    <a href="https://github.com/LDFLK" target="_blank" rel="noopener noreferrer"
+                        class="footer-social-link" aria-label="GitHub">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="assets/js/app.js"></script>
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
 </body>
-</html>
 
+</html>

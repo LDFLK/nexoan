@@ -147,13 +147,13 @@ function handleRoute() {
     // Map route to markdown file
     const routeMap = {
         '': 'index.md',
+        'architecture/getting-started': 'architecture/getting-started.md',
         'architecture/overview': 'architecture/overview.md',
         'architecture/api-layer-details': 'architecture/api-layer-details.md',
         'architecture/core-api': 'architecture/core-api.md',
         'architecture/data-type-detection-patterns': 'architecture/data-type-detection-patterns.md',
         'architecture/database-schemas': 'architecture/database-schemas.md',
         'architecture/diagrams': 'architecture/diagrams.md',
-        'architecture/index': 'architecture/index.md',
         'database/BACKUP_MONGODB': 'database/BACKUP_MONGODB.md',
         'database/BACKUP_NEO4J': 'database/BACKUP_NEO4J.md',
         'database/BACKUP_POSTGRES': 'database/BACKUP_POSTGRES.md',
@@ -340,13 +340,13 @@ function processMarkdownLinks(html, currentFilePath) {
                 const cleanPath = filePath.replace(/\.md$/, '');
                 const routeMap = {
                     'index': '',
+                    'architecture/getting-started': 'architecture/getting-started',
                     'architecture/overview': 'architecture/overview',
                     'architecture/api-layer-details': 'architecture/api-layer-details',
                     'architecture/core-api': 'architecture/core-api',
                     'architecture/data-type-detection-patterns': 'architecture/data-type-detection-patterns',
                     'architecture/database-schemas': 'architecture/database-schemas',
                     'architecture/diagrams': 'architecture/diagrams',
-                    'architecture/index': 'architecture/index',
                     'database/BACKUP_MONGODB': 'database/BACKUP_MONGODB',
                     'database/BACKUP_NEO4J': 'database/BACKUP_NEO4J',
                     'database/BACKUP_POSTGRES': 'database/BACKUP_POSTGRES',
