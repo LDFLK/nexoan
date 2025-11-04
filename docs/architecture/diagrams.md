@@ -13,7 +13,7 @@ graph TB
     end
     
     subgraph "API Layer"
-        UpdateAPI[Update API<br/>Ballerina:8080<br/>CREATE/UPDATE/DELETE]
+        UpdateAPI[Ingestion API<br/>Ballerina:8080<br/>CREATE/UPDATE/DELETE]
         QueryAPI[Query API<br/>Ballerina:8081<br/>READ/QUERY]
         SwaggerUI[Swagger UI<br/>API Documentation]
     end
@@ -78,18 +78,18 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant Client
-    participant UpdateAPI as Update API<br/>(Ballerina)
+    participant IngestionAPI as Ingestion API<br/>(Ballerina)
     participant CRUD as CRUD Service<br/>(Go gRPC)
     participant Mongo as MongoDB
     participant Neo4j
     participant Postgres as PostgreSQL
     
-    Client->>UpdateAPI: POST /entities<br/>(JSON payload)
-    activate UpdateAPI
+    Client->>IngestionAPI: POST /entities<br/>(JSON payload)
+    activate IngestionAPI
     
-    Note over UpdateAPI: Convert JSON<br/>to Protobuf Entity
+    Note over IngestionAPI: Convert JSON<br/>to Protobuf Entity
     
-    UpdateAPI->>CRUD: gRPC: CreateEntity(Entity)
+    IngestionAPI->>CRUD: gRPC: CreateEntity(Entity)
     activate CRUD
     
     par Save to Databases
@@ -187,7 +187,7 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "Update API - nexoan/update-api/"
+    subgraph "Ingestion API - nexoan/ingestion-api/"
         UA_Service[update_api_service.bal<br/>REST Endpoints]
         UA_Types[types_v1_pb.bal<br/>Protobuf Types]
         UA_Utils[utils/<br/>Helper Functions]

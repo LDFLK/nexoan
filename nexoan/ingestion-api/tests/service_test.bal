@@ -5,14 +5,14 @@ import ballerina/http;
 import ballerina/os;
 
 // Get environment variables without fallback values
-string testUpdateHostname = os:getEnv("UPDATE_SERVICE_HOST");
-string testUpdatePort = os:getEnv("UPDATE_SERVICE_PORT");
+string testIngestionHostname = os:getEnv("INGESTION_SERVICE_HOST");
+string testIngestionPort = os:getEnv("INGESTION_SERVICE_PORT");
 
-// Try to get complete CRUD service URL from environment variable first
-string? crudServiceUrlEnv = os:getEnv("CRUD_SERVICE_URL");
-string testCrudServiceUrl = crudServiceUrlEnv ?: "http://0.0.0.0:50051";
+// Try to get complete CORE service URL from environment variable first
+string? coreServiceUrlEnv = os:getEnv("CORE_SERVICE_URL");
+string testCoreServiceUrl = coreServiceUrlEnv ?: "http://0.0.0.0:50051";
 // Construct URLs using string concatenation
-string testUpdateServiceUrl = "http://" + testUpdateHostname + ":" + testUpdatePort;
+string testIngestionServiceUrl = "http://" + testIngestionHostname + ":" + testIngestionPort;
 
 type JsonObject map<anydata>;
 
@@ -20,8 +20,8 @@ type JsonObject map<anydata>;
 @test:BeforeSuite
 function beforeSuiteFunc() {
     io:println("I'm the before suite function!");
-    io:println("CRUD Service URL: " + testCrudServiceUrl);
-    io:println("Update Service URL: " + testUpdateServiceUrl);
+    io:println("CORE Service URL: " + testCoreServiceUrl);
+    io:println("Update Service URL: " + testIngestionServiceUrl);
 }
 
 // After Suite Function
@@ -102,7 +102,7 @@ function jsonToAny(json data) returns pbAny:Any|error {
 @test:Config {}
 function testMetadataHandling() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "test-entity-1";
@@ -195,7 +195,7 @@ function testMetadataHandling() returns error? {
 }
 function testMetadataUnpackError() returns error? {
     // Test case to verify handling of non-existent entities
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Try to read a non-existent entity
     ReadEntityRequest readEntityRequest = {
@@ -226,7 +226,7 @@ function testMetadataUnpackError() returns error? {
 @test:Config {}
 function testMetadataUpdating() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "test-entity-update";
@@ -381,7 +381,7 @@ function verifyMetadata(record {| string key; pbAny:Any value; |}[] metadata, ma
 @test:Config {}
 function testEntityReading() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "test-entity-read";
@@ -501,7 +501,7 @@ function testEntityReading() returns error? {
 @test:Config {}
 function testCreateMinimalGraphEntity() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup - minimal entity with just required fields
     string testId = "test-minimal-entity";
@@ -572,7 +572,7 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     http:ClientConfiguration httpConfig = {
         httpVersion: "2.0" // Enable HTTP/2
     };
-    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
+    http:Client restClient = check new (testIngestionServiceUrl, httpConfig);
     
     // Test data setup - minimal JSON entity
     string testId = "test-minimal-json-entity";
@@ -612,7 +612,7 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     test:assertEquals(check responseJson.id, testId, "Entity ID in response doesn't match");
     
     // Initialize the gRPC client to verify entity was properly created
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Verify entity data
     ReadEntityRequest readEntityRequest = {
@@ -663,7 +663,7 @@ function testEntityWithRelationship() returns error? {
     http:ClientConfiguration httpConfig = {
         httpVersion: "2.0" // Enable HTTP/2
     };
-    http:Client restClient = check new (testUpdateServiceUrl, httpConfig);
+    http:Client restClient = check new (testIngestionServiceUrl, httpConfig);
     
     // Create source entity
     json sourceEntityJson = {
@@ -755,7 +755,7 @@ function testEntityWithRelationship() returns error? {
     test:assertEquals(updateHttpResponse.statusCode, 200, "Expected 200 status code for relationship update");
     
     // Initialize the gRPC client to verify relationship was properly created
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Read source entity to verify relationship
     ReadEntityRequest readEntityRequest = {
@@ -815,7 +815,7 @@ function testEntityWithSimpleOnlyNodesGraphAttributes() returns error? {
     string testId = "test-entity-simple-only-nodes-graph";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with tabular data in attributes
     json socialNetworkGraph = {
@@ -913,7 +913,7 @@ function testEntityWithSimpleGraphAttributes() returns error? {
     string testId = "test-simple-entity-graph";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with tabular data in attributes
     json socialNetworkGraph = {
@@ -1018,7 +1018,7 @@ function testEntityWithMultiGraphAttributes() returns error? {
     string testId = "test-entity-graph";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with tabular data in attributes
     json salaryGraph = {
@@ -1153,7 +1153,7 @@ function testEntityWithSimpleListAttributes() returns error? {
     string testId = "test-entity-list";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with list data in attributes
     json salaryList = {
@@ -1224,7 +1224,7 @@ function testEntityWithMixedTypeListAttributes() returns error? {
     string testId = "test-entity-mixed-list";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with mixed type list data in attributes
     json mixedTypeList = {
@@ -1322,7 +1322,7 @@ function testEntityWithEmptyListAttributes() returns error? {
     string testId = "test-entity-empty-list";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with empty list data in attributes
     json emptyList = {
@@ -1413,7 +1413,7 @@ function testEntityWithMapAttributes() returns error? {
     string testId = "test-entity-map";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with map data in attributes
     json userProfileMap = {
@@ -1508,7 +1508,7 @@ function testEntityWithNestedMapAttributes() returns error? {
     string testId = "test-entity-nested-map";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with nested map data in attributes
     json nestedMap = {
@@ -1637,7 +1637,7 @@ function testEntityWithEmptyMapValues() returns error? {
     string testId = "test-entity-empty-map-values";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with map data containing empty values
     // FIXME: https://github.com/LDFLK/nexoan/issues/137
@@ -1733,7 +1733,7 @@ function testEntityWithNestedMapValues() returns error? {
     string testId = "test-entity-nested-map-values";
     
     // Initialize the gRPC client to verify entity
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Create entity with deeply nested map data
     json nestedMap = {
@@ -1865,7 +1865,7 @@ function testEntityWithNestedMapValues() returns error? {
 @test:Config {}
 function testEntityWithTabularAttributes() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "ID-MIN-A";
@@ -2002,7 +2002,7 @@ function testEntityWithTabularAttributes() returns error? {
 @test:Config {}
 function testEntityWithTabularAttributesMultiRels() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "ID-MIN-A-MULTI-RELS";
@@ -2216,7 +2216,7 @@ function testEntityWithTabularAttributesMultiRels() returns error? {
 @test:Config {}
 function testEntityWithTabularAttributesUpdate() returns error? {
     // Initialize the client
-    CrudServiceClient ep = check new (testCrudServiceUrl);
+    COREServiceClient ep = check new (testCoreServiceUrl);
     
     // Test data setup
     string testId = "ID-MIN-A-UPDATE";

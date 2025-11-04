@@ -11,8 +11,8 @@
 ### 2. Run Query API Serivce
 -Read about running the [Query API](nexoan/query-api/README.md)
 
-### 3. Run Update API Service
--Read about running the [Update API](nexoan/update-api/README.md)
+### 3. Run Ingestion API Service
+-Read about running the [Ingestion API](nexoan/ingestion-api/README.md)
 
 ### 4. Run Swagger-UI  
 -Read about running the [Swagger UI](nexoan/swagger-ui/README.md)
@@ -68,7 +68,7 @@ For detailed backup and restore documentation, see [Backup Integration Guide](do
 
 ## Run a sample query with CURL
 
-### Update API
+### Ingestion API
 
 **Create**
 
@@ -169,7 +169,7 @@ ReadEntityRequest readEntityRequest = {
     output: ["relationships"]
 };
 
-### Run Update API Tests
+### Run Ingestion API Tests
 
 ```bash
 cd nexoan/tests/e2e

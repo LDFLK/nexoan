@@ -84,7 +84,7 @@ RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_addre
 COPY --from=builder /app/nexoan/core-api/crud-service /usr/local/bin/
 COPY --from=builder /app/testbin/* /usr/local/bin/
 COPY --from=builder /app/nexoan/core-api /app/nexoan/core-api
-COPY --from=builder /app/nexoan/update-api /app/nexoan/update-api
+COPY --from=builder /app/nexoan/ingestion-api /app/nexoan/ingestion-api
 
 WORKDIR /app
 
@@ -133,8 +133,8 @@ echo "Starting CRUD server..."\n\
 CRUD_PID=$!\n\
 sleep 5\n\
 \n\
-echo "Running update-api tests..."\n\
-cd /app/nexoan/update-api\n\
+echo "Running ingestion-api tests..."\n\
+cd /app/nexoan/ingestion-api\n\
 bal test\n\
 \n\
 echo "Stopping CRUD server..."\n\

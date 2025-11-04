@@ -244,7 +244,7 @@ Returns attribute value as it was on specific date.
 - Clone repository
 - Start databases: `docker-compose up -d mongodb neo4j postgres`
 - Start CRUD service: `cd opengin/core-api && ./core-service`
-- Start APIs: Update API (port 8080), Query API (port 8081)
+- Start APIs: Ingestion API (port 8080), Query API (port 8081)
 
 ### 3. Making Changes
 
@@ -363,7 +363,7 @@ Update architecture docs when:
 - [Storage Types](../storage.md) - Storage inference system
 - [Deployment Guide](../deployment/BACKUP_INTEGRATION.md) - Backup and restore
 - [Core API README](../../nexoan/core-api/README.md) - Polyglot Database Query Processing
-- [Ingestion API README](../../nexoan/update-api/README.md) - Ingestion API setup
+- [Ingestion API README](../../nexoan/ingestion-api/README.md) - Ingestion API setup
 - [Read API README](../../nexoan/query-api/README.md) - Read API setup
 
 ### External Resources

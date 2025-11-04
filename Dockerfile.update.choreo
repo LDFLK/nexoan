@@ -122,7 +122,7 @@ RUN apk add --no-cache shadow && \
 RUN apk add --no-cache ca-certificates netcat-openbsd dos2unix
 
 # Create and set permissions for build directories
-RUN mkdir -p /app/nexoan/update-api/target && \
+RUN mkdir -p /app/nexoan/ingestion-api/target && \
     chown -R choreouser:choreo /app && \
     chmod -R 755 /app
 
@@ -132,7 +132,7 @@ USER 10014
 # Build the application with explicit platform settings
 # ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 # Build the Ballerina service
-RUN cd nexoan/update-api && \
+RUN cd nexoan/ingestion-api && \
     bal build
 
 # Final stage
@@ -152,7 +152,7 @@ RUN mkdir -p /home/choreouser/.ballerina && \
     chmod -R 755 /home/choreouser
 
 # Copy the source code and build artifacts
-COPY --from=builder /app/nexoan/update-api /app/nexoan/update-api
+COPY --from=builder /app/nexoan/ingestion-api /app/nexoan/ingestion-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
@@ -168,7 +168,7 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEHOST: $BAL_CONFIG_VAR_UPDATESERVICEHOST"' >> /app/start.sh && \
     echo 'echo "BAL_CONFIG_VAR_UPDATESERVICEPORT: $BAL_CONFIG_VAR_UPDATESERVICEPORT"' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
-    echo 'exec bal run /app/nexoan/update-api' >> /app/start.sh && \
+    echo 'exec bal run /app/nexoan/ingestion-api' >> /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh
 
@@ -176,14 +176,14 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 RUN chown -R choreouser:choreo /app && \
     chmod -R 777 /app
 
-# Ensure the entire update-api project directory has write permissions
-RUN chown -R choreouser:choreo /app/nexoan/update-api && \
-    chmod -R 777 /app/nexoan/update-api
+# Ensure the entire ingestion-api project directory has write permissions
+RUN chown -R choreouser:choreo /app/nexoan/ingestion-api && \
+    chmod -R 777 /app/nexoan/ingestion-api
 
 # Ensure target directory has proper write permissions
-RUN mkdir -p /app/nexoan/update-api/target && \
-    chown -R choreouser:choreo /app/nexoan/update-api/target && \
-    chmod -R 777 /app/nexoan/update-api/target
+RUN mkdir -p /app/nexoan/ingestion-api/target && \
+    chown -R choreouser:choreo /app/nexoan/ingestion-api/target && \
+    chmod -R 777 /app/nexoan/ingestion-api/target
 
 # Create necessary directories and set permissions before switching user
 RUN mkdir -p /home/choreouser/.ballerina && \

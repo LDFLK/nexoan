@@ -176,7 +176,7 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 RUN chown -R choreouser:choreo /app && \
     chmod -R 777 /app
 
-# Ensure the entire update-api project directory has write permissions
+# Ensure the entire ingestion-api project directory has write permissions
 RUN chown -R choreouser:choreo /app/nexoan/query-api && \
     chmod -R 777 /app/nexoan/query-api
 

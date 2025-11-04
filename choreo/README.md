@@ -74,7 +74,7 @@ The docker-compose setup includes:
 - **neo4j-choreo**: Neo4j graph database (ports 7475, 7688)
 - **postgres-choreo**: PostgreSQL database (port 5433)
 - **crud-choreo**: CRUD API service (port 50051)
-- **update-choreo**: Update API service (port 8080)
+- **update-choreo**: Ingestion API service (port 8080)
 - **e2e-choreo**: End-to-end test runner
 
 #### Database Access
@@ -282,7 +282,7 @@ docker exec postgres psql -U postgres -d nexoan -c "SELECT COUNT(*) FROM informa
 The override file is automatically used in CI workflows:
 
 ```yaml
-# .github/workflows/update-api-test.yml
+# .github/workflows/ingestion-api-test.yml
 - name: Start services with fresh databases
   run: |
     docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud

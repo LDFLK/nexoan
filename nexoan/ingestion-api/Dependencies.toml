@@ -70,7 +70,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "grpc"
-version = "1.13.2"
+version = "1.13.3"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "crypto"},
@@ -94,7 +94,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.13.7"
+version = "2.13.8"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -371,7 +371,7 @@ modules = [
 
 [[package]]
 org = "ldf"
-name = "update_api"
+name = "ingestion_api"
 version = "0.1.0"
 dependencies = [
 	{org = "ballerina", name = "grpc"},
@@ -385,6 +385,6 @@ dependencies = [
 	{org = "ballerinai", name = "observe"}
 ]
 modules = [
-	{org = "ldf", packageName = "update_api", moduleName = "update_api"}
+	{org = "ldf", packageName = "ingestion_api", moduleName = "ingestion_api"}
 ]
 

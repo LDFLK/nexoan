@@ -1,7 +1,7 @@
 ## Setup 
 
 ```bash
-cd design/update-api && source .env && bal run
+cd design/ingestion-api && source .env && bal run
 cd ../../
 cd design/query-api && source .env && bal run
 python basic_core_tests.py

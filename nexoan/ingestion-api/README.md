@@ -1,9 +1,9 @@
-# Update API
+# Ingestion API
 
 ## Generate Open API 
 
-This will generate the endpoints for the Update API server using the OpenAPI specification. 
-The OpenAPI specification is the base for public API for Update API.
+This will generate the endpoints for the Ingestion API server using the OpenAPI specification. 
+The OpenAPI specification is the base for public API for Ingestion API.
 
 > 💡 Note: Always make sure the contract has the expected endpoints and request params
 > before working on the code. The generated endpoints should not be editable at all. 
@@ -12,13 +12,13 @@ The OpenAPI specification is the base for public API for Update API.
 
 
 ```bash
-bal openapi -i ../contracts/rest/update_api.yaml --mode service
+bal openapi -i ../contracts/rest/ingestion_api.yaml --mode service
 ```
 
 ## Generate GRPC Stubs
 
 The client stub generated here will be sending and receiving values via Grpc. 
-This will send requests to the corresponding CRUD server endpoint. 
+This will send requests to the corresponding CORE server endpoint. 
 
 ```bash
 bal grpc --mode client --input ../core-api/protos/types_v1.proto --output .
@@ -32,16 +32,16 @@ bal grpc --mode client --input ../core-api/protos/types_v1.proto --output .
 Following are the default values you should use. 
 
 ```bash
-export CRUD_SERVICE_HOST=localhost
-export CRUD_SERVICE_PORT=50051
-export UPDATE_SERVICE_HOST=localhost
-export UPDATE_SERVICE_PORT=8080
+export CORE_SERVICE_HOST=localhost
+export CORE_SERVICE_PORT=50051
+export INGESTION_SERVICE_HOST=localhost
+export INGESTION_SERVICE_PORT=8080
 ```
 
 ## Development
 
 ```bash
-cd design/update-api
+cd ingestion-api
 cp env.template .env
 # update the required fields to set the environment variables
 source .env
@@ -72,7 +72,7 @@ bal test --code-coverage
 ## Run Service
 
 ```bash
-cd update-api
+cd ingestion-api
 bal run
 ```
 

@@ -691,7 +691,7 @@ Based on TODOs found in the codebase:
 - [Storage Types](../storage.md) - Storage type inference details
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
 - [Core API](../architecture/core-api.md) - Core API documentation
-- [Ingestion API](../../nexoan/update-api/README.md) - Ingestion API documentation
+- [Ingestion API](../../nexoan/ingestion-api/README.md) - Ingestion API documentation
 - [Read API](../../nexoan/query-api/README.md) - Read API documentation
 
 ---
@@ -701,7 +701,7 @@ Based on TODOs found in the codebase:
 ### Service Endpoints
 
 ```bash
-# Update API
+# Ingestion API
 POST   http://localhost:8080/entities          # Create entity
 GET    http://localhost:8080/entities/{id}     # Read entity
 PUT    http://localhost:8080/entities/{id}     # Update entity

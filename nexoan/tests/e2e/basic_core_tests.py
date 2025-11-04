@@ -22,7 +22,7 @@ cd nexoan/core-api
 ## Run API Server
 
 ```bash
-cd nexoan/update-api
+cd nexoan/ingestion-api
 bal run
 ```
 

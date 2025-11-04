@@ -8,16 +8,16 @@ import ballerina/lang.'int as langint;
 import ballerina/grpc;
 import ballerina/log;
 
-// BAL_CONFIG_VAR_CRUDSERVICEURL
-configurable string crudServiceUrl = "http://localhost:50051";
-// BAL_CONFIG_VAR_UPDATESERVICEHOST
-configurable string updateServiceHost = "0.0.0.0";
-// BAL_CONFIG_VAR_UPDATESERVICEPORT
-configurable string updateServicePort = "8080";
+// BAL_CONFIG_VAR_CORESERVICEURL
+configurable string coreServiceUrl = "http://localhost:50051";
+// BAL_CONFIG_VAR_INGESTIONSERVICEHOST
+configurable string ingestionServiceHost = "0.0.0.0";
+// BAL_CONFIG_VAR_INGESTIONSERVICEPORT
+configurable string ingestionServicePort = "8080";
 
 
-listener http:Listener ep0 = new (check langint:fromString(updateServicePort), config = {
-    host: updateServiceHost,
+listener http:Listener ep0 = new (check langint:fromString(ingestionServicePort), config = {
+    host: ingestionServiceHost,
     httpVersion: http:HTTP_2_0
 });
 
@@ -29,7 +29,7 @@ grpc:ClientConfiguration grpcConfig = {
     }
 };
 
-CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
+COREServiceClient ep = check new (coreServiceUrl, grpcConfig);
 
 // Helper function to convert decimal values to float for protobuf compatibility
 // Note that this is a temporary solution to convert decimal values to float for protobuf compatibility.
