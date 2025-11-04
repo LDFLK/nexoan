@@ -2,7 +2,7 @@
 
 This guide covers both local backup management and GitHub-based backup restoration using our `init.sh` script. There are two main workflows depending on your needs.
 
-## 🎯 Two Main Workflows
+## Two Main Workflows
 
 ### 1. **Local Backup Workflow** 
 - Create backups locally using `init.sh`
@@ -17,7 +17,7 @@ This guide covers both local backup management and GitHub-based backup restorati
 
 ---
 
-## 📁 Local Backup Workflow
+## Local Backup Workflow
 
 ### Create Local Backups
 
@@ -71,7 +71,7 @@ NEO4J_BACKUP_DIR=/path/to/neo4j/backups
 
 ---
 
-## 🌐 GitHub Release Workflow
+## GitHub Release Workflow
 
 ### Restore from GitHub Releases
 
@@ -131,7 +131,7 @@ The system uses GitHub's built-in archive feature:
 
 ---
 
-## 🔄 Complete Workflow Examples
+## Complete Workflow Examples
 
 ### Scenario 1: Development Setup
 
@@ -184,7 +184,7 @@ docker logs backup-manager
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -213,7 +213,7 @@ POSTGRES_DATABASE=opengin
 
 ---
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Local Backup Issues
 
@@ -261,7 +261,7 @@ docker logs backup-manager
 
 ---
 
-## 🎯 Key Features
+## Key Features
 
 ### Smart Container Handling
 - **Neo4j functions** intelligently detect container state
@@ -285,7 +285,7 @@ docker logs backup-manager
 
 ---
 
-## 📚 Command Reference
+## Command Reference
 
 ### Local Backup Commands
 ```bash
