@@ -9,8 +9,16 @@ paths:
   /entities:
     post:
       summary: Create a new entity
+      description: |
+        This endpoint allows you to create a new entity.
+
       requestBody:
         required: true
+        description: |
+          It is required to provide the `id`, `kind`, `name` and `created` of the entity to be created. The `id` must not be an existing id.
+
+          If adding relationships, it is required to provide the `id`, `relatedEntityId`, `name`, and `startTime` of the relationship to be added. The `id` must not be an existing id and the `relatedEntityId` must be an existing id.
+
         content:
           application/json:
             schema:
@@ -25,6 +33,12 @@ paths:
   /entities/{id}:
     put:
       summary: Update an existing entity
+      description: |
+        This endpoint allows you to update an existing entity body by:
+        - Updating its core attributes (name, created, terminated)
+        - Adding its metadata
+        - Adding its attributes
+        - Adding or Updating its relationships
       parameters:
         - name: id
           in: path
@@ -33,6 +47,23 @@ paths:
             type: string
       requestBody:
         required: true
+        description: |
+          This request body corresponds to the entity to be updated.
+          - It is required to provide the `id` of the entity to be updated. 
+          - The `id` must be an existing id.
+
+          Updating core attributes:
+          - Only `name`, `created` and `terminated` can be updated.
+
+          Adding a new Relationship:
+          - It is required to provide the `id`,`relatedEntityId`, `name`, and `startTime` of the relationship to be added.
+          - To add a relationship, its `id` must not be an existing id.
+
+          Updating an existing Relationship:
+          - It is required to provide the `id` of the relationship to be updated.
+          - To update a relationship, its `id` must be an existing id.
+          - Only the `startTime` and `endTime` of the relationship can be updated.
+
         content:
           application/json:
             schema:
@@ -69,7 +100,6 @@ components:
         created:
           type: string
           format: date-time
-          readOnly: true
         terminated:
           type: string
           format: date-time

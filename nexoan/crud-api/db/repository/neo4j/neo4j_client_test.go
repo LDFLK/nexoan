@@ -15,6 +15,8 @@ import (
 var repository *Neo4jRepository
 
 // cleanupDatabase deletes all nodes and relationships in the database
+// Note this functioncannot be called in the test functions as due to Go running tests in parallel it can cause issues
+// SEE: https://github.com/LDFLK/nexoan/issues/348
 func cleanupDatabase(ctx context.Context, repo *Neo4jRepository) error {
 	session := repo.getSession(ctx)
 	defer session.Close(ctx)
@@ -67,6 +69,9 @@ func TestMain(m *testing.M) {
 
 // TestCreateEntity tests the CreateGraphEntity method of the Neo4jRepository
 func TestCreateEntity(t *testing.T) {
+	ctx := context.Background()
+	// defer cleanupDatabase(ctx, repository)
+
 	// Prepare the kind parameter
 	kind := &pb.Kind{
 		Major: "Person",
@@ -82,7 +87,7 @@ func TestCreateEntity(t *testing.T) {
 	}
 
 	// Call the CreateGraphEntity method and capture the returned entity
-	createdEntity, err := repository.CreateGraphEntity(context.Background(), kind, entity)
+	createdEntity, err := repository.CreateGraphEntity(ctx, kind, entity)
 	log.Printf("Created entity: %v", createdEntity)
 
 	// Verify that no error occurred during creation
@@ -146,6 +151,7 @@ func TestCreateRelationship(t *testing.T) {
 
 // TestReadEntity tests the ReadGraphEntity method of the Neo4jRepository
 func TestReadEntity(t *testing.T) {
+	ctx := context.Background()
 
 	kind := &pb.Kind{
 		Major: "Person",
@@ -160,14 +166,14 @@ func TestReadEntity(t *testing.T) {
 	}
 
 	// Create the entity
-	createdEntity, err := repository.CreateGraphEntity(context.Background(), kind, entity)
+	createdEntity, err := repository.CreateGraphEntity(ctx, kind, entity)
 	assert.Nil(t, err, "Expected no error when creating the entity")
 	assert.Equal(t, entity["Id"], createdEntity["Id"], "Expected created entity to have the correct Id")
 	assert.Equal(t, entity["Name"], createdEntity["Name"], "Expected created entity to have the correct Name")
 	assert.Equal(t, "2025-03-18T00:00:00Z", createdEntity["Created"], "Expected created entity to have the correct Created date")
 
 	// Read the entity by Id
-	readEntity, err := repository.ReadGraphEntity(context.Background(), "6")
+	readEntity, err := repository.ReadGraphEntity(ctx, "6")
 	assert.Nil(t, err, "Expected no error when reading the entity")
 
 	// Verify the content of the entity
@@ -178,6 +184,8 @@ func TestReadEntity(t *testing.T) {
 
 // TestReadRelatedEntityIds tests the ReadRelatedGraphEntityIds method of the Neo4jRepository
 func TestReadRelatedEntityIds(t *testing.T) {
+	ctx := context.Background()
+
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Minister",
@@ -196,10 +204,10 @@ func TestReadRelatedEntityIds(t *testing.T) {
 	}
 
 	// Create entities
-	_, err := repository.CreateGraphEntity(context.Background(), kind, entity1)
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
 	assert.Nil(t, err, "Expected no error when creating the first entity")
 
-	_, err = repository.CreateGraphEntity(context.Background(), kind, entity2)
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
 	assert.Nil(t, err, "Expected no error when creating the second entity")
 
 	// Create a relationship between the entities
@@ -211,7 +219,7 @@ func TestReadRelatedEntityIds(t *testing.T) {
 		EndTime:         "2025-12-31T00:00:00Z",
 	}
 
-	_, err = repository.CreateRelationship(context.Background(), "4", relationship)
+	_, err = repository.CreateRelationship(ctx, "4", relationship)
 	assert.Nil(t, err, "Expected no error when creating the relationship")
 
 	// Step 3: Prepare the test data for fetching related relationships
@@ -220,7 +228,7 @@ func TestReadRelatedEntityIds(t *testing.T) {
 	ts := "2025-03-18T00:00:00Z" // Timestamp (YYYY-MM-DD)
 
 	// Step 4: Call the function to fetch related relationships
-	relatedRelationships, err := repository.ReadRelatedGraphEntityIds(context.Background(), entityID, relationshipType, ts)
+	relatedRelationships, err := repository.ReadRelatedGraphEntityIds(ctx, entityID, relationshipType, ts)
 	assert.Nil(t, err, "Expected no error when getting related relationships")
 	assert.NotNil(t, relatedRelationships, "Expected related relationships to be returned")
 
@@ -237,6 +245,8 @@ func TestReadRelatedEntityIds(t *testing.T) {
 }
 
 func TestReadRelationships(t *testing.T) {
+	ctx := context.Background()
+
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Minister",
@@ -255,10 +265,10 @@ func TestReadRelationships(t *testing.T) {
 	}
 
 	// Create entities in the repository
-	_, err := repository.CreateGraphEntity(context.Background(), kind, entityMap1)
+	_, err := repository.CreateGraphEntity(ctx, kind, entityMap1)
 	assert.Nil(t, err, "Expected no error when creating first entity")
 
-	_, err = repository.CreateGraphEntity(context.Background(), kind, entityMap2)
+	_, err = repository.CreateGraphEntity(ctx, kind, entityMap2)
 	assert.Nil(t, err, "Expected no error when creating second entity")
 
 	// Create a relationship between the entities
@@ -268,11 +278,11 @@ func TestReadRelationships(t *testing.T) {
 		Name:            "KNOWS",
 		StartTime:       "2025-03-18",
 	}
-	_, err = repository.CreateRelationship(context.Background(), "7", relationship)
+	_, err = repository.CreateRelationship(ctx, "7", relationship)
 	assert.Nil(t, err, "Expected no error when creating the relationship")
 
 	// Fetch relationships for entity 7
-	relationships, err := repository.ReadRelationships(context.Background(), "7")
+	relationships, err := repository.ReadRelationships(ctx, "7")
 	assert.Nil(t, err, "Expected no error when fetching relationships")
 	log.Printf("Relationships for entity 7: %v", relationships)
 
@@ -290,6 +300,8 @@ func TestReadRelationships(t *testing.T) {
 }
 
 func TestReadRelationship(t *testing.T) {
+	ctx := context.Background()
+
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Minister",
@@ -298,43 +310,41 @@ func TestReadRelationship(t *testing.T) {
 	// Create two entities
 	entityMap1 := map[string]interface{}{
 		"Id":      "9",
-		"Kind":    "Person",
 		"Name":    "David",
 		"Created": "2025-03-18",
 	}
 	entityMap2 := map[string]interface{}{
 		"Id":      "10",
-		"Kind":    "Person",
 		"Name":    "Eve",
 		"Created": "2025-03-18",
 	}
 
 	// Create entities in the repository
-	_, err := repository.CreateGraphEntity(context.Background(), kind, entityMap1)
+	_, err := repository.CreateGraphEntity(ctx, kind, entityMap1)
 	assert.Nil(t, err, "Expected no error when creating first entity")
 
-	_, err = repository.CreateGraphEntity(context.Background(), kind, entityMap2)
+	_, err = repository.CreateGraphEntity(ctx, kind, entityMap2)
 	assert.Nil(t, err, "Expected no error when creating second entity")
 
 	// Create a relationship between the entities
 	relationship := &pb.Relationship{
-		Id:              "103",
-		RelatedEntityId: "8", // ID of the related entity (Eve)
+		Id:              "rel_9_10",
+		RelatedEntityId: "10", // ID of the related entity (Eve)
 		Name:            "KNOWS",
 		StartTime:       "2025-03-18",
 	}
-	_, err = repository.CreateRelationship(context.Background(), "7", relationship) // "7" is David's ID
+	_, err = repository.CreateRelationship(ctx, "9", relationship) // "9" is David's ID
 	assert.Nil(t, err, "Expected no error when creating the relationship")
 
 	// Fetch the relationship by ID
-	relationshipMap, err := repository.ReadRelationship(context.Background(), "103")
+	relationshipMap, err := repository.ReadRelationship(ctx, "rel_9_10")
 	assert.Nil(t, err, "Expected no error when fetching the relationship")
 	log.Printf("Fetched relationship: %v", relationshipMap)
 
 	// Verify that the relationship data is correct
 	assert.Equal(t, "KNOWS", relationshipMap["type"], "Expected relationship type to be KNOWS")
-	assert.Equal(t, "7", relationshipMap["startEntityID"], "Expected start entity ID to be 7 (David's ID)")
-	assert.Equal(t, "8", relationshipMap["endEntityID"], "Expected end entity ID to be 8 (Eve's ID)")
+	assert.Equal(t, "9", relationshipMap["startEntityID"], "Expected start entity ID to be 9 (David's ID)")
+	assert.Equal(t, "10", relationshipMap["endEntityID"], "Expected end entity ID to be 10 (Eve's ID)")
 	assert.Equal(t, "2025-03-18T00:00:00Z", relationshipMap["Created"], "Expected start date to be 2025-03-18T00:00:00Z")
 
 	// Optional: Assert the endDate is nil (since it wasn't set in the creation)
@@ -342,6 +352,8 @@ func TestReadRelationship(t *testing.T) {
 }
 
 func TestUpdateEntity(t *testing.T) {
+	ctx := context.Background()
+
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Minister",
@@ -350,11 +362,10 @@ func TestUpdateEntity(t *testing.T) {
 	// Create a test entity
 	entityData := map[string]interface{}{
 		"Id":      "11",
-		"Kind":    "Person",
 		"Name":    "Mary",
 		"Created": "2025-03-18",
 	}
-	_, err := repository.CreateGraphEntity(context.Background(), kind, entityData)
+	_, err := repository.CreateGraphEntity(ctx, kind, entityData)
 	assert.Nil(t, err, "Expected no error when creating entity")
 
 	// Update the entity
@@ -363,7 +374,7 @@ func TestUpdateEntity(t *testing.T) {
 		"Terminated": "2025-12-31T00:00:00Z",
 	}
 
-	updatedEntity, err := repository.UpdateGraphEntity(context.Background(), "11", updateData)
+	updatedEntity, err := repository.UpdateGraphEntity(ctx, "11", updateData)
 	log.Printf("Updated entity: %v", updatedEntity)
 	assert.Nil(t, err, "Expected no error when updating entity")
 	assert.NotNil(t, updatedEntity, "Expected updated entity to be returned")
@@ -373,7 +384,7 @@ func TestUpdateEntity(t *testing.T) {
 	assert.Equal(t, "2025-12-31T00:00:00Z", updatedEntity["Terminated"], "Expected updated dateEnded")
 
 	// Fetch the entity from the database and verify
-	entity, err := repository.ReadGraphEntity(context.Background(), "11")
+	entity, err := repository.ReadGraphEntity(ctx, "11")
 	log.Printf("Fetched entity: %v", entity)
 	assert.Nil(t, err, "Expected no error when reading updated entity")
 	assert.Equal(t, "Mary Updated", entity["Name"], "Expected database to have updated name")
@@ -381,13 +392,49 @@ func TestUpdateEntity(t *testing.T) {
 }
 
 func TestUpdateRelationship(t *testing.T) {
+	ctx := context.Background()
+
+	kind := &pb.Kind{
+		Major: "Person",
+		Minor: "Minister",
+	}
+
+	// Create two entities first
+	entity1 := map[string]interface{}{
+		"Id":      "update_rel_entity_1",
+		"Name":    "Alice",
+		"Created": "2025-03-18",
+	}
+	entity2 := map[string]interface{}{
+		"Id":      "update_rel_entity_2",
+		"Name":    "Bob",
+		"Created": "2025-03-18",
+	}
+
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
+	assert.Nil(t, err, "Expected no error when creating first entity")
+
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
+	assert.Nil(t, err, "Expected no error when creating second entity")
+
+	// Create a relationship
+	relationship := &pb.Relationship{
+		Id:              "update_rel_test",
+		RelatedEntityId: "update_rel_entity_2",
+		Name:            "KNOWS",
+		StartTime:       "2025-03-18",
+	}
+
+	_, err = repository.CreateRelationship(ctx, "update_rel_entity_1", relationship)
+	assert.Nil(t, err, "Expected no error when creating the relationship")
+
 	// Update the relationship
 	updateData := map[string]interface{}{
 		"Terminated": "2025-12-31T00:00:00Z",
 	}
 
 	// Call the function to update the relationship
-	updatedRelationship, err := repository.UpdateRelationship(context.Background(), "101", updateData)
+	updatedRelationship, err := repository.UpdateRelationship(ctx, "update_rel_test", updateData)
 	log.Printf("Updated relationship: %v", updatedRelationship)
 	assert.Nil(t, err, "Expected no error when updating relationship")
 	assert.NotNil(t, updatedRelationship, "Expected updated relationship to be returned")
@@ -396,66 +443,126 @@ func TestUpdateRelationship(t *testing.T) {
 	assert.Equal(t, "2025-12-31T00:00:00Z", updatedRelationship["Terminated"], "Expected updated endDate")
 
 	// Fetch the relationship from the database using getRelationship
-	relationship, err := repository.ReadRelationship(context.Background(), "101")
-	log.Printf("Fetched relationship: %v", relationship)
+	fetchedRelationship, err := repository.ReadRelationship(ctx, "update_rel_test")
+	log.Printf("Fetched relationship: %v", fetchedRelationship)
 	assert.Nil(t, err, "Expected no error when reading updated relationship")
 
 	// Check if the relationship has the updated endDate
-	assert.Equal(t, "2025-12-31T00:00:00Z", relationship["Terminated"], "Expected relationship to have updated endDate")
+	assert.Equal(t, "2025-12-31T00:00:00Z", fetchedRelationship["Terminated"], "Expected relationship to have updated endDate")
 }
 
 func TestDeleteRelationship(t *testing.T) {
-	// Ensure the relationship exists first, if needed (for test consistency)
-	// You can add a create step here if the relationship doesn't exist yet
+	ctx := context.Background()
 
-	// Call the function to delete the relationship
-	err := repository.DeleteRelationship(context.Background(), "101")
-	assert.Nil(t, err, "Expected no error when deleting relationship")
-
-	// Fetch the relationship to ensure it was deleted
-	relationship, err := repository.ReadRelationship(context.Background(), "101")
-	assert.NotNil(t, err, "Expected error when fetching deleted relationship")
-	assert.Contains(t, err.Error(), "not found", "Expected error message to indicate relationship not found")
-	assert.Nil(t, relationship, "Expected relationship to be nil after deletion")
-}
-
-func TestDeleteEntity(t *testing.T) {
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Minister",
 	}
 
-	// Create a test entity
-	entity := map[string]interface{}{
-		"Id":      "12",
+	// Create two entities first
+	entity1 := map[string]interface{}{
+		"Id":      "delete_rel_entity_1",
+		"Name":    "Alice",
+		"Created": "2025-03-18",
+	}
+	entity2 := map[string]interface{}{
+		"Id":      "delete_rel_entity_2",
+		"Name":    "Bob",
+		"Created": "2025-03-18",
+	}
+
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
+	assert.Nil(t, err, "Expected no error when creating first entity")
+
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
+	assert.Nil(t, err, "Expected no error when creating second entity")
+
+	// Create a relationship
+	relationship := &pb.Relationship{
+		Id:              "delete_rel_test",
+		RelatedEntityId: "delete_rel_entity_2",
+		Name:            "KNOWS",
+		StartTime:       "2025-03-18",
+	}
+
+	_, err = repository.CreateRelationship(ctx, "delete_rel_entity_1", relationship)
+	assert.Nil(t, err, "Expected no error when creating the relationship")
+
+	// Call the function to delete the relationship
+	err = repository.DeleteRelationship(ctx, "delete_rel_test")
+	assert.Nil(t, err, "Expected no error when deleting relationship")
+
+	// Fetch the relationship to ensure it was deleted
+	deletedRelationship, err := repository.ReadRelationship(ctx, "delete_rel_test")
+	assert.NotNil(t, err, "Expected error when fetching deleted relationship")
+	assert.Contains(t, err.Error(), "not found", "Expected error message to indicate relationship not found")
+	assert.Nil(t, deletedRelationship, "Expected relationship to be nil after deletion")
+}
+
+func TestDeleteEntity(t *testing.T) {
+	ctx := context.Background()
+
+	kind := &pb.Kind{
+		Major: "Person",
+		Minor: "Minister",
+	}
+
+	// Create a test entity that can be deleted
+	entity1 := map[string]interface{}{
+		"Id":      "delete_entity_1",
 		"Name":    "John Smith",
 		"Created": "2025-03-18",
 	}
-	_, err := repository.CreateGraphEntity(context.Background(), kind, entity)
-	assert.Nil(t, err, "Expected no error when creating entity")
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
+	assert.Nil(t, err, "Expected no error when creating entity 1")
 
-	// Step 2: Verify that the entity was deleted by attempting to fetch it
-	// _, err = repository.ReadGraphEntity(context.Background(), "9")
-	// assert.NotNil(t, err, "Expected error when fetching deleted entity with ID 9")
-	// assert.Contains(t, err.Error(), "entity with ID 9 not found", "Expected error to indicate entity is not found")
-
-	err = repository.DeleteGraphEntity(context.Background(), "12")
+	// Delete the entity
+	err = repository.DeleteGraphEntity(ctx, "delete_entity_1")
 	assert.Nil(t, err, "Expected no error when deleting entity")
 
 	// Verify the entity was deleted
-	_, err = repository.ReadGraphEntity(context.Background(), "12")
+	_, err = repository.ReadGraphEntity(ctx, "delete_entity_1")
 	assert.NotNil(t, err, "Expected error when fetching deleted entity")
 	assert.Contains(t, err.Error(), "not found", "Expected error message to indicate entity not found")
 
-	// Step 3: Test deleting an entity with relationships (ID 8)
-	err = repository.DeleteGraphEntity(context.Background(), "8")
-	assert.NotNil(t, err, "Expected error when deleting entity with ID 8 (has relationships)")
+	// Test deleting an entity with relationships (should fail)
+	// Create two entities
+	entity2 := map[string]interface{}{
+		"Id":      "delete_entity_2",
+		"Name":    "Alice",
+		"Created": "2025-03-18",
+	}
+	entity3 := map[string]interface{}{
+		"Id":      "delete_entity_3",
+		"Name":    "Bob",
+		"Created": "2025-03-18",
+	}
 
-	// Step 4: Verify the error message contains information about relationships
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
+	assert.Nil(t, err, "Expected no error when creating entity 2")
+
+	_, err = repository.CreateGraphEntity(ctx, kind, entity3)
+	assert.Nil(t, err, "Expected no error when creating entity 3")
+
+	// Create a relationship between them
+	relationship := &pb.Relationship{
+		Id:              "delete_entity_rel",
+		RelatedEntityId: "delete_entity_3",
+		Name:            "KNOWS",
+		StartTime:       "2025-03-18",
+	}
+	_, err = repository.CreateRelationship(ctx, "delete_entity_2", relationship)
+	assert.Nil(t, err, "Expected no error when creating relationship")
+
+	// Try to delete entity with relationships (should fail)
+	err = repository.DeleteGraphEntity(ctx, "delete_entity_2")
+	assert.NotNil(t, err, "Expected error when deleting entity with relationships")
 	assert.Contains(t, err.Error(), "entity has relationships and cannot be deleted", "Expected error message to indicate relationships prevent deletion")
 }
 
 func TestAddMinistriesAndDepartments(t *testing.T) {
+	ctx := context.Background()
+
 	// Define ministries and their departments
 	ministries := []struct {
 		id          string
@@ -526,7 +633,7 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 			"Created": "2022-07-22",
 		}
 
-		_, err := repository.CreateGraphEntity(context.Background(), kindMinistry, ministryEntity)
+		_, err := repository.CreateGraphEntity(ctx, kindMinistry, ministryEntity)
 		assert.Nil(t, err, "Failed to create ministry: %s", ministry.name)
 
 		// Create departments and relationships
@@ -538,7 +645,7 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 				"Created": "2022-07-22",
 			}
 
-			_, err := repository.CreateGraphEntity(context.Background(), kindDept, departmentEntity)
+			_, err := repository.CreateGraphEntity(ctx, kindDept, departmentEntity)
 			assert.Nil(t, err, "Failed to create department: %s", department.name)
 
 			// Establish the is_department relationship
@@ -549,14 +656,251 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 				StartTime:       startTime,
 			}
 
-			_, err = repository.CreateRelationship(context.Background(), ministry.id, relationship)
+			_, err = repository.CreateRelationship(ctx, ministry.id, relationship)
 			assert.Nil(t, err, "Failed to create relationship between ministry %s and department %s", ministry.name, department.name)
 		}
 	}
 }
 
+func TestCreateRelationshipWithDuplicateId(t *testing.T) {
+	ctx := context.Background()
+
+	kind := &pb.Kind{
+		Major: "Person",
+		Minor: "Employee",
+	}
+
+	// Create two entities
+	entity1 := map[string]interface{}{
+		"Id":      "dup_entity_1",
+		"Name":    "DuplicateTestEntity1",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	entity2 := map[string]interface{}{
+		"Id":      "dup_entity_2",
+		"Name":    "DuplicateTestEntity2",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
+	assert.Nil(t, err, "Expected no error when creating entity 1")
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
+	assert.Nil(t, err, "Expected no error when creating entity 2")
+
+	// Create a relationship with a specific ID
+	relationship := &pb.Relationship{
+		Id:              "duplicate_rel_id",
+		Name:            "WORKS_WITH",
+		RelatedEntityId: "dup_entity_2",
+		StartTime:       "2025-04-01T00:00:00Z",
+	}
+	createdRel, err := repository.CreateRelationship(ctx, "dup_entity_1", relationship)
+	assert.Nil(t, err, "Expected no error when creating the first relationship")
+	assert.NotNil(t, createdRel, "Expected relationship to be created")
+	log.Printf("First relationship created: %v", createdRel)
+
+	// Read the original relationship to verify its properties
+	originalRel, err := repository.ReadRelationship(ctx, "duplicate_rel_id")
+	assert.Nil(t, err, "Expected no error reading original relationship")
+	originalCreated := originalRel["Created"]
+	log.Printf("Original relationship: %v", originalRel)
+
+	// Attempt to create another relationship with the SAME ID (should fail)
+	duplicateRelationship := &pb.Relationship{
+		Id:              "duplicate_rel_id", // Same ID as above
+		Name:            "MANAGES",          // Different name
+		RelatedEntityId: "dup_entity_2",
+		StartTime:       "2025-05-01T00:00:00Z", // Different start time
+	}
+	createdDup, err := repository.CreateRelationship(ctx, "dup_entity_1", duplicateRelationship)
+
+	// Verify that the creation failed
+	assert.NotNil(t, err, "Expected error when creating relationship with duplicate ID")
+	assert.Contains(t, err.Error(), "already exists", "Expected error message to indicate relationship already exists")
+	assert.Nil(t, createdDup, "Expected no relationship to be returned when creation fails")
+	log.Printf("Duplicate creation error (expected): %v", err)
+
+	// Verify the original relationship was NOT modified
+	verifyRel, err := repository.ReadRelationship(ctx, "duplicate_rel_id")
+	assert.Nil(t, err, "Expected no error reading relationship after duplicate attempt")
+	assert.Equal(t, "WORKS_WITH", verifyRel["type"], "Expected relationship type to remain unchanged")
+	assert.Equal(t, originalCreated, verifyRel["Created"], "Expected relationship Created date to remain unchanged")
+	log.Printf("Verified relationship unchanged: %v", verifyRel)
+
+	// Verify only one relationship exists between the entities
+	relationships, err := repository.ReadRelationships(ctx, "dup_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships")
+
+	// Count relationships with our test ID
+	count := 0
+	for _, rel := range relationships {
+		if rel["relationshipID"] == "duplicate_rel_id" {
+			count++
+		}
+	}
+	assert.Equal(t, 1, count, "Expected exactly one relationship with the duplicate ID")
+}
+
+func TestUpdateRelationshipWithNonExistentId(t *testing.T) {
+	ctx := context.Background()
+
+	// Attempt to update a relationship that doesn't exist
+	updateData := map[string]interface{}{
+		"Terminated": "2025-12-31T00:00:00Z",
+	}
+
+	updatedRel, err := repository.UpdateRelationship(ctx, "non_existent_rel_id", updateData)
+
+	// Verify that the update failed
+	assert.NotNil(t, err, "Expected error when updating non-existent relationship")
+	assert.Contains(t, err.Error(), "does not exist", "Expected error message to indicate relationship does not exist")
+	assert.Nil(t, updatedRel, "Expected no relationship to be returned when update fails")
+	log.Printf("Update non-existent relationship error (expected): %v", err)
+}
+
+func TestUpdateRelationshipFields(t *testing.T) {
+	ctx := context.Background()
+
+	kind := &pb.Kind{
+		Major: "Person",
+		Minor: "Employee",
+	}
+
+	// Create two entities
+	entity1 := map[string]interface{}{
+		"Id":      "update_test_entity_1",
+		"Name":    "UpdateTestEntity1",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	entity2 := map[string]interface{}{
+		"Id":      "update_test_entity_2",
+		"Name":    "UpdateTestEntity2",
+		"Created": "2025-04-01T00:00:00Z",
+	}
+	_, err := repository.CreateGraphEntity(ctx, kind, entity1)
+	assert.Nil(t, err, "Expected no error when creating entity 1")
+	_, err = repository.CreateGraphEntity(ctx, kind, entity2)
+	assert.Nil(t, err, "Expected no error when creating entity 2")
+
+	// Create a relationship
+	relationship := &pb.Relationship{
+		Id:              "update_test_rel",
+		Name:            "REPORTS_TO",
+		RelatedEntityId: "update_test_entity_2",
+		StartTime:       "2025-04-01T00:00:00Z",
+	}
+	createdRel, err := repository.CreateRelationship(ctx, "update_test_entity_1", relationship)
+	assert.Nil(t, err, "Expected no error when creating relationship")
+	log.Printf("Created relationship for update test: %v", createdRel)
+
+	// Count total relationships before updates
+	allRelsBefore, err := repository.ReadRelationships(ctx, "update_test_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships before update")
+	totalRelsBefore := len(allRelsBefore)
+	log.Printf("Total relationships before update: %d", totalRelsBefore)
+
+	// Test 1: Update only Created field
+	updateCreated := map[string]interface{}{
+		"Created": "2025-03-15T00:00:00Z",
+	}
+	updatedRel, err := repository.UpdateRelationship(ctx, "update_test_rel", updateCreated)
+	assert.Nil(t, err, "Expected no error when updating Created field")
+	assert.NotNil(t, updatedRel, "Expected updated relationship to be returned")
+	assert.Equal(t, "2025-03-15T00:00:00Z", updatedRel["Created"], "Expected Created date to be updated")
+	log.Printf("After updating Created: %v", updatedRel)
+
+	// Verify no new relationships were created
+	allRelsAfterCreated, err := repository.ReadRelationships(ctx, "update_test_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships after Created update")
+	assert.Equal(t, totalRelsBefore, len(allRelsAfterCreated), "Expected same number of relationships after Created update")
+
+	// Test 2: Update only Terminated field
+	updateTerminated := map[string]interface{}{
+		"Terminated": "2025-12-31T00:00:00Z",
+	}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateTerminated)
+	assert.Nil(t, err, "Expected no error when updating Terminated field")
+	assert.NotNil(t, updatedRel, "Expected updated relationship to be returned")
+	assert.Equal(t, "2025-12-31T00:00:00Z", updatedRel["Terminated"], "Expected Terminated date to be updated")
+	log.Printf("After updating Terminated: %v", updatedRel)
+
+	// Verify no new relationships were created
+	allRelsAfterTerminated, err := repository.ReadRelationships(ctx, "update_test_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships after Terminated update")
+	assert.Equal(t, totalRelsBefore, len(allRelsAfterTerminated), "Expected same number of relationships after Terminated update")
+
+	// Test 3: Update both Created and Terminated fields
+	updateBoth := map[string]interface{}{
+		"Created":    "2025-02-01T00:00:00Z",
+		"Terminated": "2025-11-30T00:00:00Z",
+	}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateBoth)
+	assert.Nil(t, err, "Expected no error when updating both fields")
+	assert.NotNil(t, updatedRel, "Expected updated relationship to be returned")
+	assert.Equal(t, "2025-02-01T00:00:00Z", updatedRel["Created"], "Expected Created date to be updated")
+	assert.Equal(t, "2025-11-30T00:00:00Z", updatedRel["Terminated"], "Expected Terminated date to be updated")
+	log.Printf("After updating both Created and Terminated: %v", updatedRel)
+
+	// Verify no new relationships were created
+	allRelsAfterBoth, err := repository.ReadRelationships(ctx, "update_test_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships after both fields update")
+	assert.Equal(t, totalRelsBefore, len(allRelsAfterBoth), "Expected same number of relationships after both fields update")
+
+	// Test 4: Try to update Name field (should fail - only Created and Terminated allowed)
+	updateName := map[string]interface{}{
+		"Name": "UpdatedName",
+	}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateName)
+	assert.NotNil(t, err, "Expected error when trying to update Name field")
+	assert.Contains(t, err.Error(), "unsupported field", "Expected error message about unsupported field")
+	assert.Nil(t, updatedRel, "Expected no relationship to be returned when updating unsupported field")
+	log.Printf("Update Name error (expected): %v", err)
+
+	// Test 5: Verify the relationship type (Neo4j type) hasn't changed
+	finalRel, err := repository.ReadRelationship(ctx, "update_test_rel")
+	assert.Nil(t, err, "Expected no error reading final relationship state")
+	assert.Equal(t, "REPORTS_TO", finalRel["type"], "Expected relationship type to remain unchanged")
+	assert.Equal(t, "update_test_entity_1", finalRel["startEntityID"], "Expected start entity to remain unchanged")
+	assert.Equal(t, "update_test_entity_2", finalRel["endEntityID"], "Expected end entity to remain unchanged")
+	log.Printf("Final relationship state: %v", finalRel)
+
+	// Test 6: Try updating with no valid fields (should fail)
+	updateEmpty := map[string]interface{}{}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateEmpty)
+	assert.NotNil(t, err, "Expected error when updating with no valid fields")
+	assert.Contains(t, err.Error(), "no valid fields", "Expected error message about no valid fields")
+	assert.Nil(t, updatedRel, "Expected no relationship to be returned when no fields provided")
+
+	// Test 7: Try to update other unsupported fields (should fail)
+	updateUnsupported := map[string]interface{}{
+		"RelatedEntityId": "some_other_entity",
+	}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateUnsupported)
+	assert.NotNil(t, err, "Expected error when trying to update RelatedEntityId field")
+	assert.Contains(t, err.Error(), "unsupported field", "Expected error message about unsupported field")
+	assert.Nil(t, updatedRel, "Expected no relationship to be returned when updating unsupported field")
+	log.Printf("Update unsupported field error (expected): %v", err)
+
+	// Test 8: Update with both supported fields (Created and Terminated)
+	updateAll := map[string]interface{}{
+		"Created":    "2025-01-01T00:00:00Z",
+		"Terminated": "2025-12-31T23:59:59Z",
+	}
+	updatedRel, err = repository.UpdateRelationship(ctx, "update_test_rel", updateAll)
+	assert.Nil(t, err, "Expected no error when updating both supported fields")
+	assert.NotNil(t, updatedRel, "Expected updated relationship to be returned")
+	assert.Equal(t, "2025-01-01T00:00:00Z", updatedRel["Created"], "Expected Created date to be updated")
+	assert.Equal(t, "2025-12-31T23:59:59Z", updatedRel["Terminated"], "Expected Terminated date to be updated")
+	log.Printf("After updating both supported fields: %v", updatedRel)
+
+	// Final verification: no new relationships were created
+	allRelsFinal, err := repository.ReadRelationships(ctx, "update_test_entity_1")
+	assert.Nil(t, err, "Expected no error reading relationships at end")
+	assert.Equal(t, totalRelsBefore, len(allRelsFinal), "Expected same number of relationships at end of all updates")
+}
+
 func TestReadFilteredRelationships(t *testing.T) {
 	ctx := context.Background()
+
 	kind := &pb.Kind{
 		Major: "Person",
 		Minor: "Tester",
@@ -611,7 +955,7 @@ func TestReadFilteredRelationships(t *testing.T) {
 	rels, err := repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, "")
 	log.Printf("ReadFilteredRelationships response (no filters): %+v", rels)
 	assert.Nil(t, err, "Expected no error when reading filtered relationships with no filters")
-	assert.GreaterOrEqual(t, len(rels), 2, "Expected at least 2 relationships for entity A with no filters")
+	assert.Equal(t, 3, len(rels), "Expected exactly 3 relationships for entity A with no filters (2 outgoing + 1 incoming)")
 
 	// // 2. Filter by relationship type (name)
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"name": "FRIEND"}, "")
@@ -624,7 +968,7 @@ func TestReadFilteredRelationships(t *testing.T) {
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"relatedEntityId": "B"}, "")
 	log.Printf("ReadFilteredRelationships response (only relatedEntityId): %+v", rels)
 	assert.Nil(t, err, "Expected no error when filtering by relatedEntityId")
-	assert.GreaterOrEqual(t, len(rels), 2, "Expected at least 2 relationships to B")
+	assert.Equal(t, 3, len(rels), "Expected exactly 3 relationships where B is the related entity (2 outgoing to B, 1 incoming from B)")
 
 	// // 4. Filter by direction OUTGOING
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"direction": "OUTGOING"}, "")

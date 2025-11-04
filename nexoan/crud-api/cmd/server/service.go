@@ -29,20 +29,9 @@ type Server struct {
 	postgresRepo *postgres.PostgresRepository
 }
 
-// CreateEntity handles entity creation with metadata
+// CreateEntity handles entity creation with relationships, metadata and attributes
 func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, error) {
 	log.Printf("Creating Entity: %s", req.Id)
-
-	// Always save the entity in MongoDB, even if it has no metadata
-	// The HandleMetadata function will only process it if it has metadata
-	// FIXME: https://github.com/LDFLK/nexoan/issues/120
-	err := s.mongoRepo.HandleMetadata(ctx, req.Id, req)
-	if err != nil {
-		log.Printf("[server.CreateEntity] Error saving metadata in MongoDB: %v", err)
-		return nil, err
-	} else {
-		log.Printf("[server.CreateEntity] Successfully saved metadata in MongoDB for entity: %s", req.Id)
-	}
 
 	// Validate required fields for Neo4j entity creation
 	success, err := s.neo4jRepo.HandleGraphEntityCreation(ctx, req)
@@ -62,6 +51,17 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 		log.Printf("[server.CreateEntity] Successfully saved relationships in Neo4j for entity: %s", req.Id)
 	}
 
+	// The HandleMetadata function will only process it if it has metadata
+	// If metadata is not provided, a document will not be created in MongoDB
+	// FIXME: https://github.com/LDFLK/nexoan/issues/120
+	err = s.mongoRepo.HandleMetadata(ctx, req.Id, req)
+	if err != nil {
+		log.Printf("[server.CreateEntity] Error saving metadata in MongoDB: %v", err)
+		return nil, err
+	} else {
+		log.Printf("[server.CreateEntity] Successfully saved metadata in MongoDB for entity: %s", req.Id)
+	}
+
 	// Handle attributes
 	processor := engine.NewEntityAttributeProcessor()
 	attributeResults := processor.ProcessEntityAttributes(ctx, req, "create", nil)
@@ -79,7 +79,7 @@ func (s *Server) CreateEntity(ctx context.Context, req *pb.Entity) (*pb.Entity, 
 
 	if hasErrors {
 		log.Printf("[server.CreateEntity] Some attributes failed to process")
-		// Continue processing - don't fail the entire operation for attribute errors
+		return nil, fmt.Errorf("some attributes failed to process")
 	}
 
 	return req, nil
@@ -105,7 +105,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 	kind, name, created, terminated, err := s.neo4jRepo.GetGraphEntity(ctx, req.Entity.Id)
 	if err != nil {
 		log.Printf("Error fetching entity info: %v", err)
-		// Continue processing as we might still be able to get other information
+		return nil, fmt.Errorf("error fetching entity info: %v", err)
 	} else {
 		response.Kind = kind
 		response.Name = name
@@ -129,7 +129,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			metadata, err := s.mongoRepo.GetMetadata(ctx, req.Entity.Id)
 			if err != nil {
 				log.Printf("Error fetching metadata: %v", err)
-				// Continue with other fields even if metadata fails
+				return nil, fmt.Errorf("error fetching metadata: %v", err)
 			} else {
 				log.Printf("[DEBUG] Retrieved metadata: %+v", metadata)
 				response.Metadata = metadata
@@ -143,6 +143,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, "", "", "", "", "", "", req.ActiveAt)
 					if err != nil {
 						log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
+						return nil, fmt.Errorf("error fetching related entity IDs: %v", err)
 					} else {
 						for id, relationship := range filteredRels {
 							response.Relationships[id] = relationship
@@ -155,7 +156,7 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 						filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, rel.Id, rel.Name, rel.RelatedEntityId, rel.StartTime, rel.EndTime, rel.Direction, req.ActiveAt)
 						if err != nil {
 							log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
-							return nil, err
+							return nil, fmt.Errorf("error fetching related entity IDs: %v", err)
 						}
 
 						// Add the relationships to the response
@@ -171,7 +172,6 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 		case "attributes":
 			log.Printf("Processing attributes for entity: %s", req.Entity.Id)
 
-			// TODO: Fetch the actual entity with attributes from storage
 			// For now, create a minimal entity with test attributes to demonstrate the conversion
 
 			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
@@ -220,12 +220,9 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 				}
 			}
 
-		case "kind", "name", "created", "terminated":
-			// These fields are already fetched at the start
-			continue
-
 		default:
 			log.Printf("Unknown output field requested: %s", field)
+			return nil, fmt.Errorf("unknown output field requested: %s", field)
 		}
 	}
 	return response, nil
@@ -237,38 +234,36 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 	updateEntityID := req.Id
 	updateEntity := req.Entity
 
-	// Initialize metadata
-	var metadata map[string]*anypb.Any
+	// Ensure the entity ID matches the URL parameter - since the id is already passed in the url param, the user does not need to pass it again in the payload
+	if updateEntity.Id == "" || updateEntity.Id != updateEntityID {
+		updateEntity.Id = updateEntityID
+	}
 
-	// Pass the ID and metadata to HandleMetadata
+	// Pass the ID and metadata to HandleMetadata- if no metadata was provided this will rerturn nil
 	err := s.mongoRepo.HandleMetadata(ctx, updateEntityID, updateEntity)
 	if err != nil {
-		// Log error and continue with empty metadata
 		log.Printf("[server.UpdateEntity] Error updating metadata for entity %s: %v", updateEntityID, err)
-		metadata = make(map[string]*anypb.Any)
-	} else {
-		// Use the provided metadata
-		metadata = updateEntity.Metadata
+		return nil, fmt.Errorf("error updating metadata for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle Graph Entity update if entity has required fields
 	success, err := s.neo4jRepo.HandleGraphEntityUpdate(ctx, updateEntity)
 	if !success {
 		log.Printf("[server.UpdateEntity] Error updating graph entity for %s: %v", updateEntityID, err)
-		// Continue processing despite error
+		return nil, fmt.Errorf("error updating graph entity for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle Relationships update
 	err = s.neo4jRepo.HandleGraphRelationshipsUpdate(ctx, updateEntity)
 	if err != nil {
 		log.Printf("[server.UpdateEntity] Error updating relationships for entity %s: %v", updateEntityID, err)
-		// Continue processing despite error
+		return nil, fmt.Errorf("error updating relationships for entity %s: %v", updateEntityID, err)
 	}
 
 	// Handle attributes
 	processor := engine.NewEntityAttributeProcessor()
 	// Note that in the perspective of the attribute this is a creation operation
-	// The entity is already there but here the attribute is set later. 
+	// The entity is already there but here the attribute is set later.
 	// There is no alignment of update operation with the attribute.
 	// TODO: https://github.com/LDFLK/nexoan/issues/286
 	attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "create", nil)
@@ -286,7 +281,7 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 
 	if hasErrors {
 		log.Printf("[server.CreateEntity] Some attributes failed to process")
-		// Continue processing - don't fail the entire operation for attribute errors
+		return nil, fmt.Errorf("some attributes failed to process")
 	}
 
 	// Prepare the Update Response
@@ -296,6 +291,9 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 
 	// Get relationships from Neo4j
 	relationships, _ := s.neo4jRepo.GetGraphRelationships(ctx, updateEntityID)
+
+	// Get metadata from MongoDB
+	metadata, _ := s.mongoRepo.GetMetadata(ctx, updateEntityID)
 
 	// Return updated entity with all available information
 	return &pb.Entity{
@@ -313,10 +311,23 @@ func (s *Server) UpdateEntity(ctx context.Context, req *pb.UpdateEntityRequest) 
 // DeleteEntity removes metadata
 func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty, error) {
 	log.Printf("[server.DeleteEntity] Deleting Entity metadata: %s", req.Id)
-	_, err := s.mongoRepo.DeleteEntity(ctx, req.Id)
+
+	// Check if entity exists before deleting
+	_, err := s.mongoRepo.ReadEntity(ctx, req.Id)
 	if err != nil {
-		// Log error but return success
-		log.Printf("[server.DeleteEntity] Error deleting metadata for entity %s: %v", req.Id, err)
+		// NOTE: Not returning an error here because we want to delete the 
+		// entity even if it does not contain metadata
+		log.Printf("[server.DeleteEntity] Entity %s does not contain metadata: %v", req.Id, err)
+	} else {
+		log.Printf("[server.DeleteEntity] Entity %s metadata exists.", req.Id)
+		_, err = s.mongoRepo.DeleteEntity(ctx, req.Id)
+		if err != nil {
+			// Log error
+			log.Printf("[server.DeleteEntity] Error deleting metadata for entity %s: %v", req.Id, err)
+			return nil, fmt.Errorf("error deleting metadata for entity %s: %v", req.Id, err)
+		} else {
+			log.Printf("[server.DeleteEntity] Entity %s metadata deleted.", req.Id)
+		}
 	}
 	// TODO: Implement Relationship Deletion in Neo4j
 	// TODO: Implement Entity Deletion in Neo4j
@@ -383,7 +394,7 @@ func (s *Server) ReadEntities(ctx context.Context, req *pb.ReadEntityRequest) (*
 }
 
 // extractFieldsFromAttributes extracts field names from entity attributes based on storage type
-// TODO: Limitation in multi-value attribute reads. 
+// TODO: Limitation in multi-value attribute reads.
 // FIXME: https://github.com/LDFLK/nexoan/issues/285
 func extractFieldsFromAttributes(attributes map[string]*pb.TimeBasedValueList) []string {
 	var fields []string
