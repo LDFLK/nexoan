@@ -8,8 +8,8 @@
 ### 1. Run CRUD API Service
 -Read about running the [CORE Service](nexoan/core-api/README.md)
 
-### 2. Run Query API Serivce
--Read about running the [Query API](nexoan/query-api/README.md)
+### 2. Run Read API Service
+-Read about running the [Read API](nexoan/read-api/README.md)
 
 ### 3. Run Ingestion API Service
 -Read about running the [Ingestion API](nexoan/ingestion-api/README.md)

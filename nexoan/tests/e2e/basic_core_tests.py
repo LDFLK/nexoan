@@ -66,9 +66,9 @@ class CoreTestUtils:
 class TestCOREAPI(unittest.TestCase):
     def setUp(self):
         print("🟢 Setting up test environment...")
-        update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
-        print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
-        self.base_url = f"{update_service_url}/entities"
+        ingestion_service_url = os.getenv('INGESTION_SERVICE_URL', f"http://0.0.0.0:8080")
+        print("🟢 INGESTION_SERVICE_URL: ", ingestion_service_url)
+        self.base_url = f"{ingestion_service_url}/entities"
         print("🟢 BASE_URL: ", self.base_url)
 
 class BasicCORETests:
@@ -539,9 +539,9 @@ class AttributeValidationTests(BasicCORETests):
 
 def get_base_url():
     print("🟢 Setting up test environment...")
-    update_service_url = os.getenv('UPDATE_SERVICE_URL', f"http://0.0.0.0:8080")
-    print("🟢 UPDATE_SERVICE_URL: ", update_service_url)
-    return f"{update_service_url}/entities"
+    ingestion_service_url = os.getenv('INGESTION_SERVICE_URL', f"http://0.0.0.0:8080")
+    print("🟢 INGESTION_SERVICE_URL: ", ingestion_service_url)
+    return f"{ingestion_service_url}/entities"
 
 if __name__ == "__main__":
     print("🚀 Running End-to-End API Test Suite...")

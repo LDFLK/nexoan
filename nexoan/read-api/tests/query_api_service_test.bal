@@ -11,24 +11,24 @@ function beforeSuiteFunc() {
 
 type JsonObject map<anydata>;
 
-// Helper function to get CRUD service URL
-function getCrudServiceUrl() returns string|error {
-    io:println("Getting CRUD service URL");
-    string crudServiceUrl = os:getEnv("CRUD_SERVICE_URL");
+// Helper function to get CORE service URL
+function getCoreServiceUrl() returns string|error {
+    io:println("Getting CORE service URL");
+    string coreServiceUrl = os:getEnv("CORE_SERVICE_URL");
     
-    io:println("CRUD_SERVICE_URL: " + crudServiceUrl);
+    io:println("CORE_SERVICE_URL: " + coreServiceUrl);
     
-    if crudServiceUrl == "" {
-        return error("CRUD_SERVICE_URL environment variable is not set");
+    if coreServiceUrl == "" {
+        return error("CORE_SERVICE_URL environment variable is not set");
     }
     
     // Validate URL format
-    if !crudServiceUrl.startsWith("http://") && !crudServiceUrl.startsWith("https://") {
-        return error("CRUD_SERVICE_URL must be a valid HTTP/HTTPS URL, got: " + crudServiceUrl);
+    if !coreServiceUrl.startsWith("http://") && !coreServiceUrl.startsWith("https://") {
+        return error("CORE_SERVICE_URL must be a valid HTTP/HTTPS URL, got: " + coreServiceUrl);
     }
     
-    io:println("Connecting to CRUD service at: " + crudServiceUrl);
-    return crudServiceUrl;
+    io:println("Connecting to CORE service at: " + coreServiceUrl);
+    return coreServiceUrl;
 }
 
 // Helper function to unpack Any values to strings
@@ -129,11 +129,11 @@ function testEntityAttributeRetrieval() returns error? {
     // TODO: Implement this test once the Data handling layer is written
     // Initialize the client
     io:println("[query_api_service_test.bal][testEntityAttributeRetrieval]");
-    string|error crudUrl = getCrudServiceUrl();
-    if crudUrl is error {
-        return crudUrl;
+    string|error coreUrl = getCoreServiceUrl();
+    if coreUrl is error {
+        return coreUrl;
     }
-    CrudServiceClient ep = check new (crudUrl);
+    COREServiceClient ep = check new (coreUrl);
     
     // Test data setup
     string testId = "ABC Pvt Ltd";
@@ -272,14 +272,14 @@ function testEntityAttributeRetrieval() returns error? {
 @test:Config {}
 function testEntityMetadataRetrieval() returns error? {
     // Test disabled due to gRPC connectivity issues
-    // To enable, ensure the CRUD service is running and all entity fields are properly populated
+    // To enable, ensure the CORE service is running and all entity fields are properly populated
     
     // Initialize the client
-    string|error crudUrl = getCrudServiceUrl();
-    if crudUrl is error {
-        return crudUrl;
+    string|error coreUrl = getCoreServiceUrl();
+    if coreUrl is error {
+        return coreUrl;
     }
-    CrudServiceClient ep = check new (crudUrl);
+    COREServiceClient ep = check new (coreUrl);
     
     // Test data setup
     string testId = "test-entity-metadata";
@@ -389,11 +389,11 @@ function testEntityMetadataRetrieval() returns error? {
 @test:Config {}
 function testEntityRelationshipsRetrieval() returns error? {
     // Initialize the client
-    string|error crudUrl = getCrudServiceUrl();
-    if crudUrl is error {
-        return crudUrl;
+    string|error coreUrl = getCoreServiceUrl();
+    if coreUrl is error {
+        return coreUrl;
     }
-    CrudServiceClient ep = check new (crudUrl);
+    COREServiceClient ep = check new (coreUrl);
 
     // Test data setup
     string entityId = "test-entity-rel-parent";
@@ -531,11 +531,11 @@ function testEntitySearch() returns error? {
     // To enable, ensure the CRUD service is running and all entity fields are properly populated
     
     // Initialize clients
-    string|error crudUrl = getCrudServiceUrl();
-    if crudUrl is error {
-        return crudUrl;
+    string|error coreUrl = getCoreServiceUrl();
+    if coreUrl is error {
+        return coreUrl;
     }
-    CrudServiceClient crudClient = check new (crudUrl);
+    COREServiceClient coreClient = check new (coreUrl);
     
     // Create several test entities with different attributes
     string[] testIds = [];
@@ -565,7 +565,7 @@ function testEntitySearch() returns error? {
         attributes: []
     };
     
-    Entity createResponse1 = check crudClient->CreateEntity(entity1);
+    Entity createResponse1 = check coreClient->CreateEntity(entity1);
     io:println("Created search test entity 1: " + createResponse1.id);
     
     // Second entity
@@ -593,7 +593,7 @@ function testEntitySearch() returns error? {
         attributes: []
     };
     
-    Entity createResponse2 = check crudClient->CreateEntity(entity2);
+    Entity createResponse2 = check coreClient->CreateEntity(entity2);
     io:println("Created search test entity 2: " + createResponse2.id);
     
     // Third entity
@@ -621,7 +621,7 @@ function testEntitySearch() returns error? {
         attributes: []
     };
     
-    Entity createResponse3 = check crudClient->CreateEntity(entity3);
+    Entity createResponse3 = check coreClient->CreateEntity(entity3);
     io:println("Created search test entity 3: " + createResponse3.id);
     
     // For search tests, let's mock the responses since we can't connect directly to the query API
@@ -723,7 +723,7 @@ function testEntitySearch() returns error? {
     // Clean up
     foreach string id in testIds {
         EntityId deleteRequest = {id: id};
-        Empty _ = check crudClient->DeleteEntity(deleteRequest);
+        Empty _ = check coreClient->DeleteEntity(deleteRequest);
     }
     io:println("Test entities deleted");
     

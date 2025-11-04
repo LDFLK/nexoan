@@ -692,7 +692,7 @@ Based on TODOs found in the codebase:
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
 - [Core API](../architecture/core-api.md) - Core API documentation
 - [Ingestion API](../../nexoan/ingestion-api/README.md) - Ingestion API documentation
-- [Read API](../../nexoan/query-api/README.md) - Read API documentation
+- [Read API](../../nexoan/read-api/README.md) - Read API documentation
 
 ---
 

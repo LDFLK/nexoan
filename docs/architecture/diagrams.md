@@ -196,8 +196,8 @@ graph TB
         UA_Service --> UA_Utils
     end
     
-    subgraph "Query API - nexoan/query-api/"
-        QA_Service[query_api_service.bal<br/>REST Endpoints]
+    subgraph "Read API - nexoan/read-api/"
+        QA_Service[read_api_service.bal<br/>REST Endpoints]
         QA_Types[types_v1_pb.bal<br/>Protobuf Types]
         QA_Utils[types.bal<br/>Type Definitions]
         

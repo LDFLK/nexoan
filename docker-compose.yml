@@ -166,22 +166,22 @@ services:
       retries: 5
       start_period: 120s
 
-  query:
+  read:
     platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile.query
-    container_name: query
+    container_name: read
     ports:
       - "8081:8081"
     networks:
       - ldf-network
     environment:
-      - CRUD_SERVICE_URL=http://crud:50051
-      - QUERY_SERVICE_HOST=0.0.0.0
-      - QUERY_SERVICE_PORT=8081
+      - CORE_SERVICE_URL=http://core:50051
+      - READ_SERVICE_HOST=0.0.0.0
+      - READ_SERVICE_PORT=8081
     depends_on:
-      crud:
+      core:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "nc", "-zv", "localhost", "8081"]
@@ -202,11 +202,11 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - UPDATE_SERVICE_URL=http://update:8080
-      - QUERY_SERVICE_URL=http://query:8081
+      - READ_SERVICE_URL=http://read:8081
     depends_on:
       update:
         condition: service_healthy
-      query:
+      read:
         condition: service_healthy
     command: >
       sh -c "

@@ -364,7 +364,7 @@ Update architecture docs when:
 - [Deployment Guide](../deployment/BACKUP_INTEGRATION.md) - Backup and restore
 - [Core API README](../../nexoan/core-api/README.md) - Polyglot Database Query Processing
 - [Ingestion API README](../../nexoan/ingestion-api/README.md) - Ingestion API setup
-- [Read API README](../../nexoan/query-api/README.md) - Read API setup
+- [Read API README](../../nexoan/read-api/README.md) - Read API setup
 
 ### External Resources
 

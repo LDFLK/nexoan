@@ -4,24 +4,24 @@ import sys
 import os
 
 def get_service_urls():
-    query_service_url = os.getenv('QUERY_SERVICE_URL', 'http://0.0.0.0:8081')
-    update_service_url = os.getenv('UPDATE_SERVICE_URL', 'http://0.0.0.0:8080')
+    read_service_url = os.getenv('READ_SERVICE_URL', 'http://0.0.0.0:8081')
+    ingestion_service_url = os.getenv('INGESTION_SERVICE_URL', 'http://0.0.0.0:8080')
     
     return {
-        'query': f"{query_service_url}/v1/entities",
-        'update': f"{update_service_url}/entities"
+        'read': f"{read_service_url}/v1/entities",
+        'ingestion': f"{ingestion_service_url}/entities"
     }
 
 # Get service URLs from environment variables
 urls = get_service_urls()
-QUERY_API_URL = urls['query']
-UPDATE_API_URL = urls['update']
+READ_API_URL = urls['read']
+INGESTION_API_URL = urls['ingestion']
 
-ENTITY_ID = "query-test-entity"
-RELATED_ID_1 = "query-related-entity-1"
-RELATED_ID_2 = "query-related-entity-2"
-RELATED_ID_3 = "query-related-entity-3"
-RELATED_ID_4 = "query-related-entity-4"
+ENTITY_ID = "read-test-entity"
+RELATED_ID_1 = "read-related-entity-1"
+RELATED_ID_2 = "read-related-entity-2"
+RELATED_ID_3 = "read-related-entity-3"
+RELATED_ID_4 = "read-related-entity-4"
 
 # Constants for government organization test
 GOVERNMENT_ID = "gov-lk-001"
@@ -388,7 +388,7 @@ def test_generic_validation_examples():
     """Test examples using the generic validation function."""
     print("\n🧪 Testing generic validation examples...")
 
-    base_url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+    base_url = f"{READ_API_URL}/{ENTITY_ID}/attributes/employee_data"
 
     # Example 1: Test all fields
     test_api_endpoint_with_validation(
@@ -527,9 +527,9 @@ def test_protobuf_decoding():
     else:
         print(f"    📊 Non-dict result: {decoded}")
 
-def create_entity_for_query():
+def create_entity_for_read():
     """Create a base entity with metadata, attributes, and relationships."""
-    print("\n🟢 Creating entity for query tests...")
+    print("\n🟢 Creating entity for read tests...")
 
 # First related entity
     payload_child_1 = {
@@ -540,7 +540,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": "Query Test Entity Child 1"
+            "value": "Read Test Entity Child 1"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-1"},
@@ -587,7 +587,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": "Query Test Entity Child 2"
+            "value": "Read Test Entity Child 2"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-2"},
@@ -607,7 +607,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": "Query Test Entity Child 3"
+            "value": "Read Test Entity Child 3"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-3"},
@@ -625,7 +625,7 @@ def create_entity_for_query():
         "name": {
             "startTime": "2024-01-01T00:00:00Z",
             "endTime": "",
-            "value": "Query Test Entity"
+            "value": "Read Test Entity"
         },
         "metadata": [
             {"key": "source", "value": "unit-test"},
@@ -693,27 +693,27 @@ def create_entity_for_query():
     #  as a scalar value and it should be handled as a Document type. Single key value pair. 
     #  The current implementation only supports saving tabular data.
 
-    res = requests.post(UPDATE_API_URL, json=payload_child_1)
+    res = requests.post(INGESTION_API_URL, json=payload_child_1)
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
     print("✅ Created first related entity.")
 
-    res = requests.post(UPDATE_API_URL, json=payload_child_2)
+    res = requests.post(INGESTION_API_URL, json=payload_child_2)
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
     print("✅ Created second related entity.")
 
-    res = requests.post(UPDATE_API_URL, json=payload_child_3)
+    res = requests.post(INGESTION_API_URL, json=payload_child_3)
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
     print("✅ Created third related entity.")
 
-    res = requests.post(UPDATE_API_URL, json=payload_source)
+    res = requests.post(INGESTION_API_URL, json=payload_source)
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
-    print("✅ Created base entity for query tests.")
+    print("✅ Created base entity for read tests.")
 
 def test_attribute_fields_combinations():
     """Test different field combinations for attribute retrieval."""
     print("\n🔍 Testing attribute field combinations...")
 
-    base_url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+    base_url = f"{READ_API_URL}/{ENTITY_ID}/attributes/employee_data"
 
     # Test cases with different field combinations
     test_cases = [
@@ -789,7 +789,7 @@ def test_update_entity_attribute():
         "name": {
             "startTime": "2024-07-01T00:00:00Z",
             "endTime": "",
-            "value": "Query Test Entity Child 4"
+            "value": "Read Test Entity Child 4"
         },
         "metadata": [
             {"key": "source", "value": "unit-test-4"},
@@ -801,7 +801,7 @@ def test_update_entity_attribute():
         ]
     }
 
-    res = requests.post(UPDATE_API_URL, json=create_payload)
+    res = requests.post(INGESTION_API_URL, json=create_payload)
     assert res.status_code == 201 or res.status_code == 200, f"Failed to create entity: {res.text}"
     print("✅ Created first related entity.")
 
@@ -832,11 +832,11 @@ def test_update_entity_attribute():
         ]
     }
 
-    res = requests.put(f"{UPDATE_API_URL}/{RELATED_ID_4}", json=update_payload, headers={"Content-Type": "application/json"})
+    res = requests.put(f"{INGESTION_API_URL}/{RELATED_ID_4}", json=update_payload, headers={"Content-Type": "application/json"})
     assert res.status_code == 201 or res.status_code == 200, f"Failed to update entity: {res.text}"
     print("✅ Updated first related entity.")
 
-    base_url = f"{QUERY_API_URL}/{RELATED_ID_4}/attributes/{attribute_name}"
+    base_url = f"{READ_API_URL}/{RELATED_ID_4}/attributes/{attribute_name}"
     # Test cases with different field combinations
     # FIXME: NOTE THAT THE ID FIELD IS THE PRIMARY KEY THIS IS RETURNED WHEN WE ASK FOR ALL FIELDS
     #   THIS MAY NEED TO BE FIXED IN THE FUTURE. 
@@ -882,12 +882,12 @@ def test_update_entity_attribute():
 
 
 def test_attribute_lookup():
-    """Test retrieving attributes via the query API."""
+    """Test retrieving attributes via the read API."""
     print("\n🔍 Testing attribute retrieval...")
     
     # Test 1: Get all fields (default behavior)
     print("  📋 Testing all fields retrieval...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
+    url = f"{READ_API_URL}/{ENTITY_ID}/attributes/employee_data"
     fields = []
     params = {"fields": fields}
     res = requests.get(url, params=params)
@@ -967,7 +967,7 @@ def test_attribute_lookup():
 def test_metadata_lookup():
     """Test retrieving metadata."""
     print("\n🔍 Testing metadata retrieval...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/metadata"
+    url = f"{READ_API_URL}/{ENTITY_ID}/metadata"
     res = requests.get(url)
     assert res.status_code == 200, f"Failed to get metadata: {res.text}"
     
@@ -1166,25 +1166,25 @@ def create_government_entities():
     # Create all entities
     # Create departments first
     for payload in [dept1_payload, dept2_payload, dept3_payload, dept4_payload]:
-        res = requests.post(UPDATE_API_URL, json=payload)
+        res = requests.post(INGESTION_API_URL, json=payload)
         assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
         print(f"✅ Created {payload['kind']['minor']} entity: {payload['id']}")
 
     # Then create ministers
     for payload in [tech_minister_payload, health_minister_payload]:
-        res = requests.post(UPDATE_API_URL, json=payload)
+        res = requests.post(INGESTION_API_URL, json=payload)
         assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
         print(f"✅ Created {payload['kind']['minor']} entity: {payload['id']}")
 
     # Finally create government
-    res = requests.post(UPDATE_API_URL, json=gov_payload)
+    res = requests.post(INGESTION_API_URL, json=gov_payload)
     assert res.status_code in [201, 200], f"Failed to create entity: {res.text}"
     print(f"✅ Created {gov_payload['kind']['minor']} entity: {gov_payload['id']}")
 
 def test_search_without_major_kind_or_id():
     """Test that search fails when major kind or id is not provided."""
     print("\n🔍 Testing search without major kind...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "minor": "Department"  # Only providing minor kind
@@ -1201,7 +1201,7 @@ def test_search_without_major_kind_or_id():
 def test_search_by_kind_major():
     """Test searching entities by major kind."""
     print("\n🔍 Testing search by major kind...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"
@@ -1230,7 +1230,7 @@ def test_search_by_kind_major():
 def test_search_by_kind_minor():
     """Test searching entities by minor kind."""
     print("\n🔍 Testing search by minor kind...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",  # Adding compulsory major kind
@@ -1260,7 +1260,7 @@ def test_search_by_kind_minor():
 def test_search_by_name():
     """Test searching entities by name."""
     print("\n🔍 Testing search by name...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"  # Adding compulsory major kind
@@ -1288,7 +1288,7 @@ def test_search_by_name():
 def test_search_by_created_date():
     """Test searching entities by creation date."""
     print("\n🔍 Testing search by creation date...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"  # Adding compulsory major kind
@@ -1313,7 +1313,7 @@ def test_search_by_created_date():
 def test_search_by_name_and_kind():
     """Test searching entities by both name and kind."""
     print("\n🔍 Testing search by name and kind...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -1340,7 +1340,7 @@ def test_search_by_name_and_kind():
 def test_search_by_kind_and_created_date():
     """Test searching entities by both kind and creation date."""
     print("\n🔍 Testing search by kind and creation date...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -1367,7 +1367,7 @@ def test_search_by_kind_and_created_date():
 def test_search_by_name_kind_and_created_date():
     """Test searching entities by name, kind, and creation date."""
     print("\n🔍 Testing search by name, kind, and creation date...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -1396,7 +1396,7 @@ def test_search_by_name_kind_and_created_date():
 def test_search_by_name_partial_match():
     """Test that searching with a partial name match returns no results."""
     print("\n🔍 Testing search by partial name match...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"
@@ -1417,7 +1417,7 @@ def test_search_by_name_partial_match():
 def test_search_by_terminated_date():
     """Test searching entities by termination date."""
     print("\n🔍 Testing search by termination date...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"
@@ -1438,7 +1438,7 @@ def test_search_by_terminated_date():
 def test_search_by_active_entities():
     """Test searching for active (non-terminated) entities."""
     print("\n🔍 Testing search for active entities...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization"
@@ -1468,7 +1468,7 @@ def test_search_by_active_entities():
 def test_search_by_kind_and_terminated():
     """Test searching entities by both kind and termination status."""
     print("\n🔍 Testing search by kind and termination status...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -1500,7 +1500,7 @@ def test_search_by_kind_and_terminated():
 def test_search_by_name_kind_and_terminated():
     """Test searching entities by name, kind, and termination status."""
     print("\n🔍 Testing search by name, kind, and termination status...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -1529,7 +1529,7 @@ def test_search_by_name_kind_and_terminated():
 def test_search_by_id():
     """Test searching entities by ID."""
     print("\n🔍 Testing search by ID...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "id": DEPT_ID_1,  # Using the IT Department ID
         # "kind": {
@@ -1562,7 +1562,7 @@ def test_search_by_id():
 def test_search_by_id_not_found():
     """Test searching for a non-existent ID."""
     print("\n🔍 Testing search by non-existent ID...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "id": "non-existent-id",
         # "kind": {
@@ -1583,7 +1583,7 @@ def test_search_by_id_not_found():
 def test_search_by_id_with_other_filters():
     """Test that other filters are ignored when searching by ID."""
     print("\n🔍 Testing search by ID with additional filters...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "id": DEPT_ID_1,
         "kind": {
@@ -1618,7 +1618,7 @@ def test_search_by_id_with_other_filters():
 def test_relations_no_filters():
     """Test /relations endpoint with no filters (should return all relationships for the entity)."""
     print("\n🔍 Testing /relations with no filters...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     res = requests.post(url, json={})
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
     body = res.json()
@@ -1629,7 +1629,7 @@ def test_relations_no_filters():
 def test_relations_filter_by_name():
     """Test /relations endpoint filtering by relationship name."""
     print("\n🔍 Testing /relations with filter by name...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"name": "linked"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1640,7 +1640,7 @@ def test_relations_filter_by_name():
 def test_relations_filter_by_related_entity_id():
     """Test /relations endpoint filtering by relatedEntityId."""
     print("\n🔍 Testing /relations with filter by relatedEntityId...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"relatedEntityId": RELATED_ID_1}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1651,7 +1651,7 @@ def test_relations_filter_by_related_entity_id():
 def test_relations_filter_by_start_time():
     """Test /relations endpoint filtering by startTime."""
     print("\n🔍 Testing /relations with filter by startTime...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"startTime": "2024-06-01T00:00:00Z"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1662,7 +1662,7 @@ def test_relations_filter_by_start_time():
 def test_relations_filter_by_end_time():
     """Test /relations endpoint filtering by endTime."""
     print("\n🔍 Testing /relations with filter by endTime...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"endTime": "2024-12-31T23:59:59Z"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1673,7 +1673,7 @@ def test_relations_filter_by_end_time():
 def test_relations_filter_by_multiple_fields():
     """Test /relations endpoint filtering by multiple fields."""
     print("\n🔍 Testing /relations with multiple filters...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {
         "name": "linked",
         "relatedEntityId": RELATED_ID_2,
@@ -1692,7 +1692,7 @@ def test_relations_filter_by_multiple_fields():
 def test_relations_filter_nonexistent():
     """Test /relations endpoint with filters that match nothing."""
     print("\n🔍 Testing /relations with non-existent filter...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"name": "nonexistent"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1704,7 +1704,7 @@ def test_relations_filter_nonexistent():
 def test_relations_filter_by_active_at():
     """Test /relations endpoint filtering by activeAt only."""
     print("\n🔍 Testing /relations with filter by activeAt...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1720,7 +1720,7 @@ def test_relations_filter_by_active_at():
 def test_relations_filter_by_active_at_and_name():
     """Test /relations endpoint filtering by activeAt and name."""
     print("\n🔍 Testing /relations with filter by activeAt and name...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "name": "linked"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1734,7 +1734,7 @@ def test_relations_filter_by_active_at_and_name():
 def test_relations_filter_by_active_at_and_related_entity_id():
     """Test /relations endpoint filtering by activeAt and relatedEntityId."""
     print("\n🔍 Testing /relations with filter by activeAt and relatedEntityId...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "relatedEntityId": RELATED_ID_1}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1747,7 +1747,7 @@ def test_relations_filter_by_active_at_and_related_entity_id():
 def test_relations_filter_by_active_at_and_direction():
     """Test /relations endpoint filtering by activeAt and direction."""
     print("\n🔍 Testing /relations with filter by activeAt and direction...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1759,7 +1759,7 @@ def test_relations_filter_by_active_at_and_direction():
 def test_relations_filter_by_active_at_and_name_and_direction():
     """Test /relations endpoint filtering by activeAt, name, and direction."""
     print("\n🔍 Testing /relations with filter by activeAt, name, and direction...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "name": "linked", "direction": "OUTGOING"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1772,7 +1772,7 @@ def test_relations_filter_by_active_at_and_name_and_direction():
 def test_relations_filter_by_active_at_and_time_range_invalid():
     """Test /relations endpoint with activeAt and startTime (should return 400)."""
     print("\n🔍 Testing /relations with activeAt and startTime (should fail)...")
-    url = f"{QUERY_API_URL}/{ENTITY_ID}/relations"
+    url = f"{READ_API_URL}/{ENTITY_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "startTime": "2024-01-01T00:00:00Z"}
     res = requests.post(url, json=payload)
     assert res.status_code == 400, f"Expected 400 Bad Request, got {res.status_code}: {res.text}"
@@ -1783,7 +1783,7 @@ def test_relations_filter_by_active_at_and_time_range_invalid():
 def test_gov_relations_filter_by_active_at_and_direction():
     """Test /relations endpoint for government entity with activeAt and direction OUTGOING."""
     print("\n🔍 Testing /relations for government entity with activeAt and direction OUTGOING...")
-    url = f"{QUERY_API_URL}/{GOVERNMENT_ID}/relations"
+    url = f"{READ_API_URL}/{GOVERNMENT_ID}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1798,7 +1798,7 @@ def test_gov_relations_filter_by_active_at_and_direction():
 def test_minister_relations_filter_by_active_at_and_direction():
     """Test /relations endpoint for minister entity with activeAt and direction OUTGOING."""
     print("\n🔍 Testing /relations for minister entity with activeAt and direction OUTGOING...")
-    url = f"{QUERY_API_URL}/{MINISTER_ID_1}/relations"
+    url = f"{READ_API_URL}/{MINISTER_ID_1}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "OUTGOING"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1826,7 +1826,7 @@ def test_minister_relations_filter_by_active_at_and_direction():
 def test_department_relations_filter_by_active_at_and_direction():
     """Test /relations endpoint for department entity with activeAt and direction INCOMING."""
     print("\n🔍 Testing /relations for department entity with activeAt and direction INCOMING...")
-    url = f"{QUERY_API_URL}/{DEPT_ID_1}/relations"
+    url = f"{READ_API_URL}/{DEPT_ID_1}/relations"
     payload = {"activeAt": "2024-07-01T00:00:00Z", "direction": "INCOMING"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1840,7 +1840,7 @@ def test_department_relations_filter_by_active_at_and_direction():
 def test_minister_relations_filter_by_active_at_only():
     """Test /relations endpoint for minister entity with only activeAt (2024-01-02)."""
     print("\n🔍 Testing /relations for minister entity with only activeAt...")
-    url = f"{QUERY_API_URL}/{MINISTER_ID_1}/relations"
+    url = f"{READ_API_URL}/{MINISTER_ID_1}/relations"
     payload = {"activeAt": "2024-01-02T00:00:00Z"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -1857,16 +1857,16 @@ def test_minister_relations_filter_by_active_at_only():
     assert MINISTER_ID_1 in related_ids or DEPT_ID_1 in related_ids or DEPT_ID_2 in related_ids or GOVERNMENT_ID in related_ids, "Should include expected related entity IDs"
 
 if __name__ == "__main__":
-    print("🚀 Running Query API E2E Tests...")
+    print("🚀 Running Read API E2E Tests...")
 
     try:
-        print("Basic Query Tests...")
+        print("Basic Read Tests...")
         print("Testing comprehensive validation...")
         test_comprehensive_validation()
         print("Testing protobuf decoding...")
         test_protobuf_decoding()
-        print("Creating entity for query tests...")
-        create_entity_for_query()
+        print("Creating entity for read tests...")
+        create_entity_for_read()
         print("Testing generic validation examples...")
         test_generic_validation_examples()
         print("Testing attribute field combinations...")
@@ -1922,7 +1922,7 @@ if __name__ == "__main__":
         test_department_relations_filter_by_active_at_and_direction()
         test_minister_relations_filter_by_active_at_only()
         
-        print("\n🎉 All Query API tests passed!")
+        print("\n🎉 All Read API tests passed!")
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")
         sys.exit(1)

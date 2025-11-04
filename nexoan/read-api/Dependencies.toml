@@ -368,7 +368,7 @@ modules = [
 
 [[package]]
 org = "ldf"
-name = "query_api"
+name = "read_api"
 version = "0.1.0"
 dependencies = [
 	{org = "ballerina", name = "grpc"},
@@ -381,6 +381,6 @@ dependencies = [
 	{org = "ballerinai", name = "observe"}
 ]
 modules = [
-	{org = "ldf", packageName = "query_api", moduleName = "query_api"}
+	{org = "ldf", packageName = "read_api", moduleName = "read_api"}
 ]
 

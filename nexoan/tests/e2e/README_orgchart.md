@@ -73,8 +73,8 @@ pip install requests
 
 ### Environment Variables
 Set the following environment variables or use defaults:
-- `QUERY_SERVICE_URL`: Default `http://0.0.0.0:8081`
-- `UPDATE_SERVICE_URL`: Default `http://0.0.0.0:8080`
+- `READ_SERVICE_URL`: Default `http://0.0.0.0:8081`
+- `INGESTION_SERVICE_URL`: Default `http://0.0.0.0:8080`
 
 ### Execute Tests
 ```bash

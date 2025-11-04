@@ -9,18 +9,18 @@ from google.protobuf.wrappers_pb2 import StringValue
 
 
 def get_service_urls():
-    query_service_url = os.getenv('QUERY_SERVICE_URL', 'http://0.0.0.0:8081')
-    update_service_url = os.getenv('UPDATE_SERVICE_URL', 'http://0.0.0.0:8080')
+    read_service_url = os.getenv('READ_SERVICE_URL', 'http://0.0.0.0:8081')
+    ingestion_service_url = os.getenv('INGESTION_SERVICE_URL', 'http://0.0.0.0:8080')
     
     return {
-        'query': f"{query_service_url}/v1/entities",
-        'update': f"{update_service_url}/entities"
+        'read': f"{read_service_url}/v1/entities",
+        'ingestion': f"{ingestion_service_url}/entities"
     }
 
 # Get service URLs from environment variables
 urls = get_service_urls()
-QUERY_API_URL = urls['query']
-UPDATE_API_URL = urls['update']
+READ_API_URL = urls['read']
+INGESTION_API_URL = urls['ingestion']
 
 def format_attribute_title(attribute_name):
     """Format attribute name into a nice title with emojis and proper formatting."""
@@ -723,7 +723,7 @@ def test_orgchart_query():
     
     # Test querying all ministers
     print("  📋 Querying all ministers...")
-    url = f"{QUERY_API_URL}/search"
+    url = f"{READ_API_URL}/search"
     payload = {
         "kind": {
             "major": "Organization",
@@ -869,7 +869,7 @@ def test_get_attributes_of_one_minister():
     print("=" * 50)
     
     entity_id = "minister-tech-001"
-    url = f"{QUERY_API_URL}/{entity_id}/relations"
+    url = f"{READ_API_URL}/{entity_id}/relations"
     payload = {"name": "IS_ATTRIBUTE"}
     res = requests.post(url, json=payload)
     assert res.status_code == 200, f"Failed to get relationships: {res.text}"
@@ -889,7 +889,7 @@ def test_get_attributes_of_one_minister():
         # Query each attribute entity using search endpoint
         for attr_entity_id in attribute_entity_ids:
             print(f"\n  🔍 Querying attribute entity: {attr_entity_id}")
-            search_url = f"{QUERY_API_URL}/search"
+            search_url = f"{READ_API_URL}/search"
             search_payload = {"id": attr_entity_id}
             
             search_res = requests.post(search_url, json=search_payload)
@@ -928,7 +928,7 @@ def test_one_minister_attributes_with_pandas():
     
     for attr_name in attributes_to_test:
         print(f"\n  🔍 Testing {attr_name}...")
-        url = f"{QUERY_API_URL}/{entity_id}/attributes/{attr_name}"
+        url = f"{READ_API_URL}/{entity_id}/attributes/{attr_name}"
         
         res = requests.get(url)
         if res.status_code == 200:
@@ -966,7 +966,7 @@ def test_one_department_attributes_with_pandas():
     
     for attr_name in attributes_to_test:
         print(f"\n  🔍 Testing {attr_name}...")
-        url = f"{QUERY_API_URL}/{entity_id}/attributes/{attr_name}"
+        url = f"{READ_API_URL}/{entity_id}/attributes/{attr_name}"
         
         res = requests.get(url)
         if res.status_code == 200:

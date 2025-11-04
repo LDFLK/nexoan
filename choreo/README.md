@@ -109,12 +109,12 @@ export POSTGRES_DB="your-postgres-database"
 export POSTGRES_SSL_MODE="require"
 
 # Service Configuration
-export CRUD_SERVICE_HOST="0.0.0.0"
-export CRUD_SERVICE_PORT="50051"
-export UPDATE_SERVICE_HOST="0.0.0.0"
-export UPDATE_SERVICE_PORT="8080"
-export QUERY_SERVICE_HOST="0.0.0.0"
-export QUERY_SERVICE_PORT="8081"
+export CORE_SERVICE_HOST="0.0.0.0"
+export CORE_SERVICE_PORT="50051"
+export INGESTION_SERVICE_HOST="0.0.0.0"
+export INGESTION_SERVICE_PORT="8080"
+export READ_SERVICE_HOST="0.0.0.0"
+export READ_SERVICE_PORT="8081"
 ```
 
 ### Running Services Locally

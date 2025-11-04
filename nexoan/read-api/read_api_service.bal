@@ -9,14 +9,14 @@ import ballerina/io;
 import ballerina/protobuf.types.'any as pbAny;
 
 // BAL_CONFIG_VAR_CRUDSERVICEURL
-configurable string crudServiceUrl = "http://localhost:50051";
+configurable string coreServiceUrl = "http://localhost:50051";
 // BAL_CONFIG_VAR_QUERYSERVICEHOST
-configurable string queryServiceHost = "0.0.0.0";
+configurable string readServiceHost = "0.0.0.0";
 // BAL_CONFIG_VAR_QUERYSERVICEPORT
-configurable string queryServicePort = "8081";
+configurable string readServicePort = "8081";
 
-listener http:Listener ep0 = new (check langint:fromString(queryServicePort), config = {
-    host: queryServiceHost,
+listener http:Listener ep0 = new (check langint:fromString(readServicePort), config = {
+    host: readServiceHost,
     httpVersion: http:HTTP_2_0
 });
 
@@ -28,7 +28,7 @@ grpc:ClientConfiguration grpcConfig = {
     }
 };
 
-CrudServiceClient ep = check new (crudServiceUrl, grpcConfig);
+COREServiceClient ep = check new (coreServiceUrl, grpcConfig);
 
 // Helper function to extract string representation based on typeUrl
 function extractValueAsString('any:Any anyValue) returns string {

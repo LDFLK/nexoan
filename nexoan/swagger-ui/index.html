@@ -62,18 +62,18 @@
         let specs = {};
 
         Promise.all([
-          loadYamlFile("/contracts/rest/query_api.yaml"),
-          loadYamlFile("/contracts/rest/update_api.yaml"),
+          loadYamlFile("/contracts/rest/read_api.yaml"),
+          loadYamlFile("/contracts/rest/ingestion_api.yaml"),
         ])
-          .then(([queryYaml, updateYaml]) => {
+          .then(([readYaml, ingestionYaml]) => {
             specs = {
-              query: queryYaml,
-              update: updateYaml,
+              read: readYaml,
+              ingestion: ingestionYaml,
             };
 
-            // Initialize UI with default spec (now update API)
+            // Initialize UI with default spec (now ingestion API)
             let ui = SwaggerUIBundle({
-              spec: specs.update, // changed from specs.query
+              spec: specs.ingestion, // changed from specs.read
               dom_id: "#swagger-ui",
               deepLinking: true,
               presets: [
