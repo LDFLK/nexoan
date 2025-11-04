@@ -61,7 +61,7 @@ clean_databases "Before Tests"
 
 # Run Go tests
 echo "=== Running Go Tests ==="
-cd /app/nexoan/crud-api
+cd /app/nexoan/core-api
 if ! go test -v ./...; then
   echo "❌ Tests failed!"
   exit 1
@@ -71,5 +71,5 @@ echo "✅ All tests passed!"
 # Clean databases after tests complete
 clean_databases "After Tests"
 
-echo "=== Starting CRUD Service ==="
-exec crud-service 2>&1 | tee /app/crud-service.log
+echo "=== Starting CORE Service ==="
+exec core-service 2>&1 | tee /app/core-service.log

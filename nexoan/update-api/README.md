@@ -21,7 +21,7 @@ The client stub generated here will be sending and receiving values via Grpc.
 This will send requests to the corresponding CRUD server endpoint. 
 
 ```bash
-bal grpc --mode client --input ../crud-api/protos/types_v1.proto --output .
+bal grpc --mode client --input ../core-api/protos/types_v1.proto --output .
 ```
 
 > 💡 **Note**  
@@ -50,7 +50,7 @@ bal test
 
 ## Run Test
 
-Make sure the CRUD server is running. (`cd design/crud-api; ./crud-server`)
+Make sure the CORE server is running. (`cd design/core-api; ./core-server`)
 
 ```bash
 # Run all tests in the current package

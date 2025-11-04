@@ -232,7 +232,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ### 2. **Making Changes**
 - **API Changes**: Update OpenAPI contracts in `opengin/contracts/rest/`
-- **Service Changes**: Modify CRUD service in `opengin/crud-api/`
+- **Service Changes**: Modify CORE service in `opengin/core-api/`
 - **Database Changes**: Consider impact across all three databases
 
 ### 3. **Testing**

@@ -456,7 +456,7 @@ The entity data is strategically distributed across three databases:
 
 ### Type Inference System
 
-**Location**: `opengin/crud-api/pkg/typeinference/`
+**Location**: `opengin/core-api/pkg/typeinference/`
 
 **Primitive Types:**
 - `int` - Whole numbers without decimal points

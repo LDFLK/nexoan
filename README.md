@@ -6,7 +6,7 @@
 ## 🚀 Running Services
 
 ### 1. Run CRUD API Service
--Read about running the [CRUD Service](nexoan/crud-api/README.md)
+-Read about running the [CORE Service](nexoan/core-api/README.md)
 
 ### 2. Run Query API Serivce
 -Read about running the [Query API](nexoan/query-api/README.md)
@@ -147,7 +147,7 @@ curl -X GET "http://localhost:8081/v1/entities/12345/metadata"
 
 ## Run E2E Tests
 
-Make sure the CRUD server and the API server are running. 
+Make sure the CORE server and the API server are running. 
 
 Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
 

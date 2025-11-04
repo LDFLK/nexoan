@@ -21,9 +21,9 @@ nexoan/.DS_Store
 target/
 
 artifacts and env configs not to be committed
-nexoan/crud-api/.env
+nexoan/core-api/.env
 .env
-nexoan/crud-api/crud-service
+nexoan/core-api/core-service
 
 # Neo4j
 docker/neo4j/config.env
@@ -36,8 +36,8 @@ docker/neo4j/neo4j/plugins/*
 
 
 # executables
-nexoan/crud-api/crud-service
-nexoan/crud-api/crud-service.exe
+nexoan/core-api/core-service
+nexoan/core-api/core-service.exe
 docker/neo4j/data/*
 docker/neo4j/logs/*
 
@@ -45,5 +45,5 @@ docker/neo4j/logs/*
 .vscode
 
 #env
-nexoan/crud-api/.env.*
+nexoan/core-api/.env.*
 

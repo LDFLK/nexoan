@@ -205,7 +205,7 @@ graph TB
         QA_Service --> QA_Utils
     end
     
-    subgraph "CRUD Service - nexoan/crud-api/"
+    subgraph "CORE Service - nexoan/core-api/"
         subgraph "cmd/server/"
             Server[service.go<br/>gRPC Server Implementation]
             Utils[utils.go<br/>Helper Functions]

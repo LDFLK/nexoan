@@ -23,11 +23,11 @@ bal openapi -i ../contracts/rest/query_api.yaml --mode service
 ## Generate GRPC Stubs
 
 The client stub generated here will be sending and receiving values via Grpc. 
-This will send requests to the corresponding CRUD server endpoint. 
+This will send requests to the corresponding CORE server endpoint. 
 This command will generate the types_v1_pb.bal file
 
 ```bash
-bal grpc --mode client --input ../crud-api/protos/types_v1.proto --output .
+bal grpc --mode client --input ../core-api/protos/types_v1.proto --output .
 ```
 
 ## Development
@@ -42,7 +42,7 @@ cp env.template .env
 # update the required fields to set the environment variables
 # (you can find the example env configurations here)
 source .env
-# make sure crud service is running
+# make sure core service is running
 bal test
 bal run
 ```
@@ -54,7 +54,7 @@ echo .env
 # after updating the required fields to be added to the environment
 # you have to copy and paste the env configurations on the Powershell CLI
 # (you can find the example env configurations here)
-# make sure crud service is running
+# make sure core service is running
 bal test
 bal run
 ```
@@ -62,14 +62,14 @@ bal run
 Example .env configurations
 ```bash
 # For LINUX & macOS
-export CRUD_SERVICE_HOST=localhost
-export CRUD_SERVICE_PORT=50051
+export CORE_SERVICE_HOST=localhost
+export CORE_SERVICE_PORT=50051
 export QUERY_SERVICE_HOST=localhost
 export QUERY_SERVICE_PORT=8081
 
 # For Windows (paste on Powershell CLI)
-$env:CRUD_SERVICE_HOST="localhost"
-$env:CRUD_SERVICE_PORT="50051"
+$env:CORE_SERVICE_HOST="localhost"
+$env:CORE_SERVICE_PORT="50051"
 $env:QUERY_SERVICE_HOST="localhost"
 $env:QUERY_SERVICE_PORT="8081"
 ```
