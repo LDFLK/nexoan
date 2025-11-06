@@ -680,7 +680,7 @@ restore_from_github() {
     
     # Download and restore MongoDB
     log "INFO" "Processing MongoDB backup..."
-    local mongodb_file="$archive_dir/nexoan/version/$version/$environment/mongodb/nexoan.tar.gz"
+    local mongodb_file="$archive_dir/opengin/version/$version/$environment/mongodb/opengin.tar.gz"
     if [ -f "$mongodb_file" ]; then
         if restore_mongodb "$mongodb_file"; then
             results="${results}mongodb:true,"
@@ -696,7 +696,7 @@ restore_from_github() {
     
     # Download and restore PostgreSQL
     log "INFO" "Processing PostgreSQL backup..."
-    local postgres_file="$archive_dir/nexoan/version/$version/$environment/postgres/nexoan.tar.gz"
+    local postgres_file="$archive_dir/opengin/version/$version/$environment/postgres/opengin.tar.gz"
     if [ -f "$postgres_file" ]; then
         if restore_postgres "$postgres_file"; then
             results="${results}postgres:true,"
@@ -712,7 +712,7 @@ restore_from_github() {
     
     # Download and restore Neo4j
     log "INFO" "Processing Neo4j backup..."
-    local neo4j_file="$archive_dir/nexoan/version/$version/$environment/neo4j/neo4j.dump"
+    local neo4j_file="$archive_dir/opengin/version/$version/$environment/neo4j/neo4j.dump"
     if [ -f "$neo4j_file" ]; then
         # Copy Neo4j backup to the expected backup directory
         local neo4j_backup_dir="${NEO4J_BACKUP_DIR:-./backups/neo4j}"

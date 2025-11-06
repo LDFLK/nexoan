@@ -21,7 +21,7 @@ The easiest way to run the choreo services locally is using the dedicated docker
 
 ```bash
 # Clone the repository and navigate to the root directory
-cd /path/to/nexoan
+cd /path/to/opengin
 
 # Start all choreo services (includes databases)
 docker-compose -f docker-compose-choreo.yml up --build

@@ -9,14 +9,14 @@ FROM golang:1.24 AS builder
 WORKDIR /app
 COPY . .
 
-RUN cd nexoan/core-api && go mod download
-RUN cd nexoan/core-api && go build ./...
-RUN cd nexoan/core-api && go build -o core-service cmd/server/service.go cmd/server/utils.go
+RUN cd opengin/core-api && go mod download
+RUN cd opengin/core-api && go build ./...
+RUN cd opengin/core-api && go build -o core-service cmd/server/service.go cmd/server/utils.go
 
 RUN mkdir -p /app/testbin
-RUN cd nexoan/core-api/cmd/server && go test -c -o /app/testbin/core-test .
-RUN cd nexoan/core-api/db/repository/mongo && go test -c -o /app/testbin/mongo-test .
-RUN cd nexoan/core-api/db/repository/neo4j && go test -c -o /app/testbin/neo4j-test .
+RUN cd opengin/core-api/cmd/server && go test -c -o /app/testbin/core-test .
+RUN cd opengin/core-api/db/repository/mongo && go test -c -o /app/testbin/mongo-test .
+RUN cd opengin/core-api/db/repository/neo4j && go test -c -o /app/testbin/neo4j-test .
 
 # -------------------
 # Stage 2: Final Image
@@ -65,10 +65,10 @@ RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_addre
     && echo "dbms.security.procedures.unrestricted=apoc.*" >> /usr/local/neo4j/conf/neo4j.conf
 
 # Copy compiled binaries and source code
-COPY --from=builder /app/nexoan/core-api/crud-service /usr/local/bin/
+COPY --from=builder /app/opengin/core-api/crud-service /usr/local/bin/
 COPY --from=builder /app/testbin/* /usr/local/bin/
-COPY --from=builder /app/nexoan/core-api /app/nexoan/core-api
-COPY --from=builder /app/nexoan/ingestion-api /app/nexoan/ingestion-api
+COPY --from=builder /app/opengin/core-api /app/opengin/core-api
+COPY --from=builder /app/opengin/ingestion-api /app/opengin/ingestion-api
 
 WORKDIR /app
 

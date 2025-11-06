@@ -61,7 +61,7 @@ clean_databases "Before Tests"
 
 # Run Go tests
 echo "=== Running Go Tests ==="
-cd /app/nexoan/core-api
+cd /app/opengin/core-api
 if ! go test -v ./...; then
   echo "❌ Tests failed!"
   exit 1

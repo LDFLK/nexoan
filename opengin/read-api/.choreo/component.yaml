@@ -1,0 +1,10 @@
+schemaVersion: 1.2
+endpoints:
+  - name: read-ep
+    displayName: Nexoan Read API
+    service:
+      basePath: /
+      port: 8081
+    type: REST
+    networkVisibilities: 
+      - Public

@@ -1,0 +1,14 @@
+schemaVersion: 1.2
+endpoints:
+  - name: ingestion-ep
+    displayName: Nexoan Ingestion API
+    service:
+      basePath: /
+      port: 8080
+    type: REST
+    networkVisibilities: 
+      - Public
+dependencies:
+    connectionReferences:
+    - name: ingestion-to-core-con
+      resourceRef: service:/data-platform/crudv2/v1/55a4d/PUBLIC

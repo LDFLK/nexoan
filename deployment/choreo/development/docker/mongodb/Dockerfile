@@ -101,7 +101,7 @@ restore_from_github() {\n\
     \n\
     # Find the MongoDB backup file\n\
     local archive_dir="$temp_dir/data-backups-$version"\n\
-    local mongodb_backup="$archive_dir/nexoan/version/$version/$environment/mongodb/nexoan.tar.gz"\n\
+    local mongodb_backup="$archive_dir/opengin/version/$version/$environment/mongodb/opengin.tar.gz"\n\
     \n\
     if [ ! -f "$mongodb_backup" ]; then\n\
         log "ERROR" "MongoDB backup file not found: $mongodb_backup"\n\
@@ -121,18 +121,18 @@ restore_from_github() {\n\
         return 1\n\
     fi\n\
     \n\
-    # Check if nexoan database exists in the backup\n\
-    if [ ! -d "$backup_extract_dir/nexoan" ]; then\n\
-        log "ERROR" "nexoan database not found in backup"\n\
+    # Check if opengin database exists in the backup\n\
+    if [ ! -d "$backup_extract_dir/opengin" ]; then\n\
+        log "ERROR" "opengin database not found in backup"\n\
         rm -rf "$temp_dir"\n\
         return 1\n\
     fi\n\
     \n\
     # Handle nested backup structure\n\
-    local backup_source="$backup_extract_dir/nexoan"\n\
-    if [ -d "$backup_extract_dir/nexoan/nexoan" ]; then\n\
+    local backup_source="$backup_extract_dir/opengin"\n\
+    if [ -d "$backup_extract_dir/opengin/opengin" ]; then\n\
         log "INFO" "Found nested backup structure, using inner directory"\n\
-        backup_source="$backup_extract_dir/nexoan/nexoan"\n\
+        backup_source="$backup_extract_dir/opengin/opengin"\n\
     fi\n\
     \n\
     # Copy backup to MongoDB backup directory\n\

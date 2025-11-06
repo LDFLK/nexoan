@@ -6,16 +6,16 @@
 ## 🚀 Running Services
 
 ### 1. Run CRUD API Service
--Read about running the [CORE Service](nexoan/core-api/README.md)
+-Read about running the [CORE Service](opengin/core-api/README.md)
 
 ### 2. Run Read API Service
--Read about running the [Read API](nexoan/read-api/README.md)
+-Read about running the [Read API](opengin/read-api/README.md)
 
 ### 3. Run Ingestion API Service
--Read about running the [Ingestion API](nexoan/ingestion-api/README.md)
+-Read about running the [Ingestion API](opengin/ingestion-api/README.md)
 
 ### 4. Run Swagger-UI  
--Read about running the [Swagger UI](nexoan/swagger-ui/README.md)
+-Read about running the [Swagger UI](opengin/swagger-ui/README.md)
 
 ### 5. Database Cleanup Service
 The cleanup service provides a way to clean all databases (PostgreSQL, MongoDB, Neo4j) before and after running tests or services.
@@ -172,14 +172,14 @@ ReadEntityRequest readEntityRequest = {
 ### Run Ingestion API Tests
 
 ```bash
-cd nexoan/tests/e2e
+cd opengin/tests/e2e
 python basic_crud_tests.py
 ```
 
 ### Run Query API Tests
 
 ```bash
-cd nexoan/tests/e2e
+cd opengin/tests/e2e
 python basic_query_tests.py
 ```
 

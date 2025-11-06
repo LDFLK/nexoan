@@ -25,19 +25,19 @@ This guide explains how to perform data backup and restore operations using the 
 3. **Create version folder structure:**
    ```bash
    # Create the version folder (replace 0.0.1 with your version)
-   mkdir -p data-backups/nexoan/version/0.0.1/development/{mongodb,postgres,neo4j}
+   mkdir -p data-backups/opengin/version/0.0.1/development/{mongodb,postgres,neo4j}
    
    # The structure should look like:
-    nexoan
+    opengin
         └── version
             ├── 0.0.1
-            │   ├── development
-            │   │   ├── mongodb
-            │   │   │   └── nexoan.tar.gz
-            │   │   ├── neo4j
-            │   │   │   └── neo4j.dump
-            │   │   └── postgres
-            │   │       └── nexoan.tar.gz
+            │   ├── development
+            │   │   ├── mongodb
+            │   │   │   └── opengin.tar.gz
+            │   │   ├── neo4j
+            │   │   │   └── neo4j.dump
+            │   │   └── postgres
+            │   │       └── opengin.tar.gz
             │   ├── production
             │   │   ├── mongodb
             │   │   └── neo4j
@@ -48,18 +48,18 @@ This guide explains how to perform data backup and restore operations using the 
 
 ### Step 1.2: Configure Backup Environment
 
-1. **Navigate to the Nexoan project:**
+1. **Navigate to the Opengin project:**
    ```bash
-   cd /path/to/nexoan
+   cd /path/to/opengin
    ```
 
 2. **Update the backup configuration file:**
    Edit `configs/backup.env` to point to your data-backups repository:
    ```bash
    # Set the paths to your local data-backups repository
-   MONGODB_BACKUP_DIR=/path/to/your/data-backups/nexoan/version/0.0.1/development/mongodb
-   POSTGRES_BACKUP_DIR=/path/to/your/data-backups/nexoan/version/0.0.1/development/postgres
-   NEO4J_BACKUP_DIR=/path/to/your/data-backups/nexoan/version/0.0.1/development/neo4j
+   MONGODB_BACKUP_DIR=/path/to/your/data-backups/opengin/version/0.0.1/development/mongodb
+   POSTGRES_BACKUP_DIR=/path/to/your/data-backups/opengin/version/0.0.1/development/postgres
+   NEO4J_BACKUP_DIR=/path/to/your/data-backups/opengin/version/0.0.1/development/neo4j
    
    # Database credentials (update as needed)
    MONGODB_USERNAME=your_mongodb_user
@@ -94,13 +94,13 @@ docker-compose up -d mongodb postgres neo4j
    cd deployment/development
    ./init.sh backup_mongodb
    ```
-   This creates `nexoan.tar.gz` in your MongoDB backup directory.
+   This creates `opengin.tar.gz` in your MongoDB backup directory.
 
 2. **Backup PostgreSQL:**
    ```bash
    ./init.sh backup_postgres
    ```
-   This creates `nexoan.tar.gz` in your PostgreSQL backup directory.
+   This creates `opengin.tar.gz` in your PostgreSQL backup directory.
 
 3. **Backup Neo4j:**
    ```bash
@@ -119,7 +119,7 @@ docker-compose up -d mongodb postgres neo4j
 
 2. **Add and commit your backup files:**
    ```bash
-   git add nexoan/version/0.0.1/development/
+   git add opengin/version/0.0.1/development/
    git commit -m "Add database backups for version 0.0.1"
    ```
 

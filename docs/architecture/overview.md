@@ -691,8 +691,8 @@ Based on TODOs found in the codebase:
 - [Storage Types](../storage.md) - Storage type inference details
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
 - [Core API](../architecture/core-api.md) - Core API documentation
-- [Ingestion API](../../nexoan/ingestion-api/README.md) - Ingestion API documentation
-- [Read API](../../nexoan/read-api/README.md) - Read API documentation
+- [Ingestion API](../../opengin/ingestion-api/README.md) - Ingestion API documentation
+- [Read API](../../opengin/read-api/README.md) - Read API documentation
 
 ---
 

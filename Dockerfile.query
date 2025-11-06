@@ -22,7 +22,7 @@ RUN echo "=========================================" \
     && echo "========================================="
 
 # Set proper permissions for the entire project
-RUN mkdir -p /app/nexoan/read-api/target \
+RUN mkdir -p /app/opengin/read-api/target \
     && chmod -R 755 /app
 
 # Set environment variables for configurable strings
@@ -31,7 +31,7 @@ ENV BAL_CONFIG_VAR_READSERVICEHOST=${BAL_CONFIG_VAR_READSERVICEHOST:-0.0.0.0}
 ENV BAL_CONFIG_VAR_READSERVICEPORT=${BAL_CONFIG_VAR_READSERVICEPORT:-8081}
 
 # Build the Ballerina service
-RUN cd nexoan/read-api && \
+RUN cd opengin/read-api && \
     bal build
 
 EXPOSE 8081
@@ -49,10 +49,10 @@ done\n\
 echo "CORE service is ready!"\n\
 \n\
 echo "Run ballerina test..."\n\
-bal test nexoan/read-api\n\
+bal test opengin/read-api\n\
 \n\
 echo "Starting Read service..."\n\
-exec bal run nexoan/read-api\n' > /app/start.sh && \
+exec bal run opengin/read-api\n' > /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh
 

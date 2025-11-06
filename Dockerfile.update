@@ -22,7 +22,7 @@ RUN echo "=========================================" \
     && echo "========================================="
 
 # Set proper permissions for the entire project
-RUN mkdir -p /app/nexoan/ingestion-api/target \
+RUN mkdir -p /app/opengin/ingestion-api/target \
     && chmod -R 755 /app
 
 # Set environment variables
@@ -31,7 +31,7 @@ ENV BAL_CONFIG_VAR_UPDATESERVICEHOST=${UPDATE_SERVICE_HOST:-0.0.0.0}
 ENV BAL_CONFIG_VAR_UPDATESERVICEPORT=${UPDATE_SERVICE_PORT:-8080}
 
 # Build the Ballerina service
-RUN cd nexoan/ingestion-api && \
+RUN cd opengin/ingestion-api && \
     bal build
 
 EXPOSE 8080
@@ -50,10 +50,10 @@ done\n\
 echo "CRUD service is ready!"\n\
 \n\
 echo "Run ballerina test..."\n\
-bal test nexoan/ingestion-api\n\
+bal test opengin/ingestion-api\n\
 \n\
 echo "Starting Update service..."\n\
-exec bal run nexoan/ingestion-api\n' > /app/start.sh && \
+exec bal run opengin/ingestion-api\n' > /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh
 

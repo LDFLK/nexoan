@@ -187,7 +187,7 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "Ingestion API - nexoan/ingestion-api/"
+    subgraph "Ingestion API - opengin/ingestion-api/"
         UA_Service[update_api_service.bal<br/>REST Endpoints]
         UA_Types[types_v1_pb.bal<br/>Protobuf Types]
         UA_Utils[utils/<br/>Helper Functions]
@@ -196,7 +196,7 @@ graph TB
         UA_Service --> UA_Utils
     end
     
-    subgraph "Read API - nexoan/read-api/"
+    subgraph "Read API - opengin/read-api/"
         QA_Service[read_api_service.bal<br/>REST Endpoints]
         QA_Types[types_v1_pb.bal<br/>Protobuf Types]
         QA_Utils[types.bal<br/>Type Definitions]
@@ -205,7 +205,7 @@ graph TB
         QA_Service --> QA_Utils
     end
     
-    subgraph "CORE Service - nexoan/core-api/"
+    subgraph "CORE Service - opengin/core-api/"
         subgraph "cmd/server/"
             Server[service.go<br/>gRPC Server Implementation]
             Utils[utils.go<br/>Helper Functions]
@@ -487,9 +487,9 @@ flowchart TD
     CheckDatabases -->|All Healthy| Parallel[Parallel Backup]
     CheckDatabases -->|Unhealthy| Error1[Error: Database Unavailable]
     
-    Parallel --> BackupMongo[Backup MongoDB<br/>mongodump → nexoan.tar.gz]
+    Parallel --> BackupMongo[Backup MongoDB<br/>mongodump → opengin.tar.gz]
     Parallel --> BackupNeo4j[Backup Neo4j<br/>neo4j-admin dump → neo4j.dump]
-    Parallel --> BackupPostgres[Backup PostgreSQL<br/>pg_dump → nexoan.tar.gz]
+    Parallel --> BackupPostgres[Backup PostgreSQL<br/>pg_dump → opengin.tar.gz]
     
     BackupMongo --> LocalStore[Store in Local<br/>Backup Directory]
     BackupNeo4j --> LocalStore
