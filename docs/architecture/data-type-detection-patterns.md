@@ -1,6 +1,6 @@
 # Core Storage Type Detection Patterns
 
-This document describes the JSON patterns used by the Nexoan system to automatically detect and classify the three core storage types when attributes are fed into the system.
+This document describes the JSON patterns used by the OpenGIN system to automatically detect and classify the three core storage types when attributes are fed into the system.
 
 ## Overview
 
@@ -101,4 +101,4 @@ const (
 )
 ```
 
-This pattern-based detection system enables automatic data classification and appropriate storage backend selection in the Nexoan platform for the three core storage types: Tabular (PostgreSQL), Graph (Neo4j), and Document/Map (MongoDB).
+This pattern-based detection system enables automatic data classification and appropriate storage backend selection in the OpenGIN platform for the three core storage types: Tabular (PostgreSQL), Graph (Neo4j), and Document/Map (MongoDB).

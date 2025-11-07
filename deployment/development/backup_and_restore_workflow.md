@@ -6,7 +6,7 @@ This guide explains how to perform data backup and restore operations using the 
 
 - Docker and Docker Compose installed
 - Git access to the LDFLK/data-backups repository
-- Access to the Nexoan project
+- Access to the OpenGIN project
 
 ## 1. Setting Up Configuration
 

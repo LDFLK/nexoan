@@ -353,7 +353,7 @@ class OrgChartIngestion:
     """
     
     def __init__(self):
-        self.base_url = UPDATE_API_URL
+        self.base_url = INGESTION_API_URL
         self.created_entities = []
         
         # Define the Organizational structure

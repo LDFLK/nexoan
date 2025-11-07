@@ -1,4 +1,4 @@
-# Nexoan
+# OpenGIN
 
 > 💡 **Note (α)**  
 > Name needs to be proposed, voted and finalized. 

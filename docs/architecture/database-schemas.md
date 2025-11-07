@@ -1,12 +1,12 @@
 # Database Schemas - Detailed Documentation
 
-This document provides comprehensive details about the database schemas used in Nexoan across MongoDB, Neo4j, and PostgreSQL.
+This document provides comprehensive details about the database schemas used in OpenGIN across MongoDB, Neo4j, and PostgreSQL.
 
 ---
 
 ## Overview
 
-Nexoan uses a multi-database architecture where each database is optimized for specific data types:
+OpenGIN uses a multi-database architecture where each database is optimized for specific data types:
 
 | Database | Purpose | Data Stored |
 |----------|---------|-------------|
@@ -184,7 +184,7 @@ FOR (e:Entity) ON (e.kind_major, e.kind_minor);
 
 ### Relationship Types
 
-**Dynamic Relationship System**: Nexoan uses a completely generic relationship model where relationship types are not predefined. Users can create any relationship type they need by simply providing a `name` field in the relationship data.
+**Dynamic Relationship System**: OpenGIN uses a completely generic relationship model where relationship types are not predefined. Users can create any relationship type they need by simply providing a `name` field in the relationship data.
 
 **How it works**:
 1. User provides relationship with `name` field (e.g., "reports_to", "depends_on", "manages")

@@ -14,16 +14,16 @@ Config.toml
 #macOS filters
 
 .DS_Store
-nexoan/.DS_Store
+opengin/.DS_Store
 .vscode/
 # Ballerina
 
 target/
 
 artifacts and env configs not to be committed
-nexoan/core-api/.env
+opengin/core-api/.env
 .env
-nexoan/core-api/core-service
+opengin/core-api/core-service
 
 # Neo4j
 docker/neo4j/config.env
@@ -36,8 +36,8 @@ docker/neo4j/neo4j/plugins/*
 
 
 # executables
-nexoan/core-api/core-service
-nexoan/core-api/core-service.exe
+opengin/core-api/core-service
+opengin/core-api/core-service.exe
 docker/neo4j/data/*
 docker/neo4j/logs/*
 
@@ -45,5 +45,5 @@ docker/neo4j/logs/*
 .vscode
 
 #env
-nexoan/core-api/.env.*
+opengin/core-api/.env.*
 
