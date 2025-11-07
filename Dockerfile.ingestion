@@ -1,4 +1,4 @@
-## TODO: Please complete the Dockerfile.update file
+## TODO: Please complete the Dockerfile.ingestion file
 ## WORK IN PROGRESS
 
 
@@ -26,9 +26,9 @@ RUN mkdir -p /app/opengin/ingestion-api/target \
     && chmod -R 755 /app
 
 # Set environment variables
-ENV BAL_CONFIG_VAR_CRUDSERVICEURL=${CRUD_SERVICE_URL:-http://crud:50051}
-ENV BAL_CONFIG_VAR_UPDATESERVICEHOST=${UPDATE_SERVICE_HOST:-0.0.0.0}
-ENV BAL_CONFIG_VAR_UPDATESERVICEPORT=${UPDATE_SERVICE_PORT:-8080}
+ENV BAL_CONFIG_VAR_CORESERVICEURL=${CORE_SERVICE_URL:-http://core:50051}
+ENV BAL_CONFIG_VAR_INGESTIONSERVICEHOST=${INGESTION_SERVICE_HOST:-0.0.0.0}
+ENV BAL_CONFIG_VAR_INGESTIONSERVICEPORT=${INGESTION_SERVICE_PORT:-8080}
 
 # Build the Ballerina service
 RUN cd opengin/ingestion-api && \
@@ -39,20 +39,20 @@ EXPOSE 8080
 # Create a startup script that generates Config.toml and checks connectivity before running the service
 RUN printf '#!/bin/sh\n\
 echo "Generating Config.toml from environment variables..."\n\
-echo "Waiting for CRUD service to be ready..."\n\
-# Extract host and port from CRUD_SERVICE_URL\n\
-CRUD_HOST=$(echo ${BAL_CONFIG_VAR_CRUDSERVICEURL} | sed "s|http://||" | cut -d: -f1)\n\
-CRUD_PORT=$(echo ${BAL_CONFIG_VAR_CRUDSERVICEURL} | sed "s|http://||" | cut -d: -f2)\n\
-until nc -z -w 5 ${CRUD_HOST} ${CRUD_PORT}; do\n\
-  echo "Waiting for CRUD service at ${CRUD_HOST}:${CRUD_PORT}..."\n\
+echo "Waiting for CORE service to be ready..."\n\
+# Extract host and port from CORE_SERVICE_URL\n\
+CORE_HOST=$(echo ${BAL_CONFIG_VAR_CORESERVICEURL} | sed "s|http://||" | cut -d: -f1)\n\
+CORE_PORT=$(echo ${BAL_CONFIG_VAR_CORESERVICEURL} | sed "s|http://||" | cut -d: -f2)\n\
+until nc -z -w 5 ${CORE_HOST} ${CORE_PORT}; do\n\
+  echo "Waiting for CORE service at ${CORE_HOST}:${CORE_PORT}..."\n\
   sleep 2\n\
 done\n\
-echo "CRUD service is ready!"\n\
+echo "CORE service is ready!"\n\
 \n\
 echo "Run ballerina test..."\n\
 bal test opengin/ingestion-api\n\
 \n\
-echo "Starting Update service..."\n\
+echo "Starting Ingestion service..."\n\
 exec bal run opengin/ingestion-api\n' > /app/start.sh && \
     chmod +x /app/start.sh && \
     dos2unix /app/start.sh

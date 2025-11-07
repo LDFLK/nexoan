@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'nexoan/crud-api/**'
+      - 'opengin/crud-api/**'
       - 'Dockerfile.crud'
       - 'docker-compose.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'nexoan/crud-api/**'
+      - 'opengin/crud-api/**'
       - 'Dockerfile.crud'
       - 'docker-compose.yml'
 

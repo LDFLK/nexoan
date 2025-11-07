@@ -123,7 +123,7 @@ docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH ()-[r]->() RETURN cou
 ### **Verify PostgreSQL Cleanup**
 ```bash
 # Check table row counts
-docker exec postgres psql -U postgres -d nexoan -c "SELECT 'metadata' as table_name, COUNT(*) as row_count FROM metadata UNION ALL SELECT 'entities', COUNT(*) FROM entities UNION ALL SELECT 'relationships', COUNT(*) FROM relationships;"
+docker exec postgres psql -U postgres -d opengin -c "SELECT 'metadata' as table_name, COUNT(*) as row_count FROM metadata UNION ALL SELECT 'entities', COUNT(*) FROM entities UNION ALL SELECT 'relationships', COUNT(*) FROM relationships;"
 ```
 
 ## 🎯 Best Practices
@@ -183,7 +183,7 @@ docker compose logs mongodb neo4j postgres crud
 # Interactive debugging
 docker compose exec mongodb mongosh
 docker compose exec neo4j cypher-shell -u neo4j -p neo4j123
-docker compose exec postgres psql -U postgres -d nexoan
+docker compose exec postgres psql -U postgres -d opengin
 ```
 
 ## 📚 References
@@ -214,7 +214,7 @@ cleanup:
     - POSTGRES_PORT=5432
     - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=postgres
-    - POSTGRES_DB=nexoan
+    - POSTGRES_DB=opengin
     - MONGO_URI=mongodb://admin:admin123@mongodb:27017/admin?authSource=admin
     - MONGO_DB_NAME=testdb
     - NEO4J_URI=bolt://neo4j:7687

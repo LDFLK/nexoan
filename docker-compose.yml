@@ -18,7 +18,7 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=admin123
-      - MONGO_INITDB_DATABASE=nexoan
+      - MONGO_INITDB_DATABASE=opengin
     healthcheck:
       test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -66,7 +66,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nexoan
+      - POSTGRES_DB=opengin
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -86,9 +86,9 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nexoan
+      - POSTGRES_DB=opengin
       - MONGO_URI=mongodb://admin:admin123@mongodb:27017/admin?authSource=admin
-      - MONGO_DB_NAME=nexoan
+      - MONGO_DB_NAME=opengin
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=neo4j123
@@ -99,14 +99,14 @@ services:
     profiles:
       - cleanup
 
-  crud:
+  core:
     platform: linux/amd64
     build:
       context: .
-      dockerfile: Dockerfile.crud
+      dockerfile: Dockerfile.core
       args:
         - DOCKER_DEFAULT_PLATFORM=linux/amd64
-    container_name: crud
+    container_name: core
     ports:
       - "50051:50051"
     environment:
@@ -114,7 +114,7 @@ services:
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=neo4j123
       - MONGO_URI=mongodb://admin:admin123@mongodb:27017/admin?authSource=admin
-      - MONGO_DB_NAME=nexoan
+      - MONGO_DB_NAME=opengin
       - MONGO_COLLECTION=metadata
       - MONGO_ADMIN_USER=admin
       - MONGO_ADMIN_PASSWORD=admin123
@@ -122,10 +122,10 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nexoan
+      - POSTGRES_DB=opengin
       - POSTGRES_SSL_MODE=disable
-      - CRUD_SERVICE_HOST=0.0.0.0
-      - CRUD_SERVICE_PORT=50051
+      - CORE_SERVICE_HOST=0.0.0.0
+      - CORE_SERVICE_PORT=50051
     depends_on:
       mongodb:
         condition: service_healthy
@@ -142,22 +142,22 @@ services:
       retries: 5
       start_period: 120s
 
-  update:
+  ingestion:
     platform: linux/amd64
     build:
       context: .
-      dockerfile: Dockerfile.update
-    container_name: update
+      dockerfile: Dockerfile.ingestion
+    container_name: ingestion
     ports:
       - "8080:8080"
     networks:
       - ldf-network
     environment:
-      - CRUD_SERVICE_URL=http://crud:50051
-      - UPDATE_SERVICE_HOST=0.0.0.0
-      - UPDATE_SERVICE_PORT=8080
+      - CORE_SERVICE_URL=http://core:50051
+      - INGESTION_SERVICE_HOST=0.0.0.0
+      - INGESTION_SERVICE_PORT=8080
     depends_on:
-      crud:
+      core:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8080"]
@@ -170,7 +170,7 @@ services:
     platform: linux/amd64
     build:
       context: .
-      dockerfile: Dockerfile.query
+      dockerfile: Dockerfile.read
     container_name: read
     ports:
       - "8081:8081"
@@ -201,10 +201,10 @@ services:
       - ldf-network
     environment:
       - PYTHONUNBUFFERED=1
-      - UPDATE_SERVICE_URL=http://update:8080
+      - INGESTION_SERVICE_URL=http://ingestion:8080
       - READ_SERVICE_URL=http://read:8081
     depends_on:
-      update:
+      ingestion:
         condition: service_healthy
       read:
         condition: service_healthy
@@ -215,8 +215,8 @@ services:
         pip install requests &&
         pip install protobuf &&
         pip install pandas &&
-        python3 basic_crud_tests.py &&
-        python3 basic_query_tests.py"
+        python3 basic_core_tests.py &&
+        python3 basic_read_tests.py"
 
 networks:
   ldf-network:

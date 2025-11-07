@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'nexoan/update-api/**'
+      - 'opengin/update-api/**'
       - 'Dockerfile.update'
       - 'docker-compose.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'nexoan/update-api/**'
+      - 'opengin/update-api/**'
       - 'Dockerfile.update'
       - 'docker-compose.yml'
 
@@ -57,7 +57,7 @@ jobs:
         echo "Neo4j nodes:"
         docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH (n) RETURN count(n) as nodeCount" || echo "Neo4j not ready yet"
         echo "PostgreSQL tables:"
-        docker exec postgres psql -U postgres -d nexoan -c "\dt" || echo "PostgreSQL not ready yet"
+        docker exec postgres psql -U postgres -d opengin -c "\dt" || echo "PostgreSQL not ready yet"
 
         # Wait for dependencies to be healthy
         echo "Waiting for dependencies to be healthy..."

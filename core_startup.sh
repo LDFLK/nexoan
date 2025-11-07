@@ -26,7 +26,7 @@ clean_databases() {
     echo "Database cleanup $phase completed!"
 }
 
-echo "=== CRUD Service Startup ==="
+echo "=== CORE Service Startup ==="
 echo "Running tests with environment:"
 echo "NEO4J_URI: $NEO4J_URI"
 echo "MONGO_URI: $MONGO_URI"
