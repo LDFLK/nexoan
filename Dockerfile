@@ -81,7 +81,7 @@ RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_addre
     && echo "dbms.security.procedures.unrestricted=apoc.*" >> /etc/neo4j/neo4j.conf
 
 # Copy compiled binaries and source code
-COPY --from=builder /app/opengin/core-api/crud-service /usr/local/bin/
+COPY --from=builder /app/opengin/core-api/core-service /usr/local/bin/
 COPY --from=builder /app/testbin/* /usr/local/bin/
 COPY --from=builder /app/opengin/core-api /app/opengin/core-api
 COPY --from=builder /app/opengin/ingestion-api /app/opengin/ingestion-api
@@ -124,21 +124,21 @@ until mongosh --eval "db.version()" > /dev/null 2>&1; do\n\
     sleep 2\n\
 done\n\
 \n\
-echo "Running CRUD service tests..."\n\
+echo "Running CORE service tests..."\n\
 cd /app/opengin/core-api\n\
-crud-test -test.v && mongo-test -test.v && neo4j-test -test.v\n\
+core-test -test.v && mongo-test -test.v && neo4j-test -test.v\n\
 \n\
-echo "Starting CRUD server..."\n\
-./crud-service &\n\
-CRUD_PID=$!\n\
+echo "Starting CORE server..."\n\
+./core-service &\n\
+CORE_PID=$!\n\
 sleep 5\n\
 \n\
 echo "Running ingestion-api tests..."\n\
 cd /app/opengin/ingestion-api\n\
 bal test\n\
 \n\
-echo "Stopping CRUD server..."\n\
-kill $CRUD_PID\n\
+echo "Stopping CORE server..."\n\
+kill $CORE_PID\n\
 \n\
 tail -f /dev/null' > /start.sh && chmod +x /start.sh
 

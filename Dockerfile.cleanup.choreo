@@ -38,10 +38,10 @@ ENV POSTGRES_HOST=postgres-choreo
 ENV POSTGRES_PORT=5432
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
-ENV POSTGRES_DB=ldf_choreo_nexoan
+ENV POSTGRES_DB=ldf_choreo_opengin
 
 ENV MONGO_URI=mongodb://admin:admin123@mongodb-choreo:27017/admin?authSource=admin
-ENV MONGO_DB_NAME=ldf_choreo_nexoan
+ENV MONGO_DB_NAME=ldf_choreo_opengin
 
 ENV NEO4J_URI=bolt://neo4j-choreo:7687
 ENV NEO4J_USER=neo4j

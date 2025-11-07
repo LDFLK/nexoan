@@ -65,7 +65,7 @@ RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_addre
     && echo "dbms.security.procedures.unrestricted=apoc.*" >> /usr/local/neo4j/conf/neo4j.conf
 
 # Copy compiled binaries and source code
-COPY --from=builder /app/opengin/core-api/crud-service /usr/local/bin/
+COPY --from=builder /app/opengin/core-api/core-service /usr/local/bin/
 COPY --from=builder /app/testbin/* /usr/local/bin/
 COPY --from=builder /app/opengin/core-api /app/opengin/core-api
 COPY --from=builder /app/opengin/ingestion-api /app/opengin/ingestion-api

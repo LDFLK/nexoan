@@ -1,20 +1,20 @@
-# Dockerfile.crud.choreo
+# Dockerfile.core.choreo
 #
 # Purpose:
-# This Dockerfile builds and runs the CRUD API service, which provides a gRPC interface
+# This Dockerfile builds and runs the CORE API service, which provides the gRPC interface
 # for creating, reading, updating, and deleting entities in the system. The service
 # connects to both Neo4j (for graph relationships) and MongoDB (for metadata storage).
 #
 # Usage:
 # 1. Build the image:
 #    # For ARM64 (Apple Silicon):
-#    docker build --platform linux/arm64 -t crud-service -f Dockerfile.crud.choreo .
+#    docker build --platform linux/arm64 -t core-service -f Dockerfile.core.choreo .
 #    # For AMD64:
-#    docker build --platform linux/amd64 -t crud-service -f Dockerfile.crud.choreo .
+#    docker build --platform linux/amd64 -t core-service -f Dockerfile.core.choreo .
 #
 # 2. Run the container (REQUIRED environment variables):
 #   docker run -d \
-#     --name crud-service-choreo \
+#     --name core-service-choreo \
 #     -p 50051:50051 \
 #     -e NEO4J_URI="neo4j+s://your-neo4j-instance.databases.neo4j.io" \
 #     -e NEO4J_USER="your-neo4j-username" \
@@ -27,12 +27,12 @@
 #     -e POSTGRES_PORT=5432 \
 #     -e POSTGRES_USER=postgres \
 #     -e POSTGRES_PASSWORD=postgres \
-#     -e POSTGRES_DB=nexoan \
+#     -e POSTGRES_DB=opengin \
 #     -e POSTGRES_SSL_MODE=disable \
 #     -e POSTGRES_TEST_DB_URI="" \
-#     -e CRUD_SERVICE_HOST=0.0.0.0 \
-#     -e CRUD_SERVICE_PORT=50051 \
-#     crud-service-choreo
+#     -e CORE_SERVICE_HOST=0.0.0.0 \
+#     -e CORE_SERVICE_PORT=50051 \
+#     core-service-choreo
 #
 # Required Environment Variables (must be provided at runtime):
 # - NEO4J_URI: Connection URI for Neo4j database (e.g., neo4j+s://your-instance.databases.neo4j.io)
@@ -46,16 +46,16 @@
 # - POSTGRES_PORT: PostgreSQL port (default: 5432)
 # - POSTGRES_USER: PostgreSQL username (default: postgres)
 # - POSTGRES_PASSWORD: PostgreSQL password (default: postgres)
-# - POSTGRES_DB: PostgreSQL database name (default: nexoan)
+# - POSTGRES_DB: PostgreSQL database name (default: opengin)
 # - POSTGRES_SSL_MODE: PostgreSQL SSL mode (default: disable)
 # - POSTGRES_TEST_DB_URI: PostgreSQL test database URI (optional)
-# - CRUD_SERVICE_HOST: Host address to bind the service
-# - CRUD_SERVICE_PORT: Port to expose the gRPC service
+# - CORE_SERVICE_HOST: Host address to bind the service
+# - CORE_SERVICE_PORT: Port to expose the gRPC service
 #
 # Note: The service must be run on the ldf-network to communicate with Neo4j and MongoDB services.
 # The hostnames 'neo4j' and 'mongodb' are resolved within the ldf-network.
 
-# Build stage for CRUD service
+# Build stage for CORE service
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 AS builder
 
 # Set working directory
@@ -77,7 +77,7 @@ RUN cd opengin/core-api && \
 
 # Build the application as a static binary
 RUN cd opengin/core-api && \
-    CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o crud-service cmd/server/service.go cmd/server/utils.go
+    CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o core-service cmd/server/service.go cmd/server/utils.go
 
 # Final stage
 FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.24
@@ -111,13 +111,13 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Copy the built binary to PATH and the entire core-api directory
-COPY --from=builder /app/opengin/core-api/crud-service /usr/local/bin/
+COPY --from=builder /app/opengin/core-api/core-service /usr/local/bin/
 COPY --from=builder /app/opengin/core-api /app/opengin/core-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
 # Copy the Choreo-specific startup script
-COPY crud_startup-choreo.sh /app/start.sh
+COPY core_startup-choreo.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 # Add log configuration
@@ -141,6 +141,6 @@ USER 10014
 # Expose ports
 EXPOSE 50051
 
-# The startup script is now copied from crud_startup.sh
+# The startup script is now copied from core_startup.sh
 # Display environment variables and start the service
 CMD ["/app/start.sh"]
