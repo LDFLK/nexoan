@@ -173,14 +173,14 @@ ReadEntityRequest readEntityRequest = {
 
 ```bash
 cd opengin/tests/e2e
-python basic_crud_tests.py
+python basic_core_tests.py
 ```
 
 ### Run Query API Tests
 
 ```bash
 cd opengin/tests/e2e
-python basic_query_tests.py
+python basic_read_tests.py
 ```
 
 ## Implementation Progress

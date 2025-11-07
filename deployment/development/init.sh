@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Nexoan Database Backup and Restore Management Script
+# Opengin Database Backup and Restore Management Script
 # 
 # This script provides a comprehensive backup solution for MongoDB, PostgreSQL, and Neo4j databases.
 # It includes setup, backup, restore, and list operations for each database type, plus GitHub integration
@@ -10,11 +10,11 @@
 #   ./init.sh {command} [options]
 #
 # Database Commands:
-#   backup_mongodb        - Create MongoDB backup (creates nexoan.tar.gz)
+#   backup_mongodb        - Create MongoDB backup (creates opengin.tar.gz)
 #   restore_mongodb       - Restore MongoDB from backup (uses MONGODB_BACKUP_DIR)
 #   list_mongodb_backups  - List available MongoDB backups
 #
-#   backup_postgres       - Create PostgreSQL backup (creates nexoan.tar.gz)
+#   backup_postgres       - Create PostgreSQL backup (creates opengin.tar.gz)
 #   restore_postgres      - Restore PostgreSQL from backup (uses POSTGRES_BACKUP_DIR)
 #   list_postgres_backups - List available PostgreSQL backups
 #
@@ -136,7 +136,7 @@ backup_mongodb() {
     source ../../configs/backup.env
     
     local backup_dir="${MONGODB_BACKUP_DIR:-./backups/mongodb}"
-    local backup_file="nexoan"
+    local backup_file="opengin"
     
     # Create backup directory
     mkdir -p "$backup_dir"
@@ -218,13 +218,13 @@ backup_mongodb() {
         # Create compressed archive
         log "INFO" "Creating compressed archive..."
         cd "$backup_dir"
-        tar -czf "nexoan.tar.gz" "$backup_file"
+        tar -czf "opengin.tar.gz" "$backup_file"
         rm -rf "$backup_file"
         
         # Clean up container backup
         docker exec mongodb rm -rf "/data/backup/${backup_file}"
         
-        log "SUCCESS" "MongoDB backup completed: nexoan.tar.gz"
+        log "SUCCESS" "MongoDB backup completed: opengin.tar.gz"
     else
         log "ERROR" "MongoDB backup failed"
         return 1
@@ -245,8 +245,8 @@ restore_mongodb() {
     
     log "INFO" "Using backup directory: $backup_dir"
     
-    # Look for nexoan.tar.gz file
-    local backup_file="$backup_dir/nexoan.tar.gz"
+    # Look for opengin.tar.gz file
+    local backup_file="$backup_dir/opengin.tar.gz"
     
     if [ ! -f "$backup_file" ]; then
         log "ERROR" "Backup file not found: $backup_file"
@@ -257,7 +257,7 @@ restore_mongodb() {
     
     # Extract backup file
     local temp_dir=$(mktemp -d)
-    local backup_name="nexoan"
+    local backup_name="opengin"
     
     log "INFO" "Extracting backup file..."
     tar -xzf "$backup_file" -C "$temp_dir"
@@ -321,7 +321,7 @@ backup_postgres() {
     source ../../configs/backup.env
     
     local backup_dir="${POSTGRES_BACKUP_DIR:-./backups/postgres}"
-    local backup_file="nexoan"
+    local backup_file="opengin"
     
     # Create backup directory
     mkdir -p "$backup_dir"
@@ -372,13 +372,13 @@ backup_postgres() {
         # Create compressed archive
         log "INFO" "Creating compressed archive..."
         cd "$backup_dir"
-        tar -czf "nexoan.tar.gz" "${backup_file}.sql"
+        tar -czf "opengin.tar.gz" "${backup_file}.sql"
         rm -rf "${backup_file}.sql"
         
         # Clean up container backup
         docker exec postgres rm -rf "/var/lib/postgresql/backup/${backup_file}.sql"
         
-        log "SUCCESS" "PostgreSQL backup completed: nexoan.tar.gz"
+        log "SUCCESS" "PostgreSQL backup completed: opengin.tar.gz"
     else
         log "ERROR" "PostgreSQL backup failed"
         return 1
@@ -399,8 +399,8 @@ restore_postgres() {
     
     log "INFO" "Using backup directory: $backup_dir"
     
-    # Look for nexoan.tar.gz file
-    local backup_file="$backup_dir/nexoan.tar.gz"
+    # Look for opengin.tar.gz file
+    local backup_file="$backup_dir/opengin.tar.gz"
     
     if [ ! -f "$backup_file" ]; then
         log "ERROR" "Backup file not found: $backup_file"
@@ -411,7 +411,7 @@ restore_postgres() {
     
     # Extract backup file
     local temp_dir=$(mktemp -d)
-    local backup_name="nexoan.sql"
+    local backup_name="opengin.sql"
     
     log "INFO" "Extracting backup file..."
     tar -xzf "$backup_file" -C "$temp_dir"
@@ -501,7 +501,7 @@ restore_neo4j() {
     fi
     
     # Get Neo4j data volume path
-    local neo4j_volume=$(docker volume inspect nexoan_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
+    local neo4j_volume=$(docker volume inspect opengin_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
     if [ -z "$neo4j_volume" ]; then
         log "ERROR" "Could not find Neo4j data volume"
         return 1
@@ -847,7 +847,7 @@ backup_neo4j() {
     fi
     
     # Get Neo4j data volume path
-    local neo4j_volume=$(docker volume inspect nexoan_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
+    local neo4j_volume=$(docker volume inspect opengin_neo4j_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
     if [ -z "$neo4j_volume" ]; then
         log "ERROR" "Could not find Neo4j data volume"
         return 1
@@ -981,16 +981,16 @@ main() {
             get_latest_github_version
             ;;
         "help"|*)
-            echo "Nexoan Database Backup and Restore Management Script"
+            echo "Opengin Database Backup and Restore Management Script"
             echo ""
             echo "Usage: $0 {command} [options]"
             echo ""
             echo "Database Commands:"
-            echo "  backup_mongodb        - Create MongoDB backup (creates nexoan.tar.gz)"
+            echo "  backup_mongodb        - Create MongoDB backup (creates opengin.tar.gz)"
             echo "  restore_mongodb       - Restore MongoDB from backup (uses MONGODB_BACKUP_DIR)"
             echo "  list_mongodb_backups  - List available MongoDB backups"
             echo ""
-            echo "  backup_postgres       - Create PostgreSQL backup (creates nexoan.tar.gz)"
+            echo "  backup_postgres       - Create PostgreSQL backup (creates opengin.tar.gz)"
             echo "  restore_postgres      - Restore PostgreSQL from backup (uses POSTGRES_BACKUP_DIR)"
             echo "  list_postgres_backups - List available PostgreSQL backups"
             echo ""

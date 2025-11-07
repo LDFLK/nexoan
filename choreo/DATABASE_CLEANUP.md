@@ -82,7 +82,7 @@ END $$;
 - ✅ Automatically cleans all tables with `attr_` prefix
 - ✅ Skips system tables (pg_*, sql_*)
 
-## 🚀 Implementation in Dockerfile.crud
+## 🚀 Implementation in Dockerfile.core
 
 The cleanup is implemented in two phases:
 
@@ -178,7 +178,7 @@ docker exec postgres psql -U postgres -d opengin -c "SELECT 'metadata' as table_
 docker compose ps
 
 # View service logs
-docker compose logs mongodb neo4j postgres crud
+docker compose logs mongodb neo4j postgres core
 
 # Interactive debugging
 docker compose exec mongodb mongosh
@@ -336,7 +336,7 @@ docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
 If you're migrating from the old embedded cleanup approach:
 
 1. **Remove cleanup logic** from individual service Dockerfiles
-2. **Update service startup scripts** to remove cleanup calls
+2. **Ingestion service startup scripts** to remove cleanup calls
 3. **Use the dedicated cleanup service** for all database cleaning needs
 4. **Update CI/CD pipelines** to call cleanup service at appropriate times
 

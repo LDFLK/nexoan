@@ -21,7 +21,7 @@ type JsonObject map<anydata>;
 function beforeSuiteFunc() {
     io:println("I'm the before suite function!");
     io:println("CORE Service URL: " + testCoreServiceUrl);
-    io:println("Update Service URL: " + testIngestionServiceUrl);
+    io:println("Ingestion Service URL: " + testIngestionServiceUrl);
 }
 
 // After Suite Function

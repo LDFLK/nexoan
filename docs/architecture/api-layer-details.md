@@ -10,7 +10,7 @@ The API Layer consists of two Ballerina-based REST services that provide externa
 - **Ingestion API**: Handles entity mutations (CREATE, UPDATE, DELETE)
 - **Read API**: Handles entity queries and retrieval
 
-Both APIs act as translation layers between external HTTP/JSON clients and the internal gRPC/Protobuf CRUD service.
+Both APIs act as translation layers between external HTTP/JSON clients and the internal gRPC/Protobuf CORE service.
 
 ---
 
@@ -134,7 +134,7 @@ Content-Type: application/json
 - `201 Created`: Entity successfully created
 - `400 Bad Request`: Invalid JSON or missing required fields
 - `409 Conflict`: Entity with ID already exists
-- `500 Internal Server Error`: CRUD service error
+- `500 Internal Server Error`: CORE service error
 
 #### READ Entity
 
@@ -167,7 +167,7 @@ GET /entities/entity123
 **Status Codes**:
 - `200 OK`: Entity found and returned
 - `404 Not Found`: Entity doesn't exist
-- `500 Internal Server Error`: CRUD service error
+- `500 Internal Server Error`: CORE service error
 
 #### UPDATE Entity
 
@@ -223,7 +223,7 @@ DELETE /entities/entity123
 **Status Codes**:
 - `204 No Content`: Entity successfully deleted
 - `404 Not Found`: Entity doesn't exist
-- `500 Internal Server Error`: CRUD service error
+- `500 Internal Server Error`: CORE service error
 
 ### JSON to Protobuf Conversion
 
@@ -285,7 +285,7 @@ foreach var rel in relationships {
 
 **Connection Setup**:
 ```ballerina
-final grpc:Client crudClient = check new (
+final grpc:Client coreClient = check new (
     string `${CORE_SERVICE_URL}`,
     {
         timeout: 30,  // 30 second timeout
@@ -311,7 +311,7 @@ INGESTION_SERVICE_PORT=8080
 **Error Types**:
 1. **Validation Errors**: Invalid JSON structure
 2. **Conversion Errors**: Failed JSON ↔ Protobuf conversion
-3. **gRPC Errors**: CRUD service communication failures
+3. **gRPC Errors**: CORE service communication failures
 4. **Business Logic Errors**: Entity already exists, not found, etc.
 
 **Error Response Format**:
@@ -562,7 +562,7 @@ This returns only the attribute value that was active on March 15, 2024.
 
 **Connection Setup**:
 ```ballerina
-final grpc:Client crudClient = check new (
+final grpc:Client coreClient = check new (
     string `${CORE_SERVICE_URL}`,
     {
         timeout: 30,
@@ -586,7 +586,7 @@ READ_SERVICE_PORT=8081
 ### Performance Optimization
 
 **Selective Field Retrieval**:
-- Only fetch requested fields from CRUD service
+- Only fetch requested fields from CORE service
 - Reduces database load
 - Reduces network bandwidth
 - Faster response times
@@ -727,7 +727,7 @@ The Swagger UI serves the OpenAPI specifications from:
 
 Both APIs log:
 - Incoming requests (method, path, params)
-- gRPC calls to CRUD service
+- gRPC calls to CORE service
 - Response status codes
 - Errors with stack traces
 

@@ -190,7 +190,7 @@ service /v1 on ep0 {
             output: ["attributes"]  // Only request attributes field
         };
         
-        // Read the entity using the crud service
+        // Read the entity using the core service
         Entity entity = check ep->ReadEntity(request);
         
         // Process the filtered entity
@@ -268,7 +268,7 @@ service /v1 on ep0 {
             output: ["metadata"]  // Only request metadata field
         };
         
-        // Read the entity using the crud service
+        // Read the entity using the core service
         Entity entity = check ep->ReadEntity(request);
         
         // Convert metadata to generic JSON object
@@ -345,7 +345,7 @@ service /v1 on ep0 {
             activeAt: payload.activeAt ?: ""
         };
         
-        // Read the entity using the crud service
+        // Read the entity using the core service
         Entity entity = check ep->ReadEntity(request);
         
         // Process the relationships returned by the backend

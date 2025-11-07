@@ -13,7 +13,7 @@ docker-compose up -d postgres
 ```
 
 2. **Database Information**:
-The PostgreSQL container is already configured with a database called `nexoan`. This database is ready for testing and development.
+The PostgreSQL container is already configured with a database called `opengin`. This database is ready for testing and development.
 
 3. **Environment Variables**:
 ```bash
@@ -22,7 +22,7 @@ export POSTGRES_HOST=localhost
 export POSTGRES_PORT=5432
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=postgres
-export POSTGRES_DB=nexoan
+export POSTGRES_DB=opengin
 export POSTGRES_SSL_MODE=disable
 ```
 
@@ -69,7 +69,7 @@ CREATE TABLE attr_emp_data_employee_records (
 To view the tables in your database:
 ```bash
 # Connect to PostgreSQL
-docker exec -it postgres psql -U postgres -d nexoan
+docker exec -it postgres psql -U postgres -d opengin
 
 # List all tables
 \dt

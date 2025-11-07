@@ -20,8 +20,8 @@ Nexoan uses a multi-database architecture where each database is optimized for s
 
 ### Database Information
 
-**Database Name**: `nexoan`  
-**Connection**: `mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin`
+**Database Name**: `opengin`  
+**Connection**: `mongodb://admin:admin123@mongodb:27017/opengin?authSource=admin`
 
 ### Collections
 
@@ -370,8 +370,8 @@ DETACH DELETE e
 
 ### Database Information
 
-**Database Name**: `nexoan`  
-**Connection**: `postgresql://postgres:postgres@postgres:5432/nexoan`
+**Database Name**: `opengin`  
+**Connection**: `postgresql://postgres:postgres@postgres:5432/opengin`
 
 ### Core Tables
 
@@ -507,7 +507,7 @@ Examples:
 ### MongoDB Backup
 
 ```bash
-mongodump --uri="mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin" \
+mongodump --uri="mongodb://admin:admin123@mongodb:27017/opengin?authSource=admin" \
     --out=/backup/mongodb/
 ```
 
@@ -520,7 +520,7 @@ neo4j-admin dump --database=neo4j --to=/backup/neo4j/neo4j.dump
 ### PostgreSQL Backup
 
 ```bash
-pg_dump -h postgres -U postgres -d nexoan -F tar -f /backup/postgres/nexoan.tar
+pg_dump -h postgres -U postgres -d opengin -F tar -f /backup/postgres/opengin.tar
 ```
 
 See [Backup Integration Guide](../deployment/BACKUP_INTEGRATION.md) for complete backup/restore workflow.

@@ -1,8 +1,8 @@
 # DEPLOYMENT
 
-## CRUD SERVICE
+## CORE SERVICE
 
-We deploy the CRUD service as a gRPC service and we have to add a few environmental variables 
+We deploy the CORE service as a gRPC service and we have to add a few environmental variables 
 and a few file mounts to make things work. 
 
 ### Environmental Variables 
@@ -13,8 +13,8 @@ and a few file mounts to make things work.
 4. NEO4J_URI
 5. NEO4J_USER
 6. NEO4J_PASSWORD
-7. CRUD_SERVICE_HOST
-8. CRUD_SERVICE_PORT
+7. CORE_SERVICE_HOST
+8. CORE_SERVICE_PORT
 9. POSTGRES_USER
 10. POSTGRES_HOST
 11. POSTGRES_PORT
@@ -26,12 +26,12 @@ and a few file mounts to make things work.
 
 | # | Mount Name | Type | Mount Path | Description |
 |---|------------|------|------------|-------------|
-| 1 | crud-go-build-mnt | Empty Directory (In-Memory) | /home/choreouser/.cache | Go build cache directory |
+| 1 | core-go-build-mnt | Empty Directory (In-Memory) | /home/choreouser/.cache | Go build cache directory |
 | 2 | default-tmp-emptydir | Empty Directory (In-Memory) | /tmp | Temporary files directory |
 | 3 | mnt-go-core-dir | Empty Directory (In-Memory) | /go | Go core directory |
 
 ### Choreo Configs
 
-When deploying the CRUD service on thing to note is that GRPC services are not exposed through the Gateway in Choreo. So we have to choose the `PROJECT_URL` from `Manage`->`Overview` tabs in Choreo
-console. Make sure to extract that URL and use it as the `crudServiceURL` config in both `Update` API and
+When deploying the CORE service on thing to note is that GRPC services are not exposed through the Gateway in Choreo. So we have to choose the `PROJECT_URL` from `Manage`->`Overview` tabs in Choreo
+console. Make sure to extract that URL and use it as the `coreServiceURL` config in both `Update` API and
 `Query` API services.

@@ -7,8 +7,8 @@
 - Docker and Docker Compose installed
 - Git repository cloned
 - Ports available:
-  - 50051 (CRUD service)
-  - 8080 (Update service)
+  - 50051 (CORE service)
+  - 8080 (Ingestion service)
   - 27017 (MongoDB choreo)
   - 7474/7687 (Neo4j choreo)
   - 5432 (PostgreSQL choreo)
@@ -27,7 +27,7 @@ cd /path/to/opengin
 docker-compose -f docker-compose-choreo.yml up --build
 
 # Or start specific services
-docker-compose -f docker-compose-choreo.yml up --build crud-choreo update-choreo
+docker-compose -f docker-compose-choreo.yml up --build core-choreo ingestion-choreo
 
 # Run in background
 docker-compose -f docker-compose-choreo.yml up --build -d
@@ -47,11 +47,11 @@ docker-compose -f docker-compose-choreo.yml up --build
 
 # Start specific services
 docker-compose -f docker-compose-choreo.yml up mongodb-choreo neo4j-choreo postgres-choreo
-docker-compose -f docker-compose-choreo.yml up crud-choreo update-choreo
+docker-compose -f docker-compose-choreo.yml up core-choreo ingestion-choreo
 
 # View logs
-docker-compose -f docker-compose-choreo.yml logs crud-choreo
-docker-compose -f docker-compose-choreo.yml logs update-choreo
+docker-compose -f docker-compose-choreo.yml logs core-choreo
+docker-compose -f docker-compose-choreo.yml logs ingestion-choreo
 
 # Stop all services
 docker-compose -f docker-compose-choreo.yml down
@@ -60,8 +60,8 @@ docker-compose -f docker-compose-choreo.yml down
 docker-compose -f docker-compose-choreo.yml down -v
 
 # Debug: Run interactive shell in a service
-docker-compose -f docker-compose-choreo.yml run --entrypoint="" crud-choreo sh
-docker-compose -f docker-compose-choreo.yml run --entrypoint="" update-choreo sh
+docker-compose -f docker-compose-choreo.yml run --entrypoint="" core-choreo sh
+docker-compose -f docker-compose-choreo.yml run --entrypoint="" ingestion-choreo sh
 
 # Run end-to-end tests
 docker-compose -f docker-compose-choreo.yml up e2e-choreo
@@ -73,15 +73,15 @@ The docker-compose setup includes:
 - **mongodb-choreo**: MongoDB instance (port 27018)
 - **neo4j-choreo**: Neo4j graph database (ports 7475, 7688)
 - **postgres-choreo**: PostgreSQL database (port 5433)
-- **crud-choreo**: CRUD API service (port 50051)
-- **update-choreo**: Ingestion API service (port 8080)
+- **core-choreo**: CORE API service (port 50051)
+- **ingestion-choreo**: Ingestion API service (port 8080)
 - **e2e-choreo**: End-to-end test runner
 
 #### Database Access
 
 - **MongoDB**: `mongodb://admin:admin123@localhost:27018/admin`
 - **Neo4j**: `http://localhost:7475` (user: neo4j, password: neo4j123)
-- **PostgreSQL**: `postgresql://postgres:postgres@localhost:5433/ldf_choreo_nexoan`
+- **PostgreSQL**: `postgresql://postgres:postgres@localhost:5433/ldf_choreo_opengin`
 
 ### Manual Environment Setup (Alternative)
 
@@ -119,17 +119,17 @@ export READ_SERVICE_PORT="8081"
 
 ### Running Services Locally
 
-1. Start the CRUD Service:
+1. Start the CORE Service:
 ```bash
-# Build the CRUD service image
+# Build the CORE service image
 # For ARM64 (Apple Silicon):
-docker build --platform linux/arm64 -t ldf-choreo-crud-service -f Dockerfile.crud.choreo .
+docker build --platform linux/arm64 -t ldf-choreo-core-service -f Dockerfile.core.choreo .
 # For AMD64:
-docker build --platform linux/amd64 -t ldf-choreo-crud-service -f Dockerfile.crud.choreo .
+docker build --platform linux/amd64 -t ldf-choreo-core-service -f Dockerfile.core.choreo .
 
-# Run the CRUD service using environment variables
+# Run the CORE service using environment variables
 docker run -d \
-  --name ldf-choreo-crud-service \
+  --name ldf-choreo-core-service \
   -p 50051:50051 \
   -e NEO4J_URI="$NEO4J_URI" \
   -e NEO4J_USER="$NEO4J_USER" \
@@ -146,21 +146,21 @@ docker run -d \
   -e POSTGRES_DB="$POSTGRES_DB" \
   -e POSTGRES_SSL_MODE="$POSTGRES_SSL_MODE" \
   -e POSTGRES_TEST_DB_URI="$POSTGRES_TEST_DB_URI" \
-  -e CRUD_SERVICE_HOST="$CRUD_SERVICE_HOST" \
-  -e CRUD_SERVICE_PORT="$CRUD_SERVICE_PORT" \
-  ldf-choreo-crud-service
+  -e CORE_SERVICE_HOST="$CORE_SERVICE_HOST" \
+  -e CORE_SERVICE_PORT="$CORE_SERVICE_PORT" \
+  ldf-choreo-core-service
 ```
 
-2. Start the Update Service:
+2. Start the Ingestion Service:
 
 ```bash
 # Build the update service image
-docker build -t ldf-choreo-update-service -f Dockerfile.update.choreo .
+docker build -t ldf-choreo-ingestion-service -f Dockerfile.ingestion.choreo .
 
 # Run the update service using environment variables
 docker run -d -p 8080:8080 \
   --name ldf-choreo-update-service \
-  -e CRUD_SERVICE_URL="http://host.docker.internal:$CRUD_SERVICE_PORT" \
+  -e CORE_SERVICE_URL="http://host.docker.internal:$CORE_SERVICE_PORT" \
   -e UPDATE_SERVICE_HOST="$UPDATE_SERVICE_HOST" \
   -e UPDATE_SERVICE_PORT="$UPDATE_SERVICE_PORT" \
   ldf-choreo-update-service
@@ -193,7 +193,7 @@ The override file modifies the base `docker-compose.yml` to:
 docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
 
 # Start specific services with override
-docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres core
 
 # Build with override
 docker-compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
@@ -274,7 +274,7 @@ docker volume ls | grep tmpfs
 # Check database freshness
 docker exec mongodb mongosh --eval "db.getMongo().getDBNames()"
 docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH (n) RETURN count(n)"
-docker exec postgres psql -U postgres -d nexoan -c "SELECT COUNT(*) FROM information_schema.tables;"
+docker exec postgres psql -U postgres -d opengin -c "SELECT COUNT(*) FROM information_schema.tables;"
 ```
 
 #### Integration with GitHub Actions
@@ -285,7 +285,7 @@ The override file is automatically used in CI workflows:
 # .github/workflows/ingestion-api-test.yml
 - name: Start services with fresh databases
   run: |
-    docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres crud
+    docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongodb neo4j postgres core
 ```
 
 This ensures that every CI run starts with completely fresh databases, preventing test failures due to leftover data from previous runs.

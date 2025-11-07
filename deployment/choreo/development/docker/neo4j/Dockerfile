@@ -35,9 +35,9 @@ ENV NEO4J_AUTH=neo4j/neo4j123 \
     NEO4J_server_default__listen__address=0.0.0.0 \
     NEO4J_server_bolt_listen__address=0.0.0.0:7687 \
     NEO4J_server_http_listen__address=0.0.0.0:7474 \
-    GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups} \
-    BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1} \
-    BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development} \
+    GITHUB_BACKUP_REPO=${OPENGIN_GITHUB_BACKUP_REPO:-LDFLK/data-backups} \
+    BACKUP_VERSION=${OPENGIN_DB_BACKUP_VERSION:-0.0.1} \
+    BACKUP_ENVIRONMENT=${OPENGIN_CHOREO_ENVIRONMENT:-development} \
     RESTORE_FROM_GITHUB=true
 
 # Create data directories with proper permissions for choreo user
