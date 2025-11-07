@@ -35,12 +35,12 @@ RUN mkdir -p /var/lib/mongodb /var/log/mongodb /data/db /data/configdb /data/bac
 # Set environment variables
 ENV MONGO_INITDB_ROOT_USERNAME=admin
 ENV MONGO_INITDB_ROOT_PASSWORD=admin123
-ENV MONGO_INITDB_DATABASE=nexoan
+ENV MONGO_INITDB_DATABASE=opengin
 
 # GitHub backup restore configuration
-ENV GITHUB_BACKUP_REPO=${NEXOAN_GITHUB_BACKUP_REPO:-LDFLK/data-backups} \
-    BACKUP_VERSION=${NEXOAN_DB_BACKUP_VERSION:-0.0.1} \
-    BACKUP_ENVIRONMENT=${NEXOAN_CHOREO_ENVIRONMENT:-development} \
+ENV GITHUB_BACKUP_REPO=${OPENGIN_GITHUB_BACKUP_REPO:-LDFLK/data-backups} \
+    BACKUP_VERSION=${OPENGIN_DB_BACKUP_VERSION:-0.0.1} \
+    BACKUP_ENVIRONMENT=${OPENGIN_CHOREO_ENVIRONMENT:-development} \
     RESTORE_FROM_GITHUB=true
 
 # Create MongoDB configuration (without fork for choreo user)
@@ -101,7 +101,7 @@ restore_from_github() {\n\
     \n\
     # Find the MongoDB backup file\n\
     local archive_dir="$temp_dir/data-backups-$version"\n\
-    local mongodb_backup="$archive_dir/nexoan/version/$version/$environment/mongodb/nexoan.tar.gz"\n\
+    local mongodb_backup="$archive_dir/opengin/version/$version/$environment/mongodb/opengin.tar.gz"\n\
     \n\
     if [ ! -f "$mongodb_backup" ]; then\n\
         log "ERROR" "MongoDB backup file not found: $mongodb_backup"\n\
@@ -121,26 +121,26 @@ restore_from_github() {\n\
         return 1\n\
     fi\n\
     \n\
-    # Check if nexoan database exists in the backup\n\
-    if [ ! -d "$backup_extract_dir/nexoan" ]; then\n\
-        log "ERROR" "nexoan database not found in backup"\n\
+    # Check if opengin database exists in the backup\n\
+    if [ ! -d "$backup_extract_dir/opengin" ]; then\n\
+        log "ERROR" "opengin database not found in backup"\n\
         rm -rf "$temp_dir"\n\
         return 1\n\
     fi\n\
     \n\
     # Handle nested backup structure\n\
-    local backup_source="$backup_extract_dir/nexoan"\n\
-    if [ -d "$backup_extract_dir/nexoan/nexoan" ]; then\n\
+    local backup_source="$backup_extract_dir/opengin"\n\
+    if [ -d "$backup_extract_dir/opengin/opengin" ]; then\n\
         log "INFO" "Found nested backup structure, using inner directory"\n\
-        backup_source="$backup_extract_dir/nexoan/nexoan"\n\
+        backup_source="$backup_extract_dir/opengin/opengin"\n\
     fi\n\
     \n\
     # Copy backup to MongoDB backup directory\n\
     log "INFO" "Preparing backup for mongorestore..."\n\
-    cp -r "$backup_source" /data/backup/nexoan\n\
+    cp -r "$backup_source" /data/backup/opengin\n\
     \n\
     # Clean up any macOS metadata files\n\
-    find /data/backup/nexoan -name "._*" -delete 2>/dev/null || true\n\
+    find /data/backup/opengin -name "._*" -delete 2>/dev/null || true\n\
     \n\
     # Wait for MongoDB to be ready\n\
     log "INFO" "Waiting for MongoDB to be ready..."\n\
@@ -156,16 +156,16 @@ restore_from_github() {\n\
     # Restore using mongorestore (following the documentation approach)\n\
     log "INFO" "Restoring MongoDB database using mongorestore..."\n\
     if mongorestore --host=localhost:27017 \\\n\
-        --db=nexoan \\\n\
+        --db=opengin \\\n\
         --drop \\\n\
-        /data/backup/nexoan; then\n\
+        /data/backup/opengin; then\n\
         \n\
         log "SUCCESS" "MongoDB database restored successfully using mongorestore"\n\
         # Clean up backup files\n\
-        rm -rf /data/backup/nexoan\n\
+        rm -rf /data/backup/opengin\n\
     else\n\
         log "ERROR" "Failed to restore MongoDB database using mongorestore"\n\
-        rm -rf /data/backup/nexoan\n\
+        rm -rf /data/backup/opengin\n\
         rm -rf "$temp_dir"\n\
         return 1\n\
     fi\n\
@@ -192,12 +192,12 @@ done\n\
 \n\
 # Restore from GitHub if enabled and database doesn'\''t exist\n\
 if [ "${RESTORE_FROM_GITHUB:-false}" = "true" ]; then\n\
-    # Check if nexoan database exists\n\
-    if ! mongo --eval "db.adminCommand('\''listDatabases'\'')" 2>/dev/null | grep -q "nexoan"; then\n\
-        log "INFO" "nexoan database not found, starting GitHub restore..."\n\
+    # Check if opengin database exists\n\
+    if ! mongo --eval "db.adminCommand('\''listDatabases'\'')" 2>/dev/null | grep -q "opengin"; then\n\
+        log "INFO" "opengin database not found, starting GitHub restore..."\n\
         restore_from_github || log "WARNING" "GitHub restore failed, continuing with empty database"\n\
     else\n\
-        log "INFO" "nexoan database already exists, skipping restore"\n\
+        log "INFO" "opengin database already exists, skipping restore"\n\
     fi\n\
 fi\n\
 \n\

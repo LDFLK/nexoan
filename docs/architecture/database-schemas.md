@@ -1,12 +1,12 @@
 # Database Schemas - Detailed Documentation
 
-This document provides comprehensive details about the database schemas used in Nexoan across MongoDB, Neo4j, and PostgreSQL.
+This document provides comprehensive details about the database schemas used in OpenGIN across MongoDB, Neo4j, and PostgreSQL.
 
 ---
 
 ## Overview
 
-Nexoan uses a multi-database architecture where each database is optimized for specific data types:
+OpenGIN uses a multi-database architecture where each database is optimized for specific data types:
 
 | Database | Purpose | Data Stored |
 |----------|---------|-------------|
@@ -20,8 +20,8 @@ Nexoan uses a multi-database architecture where each database is optimized for s
 
 ### Database Information
 
-**Database Name**: `nexoan`  
-**Connection**: `mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin`
+**Database Name**: `opengin`  
+**Connection**: `mongodb://admin:admin123@mongodb:27017/opengin?authSource=admin`
 
 ### Collections
 
@@ -184,7 +184,7 @@ FOR (e:Entity) ON (e.kind_major, e.kind_minor);
 
 ### Relationship Types
 
-**Dynamic Relationship System**: Nexoan uses a completely generic relationship model where relationship types are not predefined. Users can create any relationship type they need by simply providing a `name` field in the relationship data.
+**Dynamic Relationship System**: OpenGIN uses a completely generic relationship model where relationship types are not predefined. Users can create any relationship type they need by simply providing a `name` field in the relationship data.
 
 **How it works**:
 1. User provides relationship with `name` field (e.g., "reports_to", "depends_on", "manages")
@@ -370,8 +370,8 @@ DETACH DELETE e
 
 ### Database Information
 
-**Database Name**: `nexoan`  
-**Connection**: `postgresql://postgres:postgres@postgres:5432/nexoan`
+**Database Name**: `opengin`  
+**Connection**: `postgresql://postgres:postgres@postgres:5432/opengin`
 
 ### Core Tables
 
@@ -507,7 +507,7 @@ Examples:
 ### MongoDB Backup
 
 ```bash
-mongodump --uri="mongodb://admin:admin123@mongodb:27017/nexoan?authSource=admin" \
+mongodump --uri="mongodb://admin:admin123@mongodb:27017/opengin?authSource=admin" \
     --out=/backup/mongodb/
 ```
 
@@ -520,7 +520,7 @@ neo4j-admin dump --database=neo4j --to=/backup/neo4j/neo4j.dump
 ### PostgreSQL Backup
 
 ```bash
-pg_dump -h postgres -U postgres -d nexoan -F tar -f /backup/postgres/nexoan.tar
+pg_dump -h postgres -U postgres -d opengin -F tar -f /backup/postgres/opengin.tar
 ```
 
 See [Backup Integration Guide](../deployment/BACKUP_INTEGRATION.md) for complete backup/restore workflow.

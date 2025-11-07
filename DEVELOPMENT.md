@@ -75,11 +75,11 @@ PostgreSQL Service
 
 `docker compose up -d postgres`
 
-Build CRUD Service
+Build CORE Service
 
-`docker compose build crud` 
+`docker compose build core` 
 
-And to up it `docker compose up crud`
+And to up it `docker compose up core`
 
 ### Docker Health Checks and Service Startup Timing
 
@@ -89,7 +89,7 @@ The Docker Compose configuration includes health checks for all services to ensu
 
 Each service has specific health check settings optimized for its startup characteristics:
 
-**CRUD Service (gRPC):**
+**CORE Service (gRPC):**
 ```yaml
 healthcheck:
   test: ["CMD", "nc", "-zv", "localhost", "50051"]
@@ -99,10 +99,10 @@ healthcheck:
   start_period: 120s # Grace period of 2 minutes for Go tests to complete
 ```
 
-**Update/Query Services (HTTP):**
+**Ingestion/Read Services (HTTP):**
 ```yaml
 healthcheck:
-  test: ["CMD", "nc", "-zv", "localhost", "8080"]  # or 8081 for query
+  test: ["CMD", "nc", "-zv", "localhost", "8080"]  # or 8081 for read
   interval: 15s      # Check every 15 seconds
   timeout: 10s       # Each check times out after 10 seconds
   retries: 5         # Allow 5 consecutive failures before marking unhealthy
@@ -114,13 +114,13 @@ healthcheck:
 Understanding the startup sequence is important for debugging:
 
 1. **Database Services (MongoDB, Neo4j, PostgreSQL)**: Start first and become healthy within 30-60 seconds
-2. **CRUD Service**: 
+2. **CORE Service**: 
    - Starts after databases are healthy
    - Runs Go tests (can take 60-90 seconds)
    - Starts gRPC server on port 50051
    - Health checks ignored for first 120 seconds
-3. **Update/Query Services**:
-   - Start after CRUD service is healthy
+3. **Ingestion/Read Services**:
+   - Start after CORE service is healthy
    - Compile Ballerina code and run tests
    - Start HTTP servers on ports 8080/8081
    - Health checks ignored for first 120 seconds
@@ -139,20 +139,20 @@ watch -n 2 'docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Health}
 
 **Check specific service health:**
 ```bash
-# Check CRUD service health
-docker inspect crud --format='{{.State.Health.Status}}'
+# Check CORE service health
+docker inspect core --format='{{.State.Health.Status}}'
 
 # Get detailed health check history
-docker inspect crud | jq '.[0].State.Health.Log[-3:]'
+docker inspect core | jq '.[0].State.Health.Log[-3:]'
 ```
 
 **Monitor service logs during startup:**
 ```bash
-# Watch for CRUD service startup
-docker logs -f crud | grep -E "(test|CRUD Service is running)"
+# Watch for CORE service startup
+docker logs -f core | grep -E "(test|CORE Service is running)"
 
-# Watch for Update service startup
-docker logs -f update | grep -E "(Compiling|Running executable)"
+# Watch for Ingestion service startup
+docker logs -f ingestion | grep -E "(Compiling|Running executable)"
 ```
 
 #### Troubleshooting Health Check Issues
@@ -175,13 +175,13 @@ docker logs -f update | grep -E "(Compiling|Running executable)"
 **Debug Commands:**
 ```bash
 # Test health check manually
-docker exec crud nc -zv localhost 50051
+docker exec core nc -zv localhost 50051
 
 # Check if service is listening on expected port
-docker exec crud netstat -tlnp | grep 50051
+docker exec core netstat -tlnp | grep 50051
 
 # Verify container has required tools
-docker exec crud which nc
+docker exec core which nc
 ```
 
 #### Health Check Best Practices
@@ -192,9 +192,9 @@ docker exec crud which nc
 - **Test health checks manually**: Use `docker exec` to run health check commands directly
 - **Consider service dependencies**: Ensure dependent services are healthy before starting
 
-### Using Core API services via Ballerina
+### Using CORE API services via Ballerina
 
-When using any Core API such as `ReadEntity`, `UpdateEntity` etc via Ballerina (for example in the query api or ingestion api layer) pay special attention to the name field in Entity objects.
+When using any Core API such as `ReadEntity`, `UpdateEntity` etc via Ballerina (for example in the read api or ingestion api layer) pay special attention to the name field in Entity objects.
 
 The name field is a TimeBasedValue of the following structure:
 
@@ -234,5 +234,5 @@ Entity relFilterName = {
 ## Debug with Choreo
 
 ```bash
-choreo connect --project ldf_sandbox_vibhatha --component crud-service
+choreo connect --project ldf_sandbox_vibhatha --component core-service
 ```

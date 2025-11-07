@@ -4,7 +4,7 @@ FROM mongo:4.4
 # Set environment variables
 ENV MONGO_INITDB_ROOT_USERNAME=admin
 ENV MONGO_INITDB_ROOT_PASSWORD=admin123
-ENV MONGO_INITDB_DATABASE=nexoan
+ENV MONGO_INITDB_DATABASE=opengin
 
 # Create additional directories for backups
 RUN mkdir -p /data/backup && \

@@ -43,7 +43,7 @@ MAJOR.MINOR.PATCH[-STAGE.NUMBER]
 > Feature-complete version intended for broader testing and validation from selected external users.
 
 **Purpose:**  
-- Ensure all modules (Graph Engine, Query API, Extractors, Frontend Studio) function correctly together.  
+- Ensure all modules (Graph Engine, Read API, Extractors, Frontend Studio) function correctly together.  
 - Gather usability and performance feedback.  
 - Identify and fix known issues before production readiness.
 

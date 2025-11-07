@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Database cleanup script for CRUD architecture
+# Database cleanup script for CORE architecture
 # Usage: ./cleanup.sh [pre|post]
 #   pre  - Clean databases before starting services
 #   post - Clean databases after all services complete
