@@ -5,7 +5,7 @@
 
 ## 🚀 Running Services
 
-### 1. Run CRUD API Service
+### 1. Run CORE API Service
 -Read about running the [CORE Service](opengin/core-api/README.md)
 
 ### 2. Run Read API Service
@@ -137,7 +137,7 @@ curl -X PUT http://localhost:8080/entities/12345 \
 curl -X DELETE http://localhost:8080/entities/12345
 ```
 
-### Query API 
+### Read API 
 
 **Retrieve Metadata**
 
@@ -176,7 +176,7 @@ cd opengin/tests/e2e
 python basic_core_tests.py
 ```
 
-### Run Query API Tests
+### Run Read API Tests
 
 ```bash
 cd opengin/tests/e2e

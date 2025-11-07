@@ -154,16 +154,16 @@ docker run -d \
 2. Start the Ingestion Service:
 
 ```bash
-# Build the update service image
+# Build the ingestion service image
 docker build -t ldf-choreo-ingestion-service -f Dockerfile.ingestion.choreo .
 
-# Run the update service using environment variables
+# Run the ingestion service using environment variables
 docker run -d -p 8080:8080 \
-  --name ldf-choreo-update-service \
+  --name ldf-choreo-ingestion-service \
   -e CORE_SERVICE_URL="http://host.docker.internal:$CORE_SERVICE_PORT" \
-  -e UPDATE_SERVICE_HOST="$UPDATE_SERVICE_HOST" \
-  -e UPDATE_SERVICE_PORT="$UPDATE_SERVICE_PORT" \
-  ldf-choreo-update-service
+  -e INGESTION_SERVICE_HOST="$INGESTION_SERVICE_HOST" \
+  -e INGESTION_SERVICE_PORT="$INGESTION_SERVICE_PORT" \
+  ldf-choreo-ingestion-service
 ```
 
 ## Testing Locally 

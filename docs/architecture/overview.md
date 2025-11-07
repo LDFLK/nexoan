@@ -94,7 +94,7 @@
   - Accept JSON payloads from clients
   - Validate request structure
   - Convert JSON to Protobuf Entity messages
-  - Communicate with CRUD Service via gRPC
+  - Communicate with CORE Service via gRPC
   - Convert Protobuf responses back to JSON
 - **Contract**: OpenAPI specification at `opengin/contracts/rest/ingestion_api.yaml`
 
@@ -103,10 +103,10 @@
 - **Technology**: Ballerina REST service
 - **Location**: `opengin/read-api/`
 - **Responsibilities**:
-  - Accept query requests from clients
+  - Accept read requests from clients
   - Support selective field retrieval (metadata, relationships, attributes)
   - Filter and search capabilities
-  - Communicate with CRUD Service via gRPC
+  - Communicate with CORE Service via gRPC
   - Return formatted JSON responses
 - **Contract**: OpenAPI specification at `opengin/contracts/rest/read_api.yaml`
 
@@ -169,7 +169,7 @@ Central orchestration service that manages data networking and all database inte
    - **MongoRepository** (`mongo/mongodb_client.go`, `mongo/metadata_handler.go`)
      - Handles metadata storage and retrieval
      - Connection management
-     - CRUD operations for metadata
+     - CORE operations for metadata
    
    - **Neo4jRepository** (`neo4j/neo4j_client.go`, `neo4j/graph_entity_handler.go`)
      - Manages entity nodes and relationships

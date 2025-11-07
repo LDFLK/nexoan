@@ -8,11 +8,11 @@ import ballerina/lang.'int as langint;
 import ballerina/io;
 import ballerina/protobuf.types.'any as pbAny;
 
-// BAL_CONFIG_VAR_CRUDSERVICEURL
+// BAL_CONFIG_VAR_CORESERVICEURL
 configurable string coreServiceUrl = "http://localhost:50051";
-// BAL_CONFIG_VAR_QUERYSERVICEHOST
+// BAL_CONFIG_VAR_READSERVICEHOST
 configurable string readServiceHost = "0.0.0.0";
-// BAL_CONFIG_VAR_QUERYSERVICEPORT
+// BAL_CONFIG_VAR_READSERVICEPORT
 configurable string readServicePort = "8081";
 
 listener http:Listener ep0 = new (check langint:fromString(readServicePort), config = {

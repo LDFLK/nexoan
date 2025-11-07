@@ -414,7 +414,7 @@ service /v1/entities on new http:Listener(8081) {
 }
 ```
 
-### Query Operations
+### Read Operations
 
 #### Get Metadata
 
@@ -763,7 +763,7 @@ GET /v1/entities/entity123?output=metadata
 # Returns only what you need (fast, small payload)
 ```
 
-### 2. Use Specific Query Endpoints
+### 2. Use Specific Read Endpoints
 
 ❌ **Don't**:
 ```bash

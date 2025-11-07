@@ -528,7 +528,7 @@ function testEntityRelationshipsRetrieval() returns error? {
 @test:Config {}
 function testEntitySearch() returns error? {
     // Test disabled due to gRPC connectivity issues
-    // To enable, ensure the CRUD service is running and all entity fields are properly populated
+    // To enable, ensure the CORE service is running and all entity fields are properly populated
     
     // Initialize clients
     string|error coreUrl = getCoreServiceUrl();

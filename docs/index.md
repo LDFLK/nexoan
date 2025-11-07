@@ -172,7 +172,7 @@ OpenGIN uses three specialized databases:
 
 ### Prerequisites
 - Docker and Docker Compose
-- Go 1.19+ (for CRUD service)
+- Go 1.19+ (for CORE service)
 - Ballerina (for APIs)
 
 ### Start the System
@@ -180,7 +180,7 @@ OpenGIN uses three specialized databases:
 # Start databases
 docker-compose up -d mongodb neo4j postgres
 
-# Start CRUD service
+# Start CORE service
 cd opengin/core-api && ./core-service
 
 # Start APIs
