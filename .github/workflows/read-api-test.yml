@@ -1,17 +1,17 @@
-name: Query API Test
+name: Read API Test
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'opengin/query-api/**'
-      - 'Dockerfile.query'
+      - 'opengin/read-api/**'
+      - 'Dockerfile.read'
       - 'docker-compose.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'opengin/query-api/**'
-      - 'Dockerfile.query'
+      - 'opengin/read-api/**'
+      - 'Dockerfile.read'
       - 'docker-compose.yml'
 
 jobs:
@@ -24,47 +24,47 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
-    - name: Build and test Query service
+    - name: Build and test Read service
       run: |
-        # Build Query service
-        docker compose build query
+        # Build Read service
+        docker compose build read
         
         # Start required dependencies
-        docker compose up -d mongodb neo4j crud
+        docker compose up -d mongodb neo4j core
         
         # Wait for dependencies to be healthy
         echo "Waiting for dependencies to be healthy..."
         docker compose ps
         
-        # Start Query service in detached mode
-        echo "Starting Query service and running tests..."
-        docker compose up -d query
+        # Start Read service in detached mode
+        echo "Starting Read service and running tests..."
+        docker compose up -d read
         
         # Wait for tests to complete
         echo "Waiting for tests to complete..."
         sleep 30
         
         # Check the logs for test results
-        if docker compose logs query | grep -q "failing" && ! docker compose logs query | grep -q "0 failing"; then
-          echo "Query API tests failed!"
+        if docker compose logs read | grep -q "failing" && ! docker compose logs read | grep -q "0 failing"; then
+          echo "Read API tests failed!"
           echo "Container logs:"
-          docker compose logs query
+          docker compose logs read
           docker compose down
           exit 1
-        elif docker compose logs query | grep -q "0 failing"; then
-          echo "Query API tests passed!"
+        elif docker compose logs read | grep -q "0 failing"; then
+          echo "Read API tests passed!"
           echo "Container logs:"
-          docker compose logs query
+          docker compose logs read
         else
           echo "Test results not found in logs. Checking for service startup..."
-          if docker compose logs query | grep -q "Starting Query service"; then
-            echo "Query API tests passed (service started successfully)!"
+          if docker compose logs read | grep -q "Starting Read service"; then
+            echo "Read API tests passed (service started successfully)!"
             echo "Container logs:"
-            docker compose logs query
+            docker compose logs read
           else
             echo "Could not determine test status from logs"
             echo "Container logs:"
-            docker compose logs query
+            docker compose logs read
             docker compose down
             exit 1
           fi
