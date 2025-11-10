@@ -90,27 +90,41 @@ body {
     padding: 24px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .sidebar-header a {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
     text-decoration: none;
+    transition: transform 0.3s ease, color 0.3s ease;
 }
 
-.sidebar-header a h1 {
-    transition: all 0.3s ease;  /* <-- Add transition here */
-  }
-  
-  .sidebar-header a h1:hover {
-    transform: translateX(10px);
-    color: var(--link-hover);
-  }
-  
+.sidebar-header a:hover {
+    transform: translateX(8px);
+}
+
+.sidebar-header .logo {
+    width: 44px;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
 
 .sidebar-header h1 {
     font-size: 24px;
     font-weight: 700;
     color: var(--sidebar-text);
     margin: 0;
+    transition: color 0.3s ease;
+}
+
+.sidebar-header a:hover h1 {
+    color: var(--link-hover);
 }
 
 /* Sidebar Navigation */
