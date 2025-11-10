@@ -193,6 +193,20 @@ func (r *Neo4jRepository) CreateRelationship(ctx context.Context, entityID strin
 	session := r.getSession(ctx)
 	defer session.Close(ctx)
 
+	// Check if relationship with this ID already exists
+	relExistsQuery := `MATCH ()-[r {Id: $relationshipID}]->() RETURN r`
+	relResult, err := session.Run(ctx, relExistsQuery, map[string]interface{}{
+		"relationshipID": rel.Id,
+	})
+	if err != nil {
+		log.Printf("[neo4j_client.CreateRelationship] error checking if relationship exists: %v", err)
+		return nil, fmt.Errorf("error checking if relationship exists: %v", err)
+	}
+	if relResult.Next(ctx) {
+		log.Printf("[neo4j_client.CreateRelationship] relationship with Id %s already exists", rel.Id)
+		return nil, fmt.Errorf("relationship with Id %s already exists", rel.Id)
+	}
+
 	existsQuery := `MATCH (p {Id: $parentID}), (c {Id: $childID}) RETURN p, c`
 	result, err := session.Run(ctx, existsQuery, map[string]interface{}{
 		"parentID": entityID,
@@ -211,10 +225,6 @@ func (r *Neo4jRepository) CreateRelationship(ctx context.Context, entityID strin
 		log.Printf("[neo4j_client.CreateRelationship] either parent or child entity exist")
 	}
 
-	createQuery := `MATCH (p {Id: $parentID}), (c {Id: $childID})
-                    MERGE (p)-[r:` + rel.Name + ` {Id: $relationshipID}]->(c)
-                    SET r.Created = datetime($startDate)`
-
 	params := map[string]interface{}{
 		"parentID":       entityID,
 		"childID":        rel.RelatedEntityId,
@@ -222,12 +232,15 @@ func (r *Neo4jRepository) CreateRelationship(ctx context.Context, entityID strin
 		"startDate":      rel.StartTime,
 	}
 
+	createQuery := `MATCH (p {Id: $parentID}), (c {Id: $childID})
+					CREATE (p)-[r:` + rel.Name + ` {Id: $relationshipID, Created: datetime($startDate)`
+
 	if rel.EndTime != "" {
-		createQuery += `, r.Terminated = datetime($endDate)`
+		createQuery += `, Terminated: datetime($endDate)`
 		params["endDate"] = rel.EndTime
 	}
 
-	createQuery += ` RETURN r`
+	createQuery += `}]->(c) RETURN r`
 
 	result, err = session.Run(ctx, createQuery, params)
 	if err != nil {
@@ -649,13 +662,46 @@ func (r *Neo4jRepository) UpdateRelationship(ctx context.Context, relationshipID
         MATCH ()-[r {Id: $relationshipID}]->()
     `
 
-	// Add `Terminated` if provided (required)
-	terminated, exists := updateData["Terminated"]
-	if !exists {
-		return nil, fmt.Errorf("terminated is required")
+	// Track if we have any fields to update
+	hasUpdates := false
+
+	// Add `Created` if provided
+	if created, exists := updateData["Created"]; exists {
+		params["Created"] = created
+		if hasUpdates {
+			query += `, r.Created = datetime($Created) `
+		} else {
+			query += `SET r.Created = datetime($Created) `
+			hasUpdates = true
+		}
 	}
-	params["Terminated"] = terminated
-	query += `SET r.Terminated = datetime($Terminated) RETURN r`
+
+	// Add `Terminated` if provided
+	if terminated, exists := updateData["Terminated"]; exists {
+		params["Terminated"] = terminated
+		if hasUpdates {
+			query += `, r.Terminated = datetime($Terminated) `
+		} else {
+			query += `SET r.Terminated = datetime($Terminated) `
+			hasUpdates = true
+		}
+	}
+
+	// Check for any unsupported fields
+	for key := range updateData {
+		if key != "Created" && key != "Terminated" {
+			log.Printf("[neo4j_client.UpdateRelationship] unsupported field '%s' provided for update", key)
+			return nil, fmt.Errorf("unsupported field '%s' for relationship update. Only 'Created' and 'Terminated' are allowed", key)
+		}
+	}
+
+	// If no fields to update, return error
+	if !hasUpdates {
+		log.Printf("[neo4j_client.UpdateRelationship] no valid fields provided for update")
+		return nil, fmt.Errorf("no valid fields provided for update")
+	}
+
+	query += `RETURN r`
 
 	// Execute update query and return updated relationship
 	result, err = session.Run(ctx, query, params)

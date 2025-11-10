@@ -177,60 +177,31 @@ def test_api_endpoint_with_validation(url, params=None, expected_fields=None, mi
         min_rows: Minimum number of rows expected
         test_name: Name for the test (for logging)
 
-    Returns:
-        dict: Test result with 'success', 'data', and 'message' keys
+    Raises:
+        AssertionError: If validation fails
     """
     print(f"  📋 {test_name}...")
 
-    try:
-        res = requests.get(url, params=params)
+    res = requests.get(url, params=params)
 
-        if res.status_code != 200:
-            return {
-                "success": False,
-                "data": None,
-                "message": f"HTTP {res.status_code}: {res.text}"
-            }
+    assert res.status_code == 200, f"HTTP {res.status_code}: {res.text}"
 
-        data = res.json()
+    data = res.json()
 
-        # Decode protobuf value if present
-        if 'value' in data:
-            value = data['value']
-            decoded_data = decode_protobuf_any_value(value)
-            print(f"    ✅ Decoded data: {decoded_data}")
+    # Decode protobuf value if present
+    assert 'value' in data, f"{test_name} - No 'value' field in response"
+    
+    value = data['value']
+    decoded_data = decode_protobuf_any_value(value)
+    print(f"    ✅ Decoded data: {decoded_data}")
 
-            # Validate tabular data
-            try:
-                assert_tabular_data(decoded_data,
-                                  expected_columns=expected_fields,
-                                  field_filter=expected_fields,
-                                  min_rows=min_rows)
+    # Validate tabular data - raises AssertionError if validation fails
+    assert_tabular_data(decoded_data,
+                      expected_columns=expected_fields,
+                      field_filter=expected_fields,
+                      min_rows=min_rows)
 
-                return {
-                    "success": True,
-                    "data": decoded_data,
-                    "message": f"✅ {test_name} passed validation"
-                }
-            except AssertionError as e:
-                return {
-                    "success": False,
-                    "data": decoded_data,
-                    "message": f"❌ {test_name} validation failed: {e}"
-                }
-        else:
-            return {
-                "success": False,
-                "data": data,
-                "message": f"⚠️ {test_name} - No 'value' field in response"
-            }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "message": f"❌ {test_name} failed with exception: {e}"
-        }
+    print(f"    ✅ {test_name} passed validation")
 
 def get_expected_employee_data():
     """Get the expected employee data structure for validation."""
@@ -300,14 +271,23 @@ def decode_protobuf_any_value(any_value):
                     text_data = binary_data.decode('utf-8', errors='ignore')
                     print(f"Debug: Extracted text from binary: {repr(text_data[:200])}...")
 
-                    # Find JSON-like content (look for { and })
-                    start_idx = text_data.find('{')
-                    end_idx = text_data.rfind('}')
-
-                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                        json_str = text_data[start_idx:end_idx + 1]
-                        print(f"Debug: Extracted JSON string: {repr(json_str[:100])}...")
-                        return json.loads(json_str)
+                    # Look for the actual start of JSON by searching for common patterns
+                    # like {"columns" or {"rows" which indicate the start of our data
+                    json_patterns = ['{"columns"', '{"rows"', '{"data"']
+                    start_idx = -1
+                    for pattern in json_patterns:
+                        idx = text_data.find(pattern)
+                        if idx != -1:
+                            start_idx = idx
+                            break
+                    
+                    if start_idx != -1:
+                        # Find the matching closing brace
+                        end_idx = text_data.rfind('}')
+                        if end_idx != -1 and end_idx > start_idx:
+                            json_str = text_data[start_idx:end_idx + 1]
+                            print(f"Debug: Extracted JSON string: {repr(json_str[:100])}...")
+                            return json.loads(json_str)
 
                 except Exception as e:
                     print(f"Failed to extract JSON from binary data: {e}")
@@ -411,34 +391,31 @@ def test_generic_validation_examples():
     base_url = f"{QUERY_API_URL}/{ENTITY_ID}/attributes/employee_data"
 
     # Example 1: Test all fields
-    result = test_api_endpoint_with_validation(
+    test_api_endpoint_with_validation(
         url=base_url,
         params={"fields": ["id", "name", "age", "department", "salary"]},
         expected_fields=["id", "name", "age", "department", "salary"],
         min_rows=5,
         test_name="All Fields Test"
     )
-    print(f"    {result['message']}")
 
     # Example 2: Test specific fields
-    result = test_api_endpoint_with_validation(
+    test_api_endpoint_with_validation(
         url=base_url,
         params={"fields": ["id", "name"]},
         expected_fields=["id", "name"],
         min_rows=5,
         test_name="ID and Name Fields Test"
     )
-    print(f"    {result['message']}")
 
     # Example 3: Test with time range
-    result = test_api_endpoint_with_validation(
+    test_api_endpoint_with_validation(
         url=base_url,
         params={"startTime": "2024-01-01T00:00:00Z", "fields": ["salary", "department"]},
         expected_fields=["salary", "department"],
         min_rows=5,
         test_name="Time Range with Salary/Department Test"
     )
-    print(f"    {result['message']}")
 
     print("  ✅ Generic validation examples completed")
 
@@ -469,14 +446,11 @@ def test_comprehensive_validation():
     print("    ✅ Content validation passed")
 
     # Test assertion function
-    try:
-        assert_tabular_data(valid_data, 
-                          expected_columns=["id", "name", "salary"],
-                          field_filter=["id", "name"],
-                          min_rows=2)
-        print("    ✅ Assertion function passed")
-    except AssertionError as e:
-        print(f"    ❌ Assertion function failed: {e}")
+    assert_tabular_data(valid_data, 
+                      expected_columns=["id", "name", "salary"],
+                      field_filter=["id", "name"],
+                      min_rows=2)
+    print("    ✅ Assertion function passed")
 
     # Test invalid data
     invalid_data = {
@@ -782,27 +756,23 @@ def test_attribute_fields_combinations():
         print(f"  📋 Testing: {test_case['name']}")
         res = requests.get(base_url, params=test_case["params"])
 
-        if res.status_code == 200:
-            data = res.json()
-            print(f"    ✅ Success: {test_case['name']}")
+        assert res.status_code == 200, f"{test_case['name']} - HTTP {res.status_code}: {res.text}"
+        
+        data = res.json()
+        print(f"    ✅ Success: {test_case['name']}")
 
-            # Decode and validate the response
-            if 'value' in data:
-                value = data['value']
-                decoded_data = decode_protobuf_any_value(value)
+        # Decode and validate the response
+        assert 'value' in data, f"No 'value' field in response for {test_case['name']}"
+        
+        value = data['value']
+        decoded_data = decode_protobuf_any_value(value)
 
-                try:
-                    assert_tabular_data(decoded_data,
-                                      expected_columns=test_case['expected_fields'],
-                                      field_filter=test_case['expected_fields'],
-                                      min_rows=test_case['min_rows'])
-                    print(f"    ✅ Validation passed for {test_case['name']}")
-                except AssertionError as e:
-                    print(f"    ❌ Validation failed for {test_case['name']}: {e}")
-            else:
-                print(f"    ⚠️ No 'value' field in response for {test_case['name']}")
-        else:
-            print(f"    ❌ Failed: {test_case['name']} - {res.status_code} - {res.text}")
+        # Validate the data - raises AssertionError if validation fails
+        assert_tabular_data(decoded_data,
+                          expected_columns=test_case['expected_fields'],
+                          field_filter=test_case['expected_fields'],
+                          min_rows=test_case['min_rows'])
+        print(f"    ✅ Validation passed for {test_case['name']}")
 
 
 def test_update_entity_attribute():
@@ -892,27 +862,23 @@ def test_update_entity_attribute():
         print(f"  📋 Testing: {test_case['name']}")
         res = requests.get(base_url, params=test_case["params"])
 
-        if res.status_code == 200:
-            data = res.json()
-            print(f"    ✅ Success: {test_case['name']}")
+        assert res.status_code == 200, f"{test_case['name']} - HTTP {res.status_code}: {res.text}"
+        
+        data = res.json()
+        print(f"    ✅ Success: {test_case['name']}")
 
-            # Decode and validate the response
-            if 'value' in data:
-                value = data['value']
-                decoded_data = decode_protobuf_any_value(value)
+        # Decode and validate the response
+        assert 'value' in data, f"No 'value' field in response for {test_case['name']}"
+        
+        value = data['value']
+        decoded_data = decode_protobuf_any_value(value)
 
-                try:
-                    assert_tabular_data(decoded_data,
-                                      expected_columns=test_case['expected_fields'],
-                                      field_filter=test_case['expected_fields'],
-                                      min_rows=test_case['min_rows'])
-                    print(f"    ✅ Validation passed for {test_case['name']}")
-                except AssertionError as e:
-                    print(f"    ❌ Validation failed for {test_case['name']}: {e}")
-            else:
-                print(f"    ⚠️ No 'value' field in response for {test_case['name']}")
-        else:
-            print(f"    ❌ Failed: {test_case['name']} - {res.status_code} - {res.text}")
+        # Validate the data - raises AssertionError if validation fails
+        assert_tabular_data(decoded_data,
+                          expected_columns=test_case['expected_fields'],
+                          field_filter=test_case['expected_fields'],
+                          min_rows=test_case['min_rows'])
+        print(f"    ✅ Validation passed for {test_case['name']}")
 
 
 def test_attribute_lookup():
@@ -926,28 +892,23 @@ def test_attribute_lookup():
     params = {"fields": fields}
     res = requests.get(url, params=params)
     
-    if res.status_code == 200:
-        data = res.json()
-        print(f"    ✅ Retrieved all fields: {data}")
-        
-        # Decode and validate the protobuf value
-        if 'value' in data:
-            value = data['value']
-            decoded_data = decode_protobuf_any_value(value)
-            print(f"    ✅ Decoded data: {decoded_data}")
-            
-            # Validate tabular data structure
-            try:
-                assert_tabular_data(decoded_data, 
-                                  expected_columns=["id", "e_id", "name", "age", "department", "salary"],
-                                  min_rows=5)
-                print("    ✅ All fields validation passed")
-            except AssertionError as e:
-                print(f"    ❌ All fields validation failed: {e}")
-        else:
-            print("    ⚠️ No 'value' field found in response")
-    else:
-        print(f"    ❌ Failed to get all fields: {res.status_code} - {res.text}")
+    assert res.status_code == 200, f"Failed to get all fields: {res.status_code} - {res.text}"
+    
+    data = res.json()
+    print(f"    ✅ Retrieved all fields: {data}")
+    
+    # Decode and validate the protobuf value
+    assert 'value' in data, "No 'value' field found in response"
+    
+    value = data['value']
+    decoded_data = decode_protobuf_any_value(value)
+    print(f"    ✅ Decoded data: {decoded_data}")
+    
+    # Validate tabular data structure
+    assert_tabular_data(decoded_data, 
+                      expected_columns=["id", "e_id", "name", "age", "department", "salary"],
+                      min_rows=5)
+    print("    ✅ All fields validation passed")
     
     # Test 2: Get specific fields only
     print("  📋 Testing specific fields retrieval...")
@@ -955,29 +916,24 @@ def test_attribute_lookup():
     params = {"fields": fields}
     res = requests.get(url, params=params)
     
-    if res.status_code == 200:
-        data = res.json()
-        print(f"    ✅ Retrieved fields {fields}: {data}")
-        
-        # Decode the protobuf value if present
-        if 'value' in data:
-            value = data['value']
-            decoded_data = decode_protobuf_any_value(value)
-            print(f"    ✅ Decoded data: {decoded_data}")
-            
-            # Validate filtered tabular data
-            try:
-                assert_tabular_data(decoded_data, 
-                                  expected_columns=fields,
-                                  field_filter=fields,
-                                  min_rows=5)
-                print("    ✅ Specific fields validation passed")
-            except AssertionError as e:
-                print(f"    ❌ Specific fields validation failed: {e}")
-        else:
-            print("    ⚠️ No 'value' field found in response")
-    else:
-        print(f"    ❌ Failed to get specific fields: {res.status_code} - {res.text}")
+    assert res.status_code == 200, f"Failed to get specific fields: {res.status_code} - {res.text}"
+    
+    data = res.json()
+    print(f"    ✅ Retrieved fields {fields}: {data}")
+    
+    # Decode the protobuf value if present
+    assert 'value' in data, "No 'value' field found in response"
+    
+    value = data['value']
+    decoded_data = decode_protobuf_any_value(value)
+    print(f"    ✅ Decoded data: {decoded_data}")
+    
+    # Validate filtered tabular data
+    assert_tabular_data(decoded_data, 
+                      expected_columns=fields,
+                      field_filter=fields,
+                      min_rows=5)
+    print("    ✅ Specific fields validation passed")
     
     # Test 3: Get fields with time range
     print("  📋 Testing fields with time range...")
@@ -987,29 +943,24 @@ def test_attribute_lookup():
     }
     res = requests.get(url, params=params)
     
-    if res.status_code == 200:
-        data = res.json()
-        print(f"    ✅ Retrieved filtered data: {data}")
-        
-        # Decode the protobuf value if present
-        if 'value' in data:
-            value = data['value']
-            decoded_data = decode_protobuf_any_value(value)
-            print(f"    ✅ Decoded data: {decoded_data}")
-            
-            # Validate filtered tabular data
-            try:
-                assert_tabular_data(decoded_data, 
-                                  expected_columns=["id", "name", "department"],
-                                  field_filter=["id", "name", "department"],
-                                  min_rows=5)
-                print("    ✅ Time-filtered fields validation passed")
-            except AssertionError as e:
-                print(f"    ❌ Time-filtered fields validation failed: {e}")
-        else:
-            print("    ⚠️ No 'value' field found in response")
-    else:
-        print(f"    ❌ Failed to get filtered data: {res.status_code} - {res.text}")
+    assert res.status_code == 200, f"Failed to get filtered data: {res.status_code} - {res.text}"
+    
+    data = res.json()
+    print(f"    ✅ Retrieved filtered data: {data}")
+    
+    # Decode the protobuf value if present
+    assert 'value' in data, "No 'value' field found in response"
+    
+    value = data['value']
+    decoded_data = decode_protobuf_any_value(value)
+    print(f"    ✅ Decoded data: {decoded_data}")
+    
+    # Validate filtered tabular data
+    assert_tabular_data(decoded_data, 
+                      expected_columns=["id", "name", "department"],
+                      field_filter=["id", "name", "department"],
+                      min_rows=5)
+    print("    ✅ Time-filtered fields validation passed")
     
     print("✅ Attribute lookup tests completed.")
 

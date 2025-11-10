@@ -104,7 +104,6 @@ class BasicCRUDTests:
             },
             "update": {
                 "id": self.entity_id,
-                "kind": {"major": "example", "minor": "test"},
                 "created": "2024-03-18T00:00:00Z",
                 "name": {
                     "startTime": "2024-03-18T00:00:00Z",

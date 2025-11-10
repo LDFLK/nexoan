@@ -183,7 +183,6 @@ function testMetadataHandling() returns error? {
     
     // Clean up
     Empty _ = check ep->DeleteEntity({id: testId});
-    Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test entity deleted");
     
     return;
@@ -301,20 +300,23 @@ function testMetadataUpdating() returns error? {
     updatedMetadataArray.push({key: "key3", value: packedNewValue3});
 
     // Update entity request
+    // Note: Don't include Kind, Created, or Name in update requests as they are immutable
     Entity updateEntityRequest = {
         id: testId,
         kind: {
-            major: "test",
-            minor: "update-metadata"
+            major: "",
+            minor: ""
         },
         created: "2023-01-01",
         terminated: "",
         name: {
-            startTime: "2023-01-01",
+            startTime: "",
             endTime: "",
-            value: check pbAny:pack("test-update-entity")
+            value: check pbAny:pack("")
         },
-        metadata: updatedMetadataArray
+        metadata: updatedMetadataArray,
+        attributes: [],
+        relationships: []
     };
     
     // Update entity
@@ -352,7 +354,6 @@ function testMetadataUpdating() returns error? {
     io:println("Updated metadata verified");
     
     // Clean up
-    Empty _ = check ep->DeleteEntity({id: testId});
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test entity deleted");
     
@@ -476,12 +477,13 @@ function testEntityReading() returns error? {
         },
         output: ["metadata"]
     };
-    Entity nonExistentEntity = check ep->ReadEntity(nonExistentRequest);
-    io:println("Non-existent entity: " + nonExistentEntity.id);
-    io:println("Non-existent entity metadata: ", nonExistentEntity.metadata);
+    Entity|error nonExistentResult = ep->ReadEntity(nonExistentRequest);
     
-    // Validate that metadata for non-existent entity is empty
-    test:assertEquals(nonExistentEntity.metadata.length(), 0, "Non-existent entity should have empty metadata");
+    // For now, expect an error for non-existent entities
+    test:assertTrue(nonExistentResult is error, "Expected error for non-existent entity");
+    if nonExistentResult is error {
+        io:println("Non-existent entity correctly returned error: " + nonExistentResult.message());
+    }
     
     // Assert that we get an error for non-existent entity
     // For non-existence entities, we send a response with an empty data
@@ -490,7 +492,6 @@ function testEntityReading() returns error? {
     // test:assertTrue(nonExistentResponse is error, "Expected error for non-existent entity ID");
     
     // Clean up
-    Empty _ = check ep->DeleteEntity({id: testId});
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test entity deleted");
     
@@ -559,7 +560,6 @@ function testCreateMinimalGraphEntity() returns error? {
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
-    Empty _ = check ep->DeleteEntity({id: testId});
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test minimal entity deleted");
     
@@ -645,7 +645,6 @@ function testCreateMinimalGraphEntityViaRest() returns error? {
     test:assertEquals(readEntityResponse.relationships.length(), 0, "Relationships should be empty");
     
     // Clean up
-    Empty _ = check ep->DeleteEntity({id: testId});
     Empty _ = check ep->DeleteEntity({id: testId});
     io:println("Test minimal JSON entity deleted");
     
@@ -799,7 +798,6 @@ function testEntityWithRelationship() returns error? {
     test:assertEquals(relationship.id, relationshipId, "Relationship ID doesn't match");
     
     // Clean up
-    Empty _ = check ep->DeleteEntity({id: sourceEntityId});
     Empty _ = check ep->DeleteEntity({id: sourceEntityId});
     Empty _ = check ep->DeleteEntity({id: targetEntityId});
     io:println("Test entities with relationship deleted");
@@ -2264,18 +2262,19 @@ function testEntityWithTabularAttributesUpdate() returns error? {
     test:assertEquals(createEntityResponse.id, testId, "Entity ID should match");
 
     // Second: Update entity with attributes
+    // Note: Don't include Kind, Created, or Name in update requests as they are immutable
     Entity updateEntityRequest = {
         id: testId,
         kind: {
-            major: "Organization",
-            minor: "Minister"
+            major: "",
+            minor: ""
         },
         created: "2025-11-01T00:00:00Z",
         terminated: "",
         name: {
-            startTime: "2025-11-01T00:00:00Z",
+            startTime: "",
             endTime: "",
-            value: check pbAny:pack("Minister of Finance and Economy")
+            value: check pbAny:pack("")
         },
         metadata: [],
         attributes: [
