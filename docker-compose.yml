@@ -76,7 +76,7 @@ services:
   cleanup:
     platform: linux/amd64
     build:
-      context: .
+      context: ./deployment/docker/cleanup
       dockerfile: Dockerfile.cleanup
     container_name: cleanup
     networks:
@@ -102,7 +102,7 @@ services:
   crud:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/crud-api
       dockerfile: Dockerfile.crud
       args:
         - DOCKER_DEFAULT_PLATFORM=linux/amd64
@@ -145,7 +145,7 @@ services:
   update:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/update-api
       dockerfile: Dockerfile.update
     container_name: update
     ports:
@@ -169,7 +169,7 @@ services:
   query:
     platform: linux/amd64
     build:
-      context: .
+      context: ./nexoan/query-api
       dockerfile: Dockerfile.query
     container_name: query
     ports:

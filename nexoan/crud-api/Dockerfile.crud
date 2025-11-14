@@ -47,12 +47,10 @@ WORKDIR /app
 COPY . .
 
 # Download dependencies
-RUN cd nexoan/crud-api && \
-    go mod download
+RUN go mod download
 
 # Build the application
-RUN cd nexoan/crud-api && \
-    go build -o crud-service cmd/server/service.go cmd/server/utils.go
+RUN go build -o crud-service cmd/server/service.go cmd/server/utils.go
 
 ## Create a new user with UID 10014
 # RUN addgroup -g 10014 choreo && \
@@ -90,8 +88,8 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Copy the built binary from builder stage
-COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
-COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
+COPY --from=builder /app/crud-service /usr/local/bin/
+COPY --from=builder /app /app/nexoan/crud-api
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
