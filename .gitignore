@@ -18,12 +18,9 @@ nexoan/.DS_Store
 .vscode/
 # Ballerina
 
-target/
-
 artifacts and env configs not to be committed
 nexoan/crud-api/.env
 .env
-nexoan/crud-api/crud-service
 
 # Neo4j
 docker/neo4j/config.env
@@ -41,9 +38,14 @@ nexoan/crud-api/crud-service.exe
 docker/neo4j/data/*
 docker/neo4j/logs/*
 
-#vscode
+#IDEs
 .vscode
+.idea
 
 #env
 nexoan/crud-api/.env.*
+
+#MCPs
+.serena
+
 
