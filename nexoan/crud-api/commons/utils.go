@@ -3,11 +3,12 @@ package commons
 import (
 	"encoding/json"
 	"fmt"
-	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
-	"lk/datafoundation/crud-api/pkg/storageinference"
 	"log"
 	"strings"
 	"time"
+
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
+	"lk/datafoundation/crud-api/pkg/storageinference"
 
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -60,7 +61,9 @@ func ConvertStorageTypeStringToEnum(storageTypeStr string) storageinference.Stor
 }
 
 // ExtractAttributeMetadataFields extracts attribute metadata fields from a MongoDB entity
-func ExtractAttributeMetadataFields(entity *pb.Entity) (storageTypeStr, storagePath, updatedStr string, schemaMap map[string]interface{}) {
+func ExtractAttributeMetadataFields(
+	entity *pb.Entity,
+) (storageTypeStr, storagePath, updatedStr string, schemaMap map[string]interface{}) {
 	// attribute_id, attribute_name, storage_type, storage_path, updated, schema
 	if entity == nil || entity.Metadata == nil {
 		return "", "", "", make(map[string]interface{})
@@ -74,7 +77,13 @@ func ExtractAttributeMetadataFields(entity *pb.Entity) (storageTypeStr, storageP
 	updatedStr = ExtractStringFromAny(metadataMap["updated"])
 	schemaStr := ExtractStringFromAny(metadataMap["schema"])
 
-	log.Printf("[Commons.ExtractAttributeMetadataFields] storageTypeStr: %s, storagePath: %s, updatedStr: %s, schemaStr: %s", storageTypeStr, storagePath, updatedStr, schemaStr)
+	log.Printf(
+		"[Commons.ExtractAttributeMetadataFields] storageTypeStr: %s, storagePath: %s, updatedStr: %s, schemaStr: %s",
+		storageTypeStr,
+		storagePath,
+		updatedStr,
+		schemaStr,
+	)
 
 	// Convert schema JSON string to map
 	schemaMap, err := ConvertJSONStringToMap(schemaStr)
@@ -149,7 +158,11 @@ func ParseTimestamp(timestampStr string, context string) time.Time {
 
 	parsed, err := time.Parse(time.RFC3339, timestampStr)
 	if err != nil {
-		log.Printf("[Commons.ParseTimestamp] Warning: Failed to parse timestamp '%s' for %s, using zero value", timestampStr, context)
+		log.Printf(
+			"[Commons.ParseTimestamp] Warning: Failed to parse timestamp '%s' for %s, using zero value",
+			timestampStr,
+			context,
+		)
 		return time.Time{} // Return zero value for invalid timestamps
 	}
 

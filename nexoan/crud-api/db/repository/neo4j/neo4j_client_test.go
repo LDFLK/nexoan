@@ -96,7 +96,12 @@ func TestCreateEntity(t *testing.T) {
 	// Verify that the returned entity has the correct values
 	assert.Equal(t, "1", createdEntity["Id"], "Expected entity to have the correct Id")
 	assert.Equal(t, "John Doe", createdEntity["Name"], "Expected entity to have the correct Name")
-	assert.Equal(t, "2025-03-18T00:00:00Z", createdEntity["Created"], "Expected entity to have the correct Created date")
+	assert.Equal(
+		t,
+		"2025-03-18T00:00:00Z",
+		createdEntity["Created"],
+		"Expected entity to have the correct Created date",
+	)
 	assert.Equal(t, "Minister", createdEntity["MinorKind"], "Expected entity to have the correct MinorKind")
 	assert.Nil(t, createdEntity["Terminated"], "Expected entity to have no Terminated field")
 }
@@ -145,7 +150,12 @@ func TestCreateRelationship(t *testing.T) {
 
 	// Verify that the returned relationship has the correct values
 	assert.Equal(t, "101", createdRelationship["Id"], "Expected relationship to have the correct Id")
-	assert.Equal(t, "2025-03-18T00:00:00Z", createdRelationship["Created"], "Expected relationship to have the correct Created date")
+	assert.Equal(
+		t,
+		"2025-03-18T00:00:00Z",
+		createdRelationship["Created"],
+		"Expected relationship to have the correct Created date",
+	)
 	assert.Equal(t, "KNOWS", createdRelationship["relationshipType"], "Expected relationship to have the correct type")
 }
 
@@ -170,7 +180,12 @@ func TestReadEntity(t *testing.T) {
 	assert.Nil(t, err, "Expected no error when creating the entity")
 	assert.Equal(t, entity["Id"], createdEntity["Id"], "Expected created entity to have the correct Id")
 	assert.Equal(t, entity["Name"], createdEntity["Name"], "Expected created entity to have the correct Name")
-	assert.Equal(t, "2025-03-18T00:00:00Z", createdEntity["Created"], "Expected created entity to have the correct Created date")
+	assert.Equal(
+		t,
+		"2025-03-18T00:00:00Z",
+		createdEntity["Created"],
+		"Expected created entity to have the correct Created date",
+	)
 
 	// Read the entity by Id
 	readEntity, err := repository.ReadGraphEntity(ctx, "6")
@@ -345,7 +360,12 @@ func TestReadRelationship(t *testing.T) {
 	assert.Equal(t, "KNOWS", relationshipMap["type"], "Expected relationship type to be KNOWS")
 	assert.Equal(t, "9", relationshipMap["startEntityID"], "Expected start entity ID to be 9 (David's ID)")
 	assert.Equal(t, "10", relationshipMap["endEntityID"], "Expected end entity ID to be 10 (Eve's ID)")
-	assert.Equal(t, "2025-03-18T00:00:00Z", relationshipMap["Created"], "Expected start date to be 2025-03-18T00:00:00Z")
+	assert.Equal(
+		t,
+		"2025-03-18T00:00:00Z",
+		relationshipMap["Created"],
+		"Expected start date to be 2025-03-18T00:00:00Z",
+	)
 
 	// Optional: Assert the endDate is nil (since it wasn't set in the creation)
 	assert.Nil(t, relationshipMap["Terminated"], "Expected end date to be nil")
@@ -448,7 +468,12 @@ func TestUpdateRelationship(t *testing.T) {
 	assert.Nil(t, err, "Expected no error when reading updated relationship")
 
 	// Check if the relationship has the updated endDate
-	assert.Equal(t, "2025-12-31T00:00:00Z", fetchedRelationship["Terminated"], "Expected relationship to have updated endDate")
+	assert.Equal(
+		t,
+		"2025-12-31T00:00:00Z",
+		fetchedRelationship["Terminated"],
+		"Expected relationship to have updated endDate",
+	)
 }
 
 func TestDeleteRelationship(t *testing.T) {
@@ -557,7 +582,12 @@ func TestDeleteEntity(t *testing.T) {
 	// Try to delete entity with relationships (should fail)
 	err = repository.DeleteGraphEntity(ctx, "delete_entity_2")
 	assert.NotNil(t, err, "Expected error when deleting entity with relationships")
-	assert.Contains(t, err.Error(), "entity has relationships and cannot be deleted", "Expected error message to indicate relationships prevent deletion")
+	assert.Contains(
+		t,
+		err.Error(),
+		"entity has relationships and cannot be deleted",
+		"Expected error message to indicate relationships prevent deletion",
+	)
 }
 
 func TestAddMinistriesAndDepartments(t *testing.T) {
@@ -657,7 +687,13 @@ func TestAddMinistriesAndDepartments(t *testing.T) {
 			}
 
 			_, err = repository.CreateRelationship(ctx, ministry.id, relationship)
-			assert.Nil(t, err, "Failed to create relationship between ministry %s and department %s", ministry.name, department.name)
+			assert.Nil(
+				t,
+				err,
+				"Failed to create relationship between ministry %s and department %s",
+				ministry.name,
+				department.name,
+			)
 		}
 	}
 }
@@ -811,7 +847,12 @@ func TestUpdateRelationshipFields(t *testing.T) {
 	// Verify no new relationships were created
 	allRelsAfterCreated, err := repository.ReadRelationships(ctx, "update_test_entity_1")
 	assert.Nil(t, err, "Expected no error reading relationships after Created update")
-	assert.Equal(t, totalRelsBefore, len(allRelsAfterCreated), "Expected same number of relationships after Created update")
+	assert.Equal(
+		t,
+		totalRelsBefore,
+		len(allRelsAfterCreated),
+		"Expected same number of relationships after Created update",
+	)
 
 	// Test 2: Update only Terminated field
 	updateTerminated := map[string]interface{}{
@@ -826,7 +867,12 @@ func TestUpdateRelationshipFields(t *testing.T) {
 	// Verify no new relationships were created
 	allRelsAfterTerminated, err := repository.ReadRelationships(ctx, "update_test_entity_1")
 	assert.Nil(t, err, "Expected no error reading relationships after Terminated update")
-	assert.Equal(t, totalRelsBefore, len(allRelsAfterTerminated), "Expected same number of relationships after Terminated update")
+	assert.Equal(
+		t,
+		totalRelsBefore,
+		len(allRelsAfterTerminated),
+		"Expected same number of relationships after Terminated update",
+	)
 
 	// Test 3: Update both Created and Terminated fields
 	updateBoth := map[string]interface{}{
@@ -843,7 +889,12 @@ func TestUpdateRelationshipFields(t *testing.T) {
 	// Verify no new relationships were created
 	allRelsAfterBoth, err := repository.ReadRelationships(ctx, "update_test_entity_1")
 	assert.Nil(t, err, "Expected no error reading relationships after both fields update")
-	assert.Equal(t, totalRelsBefore, len(allRelsAfterBoth), "Expected same number of relationships after both fields update")
+	assert.Equal(
+		t,
+		totalRelsBefore,
+		len(allRelsAfterBoth),
+		"Expected same number of relationships after both fields update",
+	)
 
 	// Test 4: Try to update Name field (should fail - only Created and Terminated allowed)
 	updateName := map[string]interface{}{
@@ -955,7 +1006,12 @@ func TestReadFilteredRelationships(t *testing.T) {
 	rels, err := repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{}, "")
 	log.Printf("ReadFilteredRelationships response (no filters): %+v", rels)
 	assert.Nil(t, err, "Expected no error when reading filtered relationships with no filters")
-	assert.Equal(t, 3, len(rels), "Expected exactly 3 relationships for entity A with no filters (2 outgoing + 1 incoming)")
+	assert.Equal(
+		t,
+		3,
+		len(rels),
+		"Expected exactly 3 relationships for entity A with no filters (2 outgoing + 1 incoming)",
+	)
 
 	// // 2. Filter by relationship type (name)
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"name": "FRIEND"}, "")
@@ -968,7 +1024,12 @@ func TestReadFilteredRelationships(t *testing.T) {
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"relatedEntityId": "B"}, "")
 	log.Printf("ReadFilteredRelationships response (only relatedEntityId): %+v", rels)
 	assert.Nil(t, err, "Expected no error when filtering by relatedEntityId")
-	assert.Equal(t, 3, len(rels), "Expected exactly 3 relationships where B is the related entity (2 outgoing to B, 1 incoming from B)")
+	assert.Equal(
+		t,
+		3,
+		len(rels),
+		"Expected exactly 3 relationships where B is the related entity (2 outgoing to B, 1 incoming from B)",
+	)
 
 	// // 4. Filter by direction OUTGOING
 	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"direction": "OUTGOING"}, "")
@@ -987,14 +1048,24 @@ func TestReadFilteredRelationships(t *testing.T) {
 	}
 
 	// // 6. Filter by startTime (exact match)
-	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"startTime": "2025-04-01T00:00:00Z"}, "")
+	rels, err = repository.ReadFilteredRelationships(
+		ctx,
+		"A",
+		map[string]interface{}{"startTime": "2025-04-01T00:00:00Z"},
+		"",
+	)
 	log.Printf("ReadFilteredRelationships response (only startTime): %+v", rels)
 	assert.Nil(t, err, "Expected no error when filtering by startTime")
 	assert.Equal(t, 1, len(rels), "Expected 1 relationship with startTime 2025-04-01T00:00:00Z")
 	assert.Equal(t, "2025-04-01T00:00:00Z", rels[0]["startTime"])
 
 	// // 7. Filter by endTime (exact match)
-	rels, err = repository.ReadFilteredRelationships(ctx, "A", map[string]interface{}{"endTime": "2025-05-01T00:00:00Z"}, "")
+	rels, err = repository.ReadFilteredRelationships(
+		ctx,
+		"A",
+		map[string]interface{}{"endTime": "2025-05-01T00:00:00Z"},
+		"",
+	)
 	log.Printf("ReadFilteredRelationships response (only endTime): %+v", rels)
 	assert.Nil(t, err, "Expected no error when filtering by endTime")
 	assert.Equal(t, 1, len(rels), "Expected 1 relationship with endTime 2025-05-01T00:00:00Z")

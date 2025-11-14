@@ -14,8 +14,10 @@ import (
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 )
 
-var testRepo *MongoRepository
-var testCtx context.Context
+var (
+	testRepo *MongoRepository
+	testCtx  context.Context
+)
 
 // Helper function to get DB name from the repository
 func (r *MongoRepository) GetDBName() string {

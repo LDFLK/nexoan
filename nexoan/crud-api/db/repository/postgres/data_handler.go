@@ -316,7 +316,8 @@ func validateDataAgainstSchema(data *structpb.Struct, schemaInfo *schema.SchemaI
 			// Validate type
 			switch fieldSchema.TypeInfo.Type {
 			case typeinference.IntType:
-				if v, ok := value.Kind.(*structpb.Value_NumberValue); !ok || v.NumberValue != float64(int64(v.NumberValue)) {
+				if v, ok := value.Kind.(*structpb.Value_NumberValue); !ok ||
+					v.NumberValue != float64(int64(v.NumberValue)) {
 					return fmt.Errorf("row %d, column %s: expected integer, got %v", i, colName, value)
 				}
 			case typeinference.FloatType:
@@ -392,7 +393,12 @@ func isTypeCompatible(existingType, newType typeinference.DataType) bool {
 }
 
 // handleTabularData processes tabular data attributes
-func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue, schemaInfo *schema.SchemaInfo) error {
+func (repo *PostgresRepository) HandleTabularData(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+	schemaInfo *schema.SchemaInfo,
+) error {
 	// Generate table name
 	tableName := fmt.Sprintf("attr_%s_%s", commons.SanitizeIdentifier(entityID), commons.SanitizeIdentifier(attrName))
 
@@ -410,7 +416,8 @@ func (repo *PostgresRepository) HandleTabularData(ctx context.Context, entityID,
 		var schemaJSON []byte
 		err = repo.DB().QueryRowContext(ctx,
 			`SELECT schema_definition FROM attribute_schemas WHERE table_name = $1 ORDER BY schema_version DESC LIMIT 1`,
-			tableName).Scan(&schemaJSON)
+			tableName).
+			Scan(&schemaJSON)
 		if err != nil {
 			return fmt.Errorf("error getting existing schema: %v", err)
 		}
@@ -633,7 +640,12 @@ type TabularData struct {
 }
 
 // GetData retrieves data from a table with optional field selection and filters, returns it as pb.Any with JSON-formatted tabular data.
-func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, filters map[string]interface{}, fields ...string) (*anypb.Any, error) {
+func (repo *PostgresRepository) GetData(
+	ctx context.Context,
+	tableName string,
+	filters map[string]interface{},
+	fields ...string,
+) (*anypb.Any, error) {
 	log.Printf("DEBUG: GetData: tableName=%s, \t\nfilters=%v, \t\nfields=%v", tableName, filters, fields)
 	// Build the SELECT clause
 	var selectClause string
@@ -708,7 +720,10 @@ func (repo *PostgresRepository) GetData(ctx context.Context, tableName string, f
 					}
 				}
 				if found {
-					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' included (explicitly requested)", column)
+					log.Printf(
+						"INFO: [DataHandler.GetData] Internal column '%s' included (explicitly requested)",
+						column,
+					)
 				} else {
 					log.Printf("INFO: [DataHandler.GetData] Internal column '%s' filtered out (not requested)", column)
 				}

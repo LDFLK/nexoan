@@ -3,10 +3,11 @@ package neo4jrepository
 import (
 	"context"
 	"fmt"
-	"lk/datafoundation/crud-api/db/config"
-	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"log"
 	"time"
+
+	"lk/datafoundation/crud-api/db/config"
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
@@ -55,7 +56,11 @@ func (r *Neo4jRepository) getSession(ctx context.Context) neo4j.SessionWithConte
 }
 
 // CreateGraphEntity checks if an entity exists and creates it if it doesn't
-func (r *Neo4jRepository) CreateGraphEntity(ctx context.Context, kind *pb.Kind, entityMap map[string]interface{}) (map[string]interface{}, error) {
+func (r *Neo4jRepository) CreateGraphEntity(
+	ctx context.Context,
+	kind *pb.Kind,
+	entityMap map[string]interface{},
+) (map[string]interface{}, error) {
 	// Validate the kind parameter
 	if kind == nil || kind.Major == "" {
 		log.Printf("[neo4j_client.CreateGraphEntity] missing or invalid 'Kind.Major' field")
@@ -189,7 +194,11 @@ func (r *Neo4jRepository) CreateGraphEntity(ctx context.Context, kind *pb.Kind, 
 }
 
 // CreateRelationship creates a relationship between two entities
-func (r *Neo4jRepository) CreateRelationship(ctx context.Context, entityID string, rel *pb.Relationship) (map[string]interface{}, error) {
+func (r *Neo4jRepository) CreateRelationship(
+	ctx context.Context,
+	entityID string,
+	rel *pb.Relationship,
+) (map[string]interface{}, error) {
 	session := r.getSession(ctx)
 	defer session.Close(ctx)
 
@@ -341,7 +350,12 @@ func (r *Neo4jRepository) ReadGraphEntity(ctx context.Context, entityID string) 
 }
 
 // ReadRelatedGraphEntityIds retrieves related relationships based on a given relationship type and timestamp
-func (r *Neo4jRepository) ReadRelatedGraphEntityIds(ctx context.Context, entityID string, relationship string, ts string) ([]map[string]interface{}, error) {
+func (r *Neo4jRepository) ReadRelatedGraphEntityIds(
+	ctx context.Context,
+	entityID string,
+	relationship string,
+	ts string,
+) ([]map[string]interface{}, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("entity Id cannot be empty")
 	}
@@ -418,7 +432,6 @@ func (r *Neo4jRepository) ReadRelatedGraphEntityIds(ctx context.Context, entityI
 }
 
 func (r *Neo4jRepository) ReadRelationships(ctx context.Context, entityID string) ([]map[string]interface{}, error) {
-
 	if entityID == "" {
 		return nil, fmt.Errorf("entity Id cannot be empty")
 	}
@@ -484,7 +497,6 @@ func (r *Neo4jRepository) ReadRelationships(ctx context.Context, entityID string
 }
 
 func (r *Neo4jRepository) ReadRelationship(ctx context.Context, relationshipID string) (map[string]interface{}, error) {
-
 	if relationshipID == "" {
 		return nil, fmt.Errorf("relationship Id cannot be empty")
 	}
@@ -545,7 +557,11 @@ func (r *Neo4jRepository) ReadRelationship(ctx context.Context, relationshipID s
 }
 
 // UpdateGraphEntity updates the properties of an existing entity
-func (r *Neo4jRepository) UpdateGraphEntity(ctx context.Context, id string, updateData map[string]interface{}) (map[string]interface{}, error) {
+func (r *Neo4jRepository) UpdateGraphEntity(
+	ctx context.Context,
+	id string,
+	updateData map[string]interface{},
+) (map[string]interface{}, error) {
 	if id == "" {
 		return nil, fmt.Errorf("entity Id cannot be empty")
 	}
@@ -627,7 +643,11 @@ func (r *Neo4jRepository) UpdateGraphEntity(ctx context.Context, id string, upda
 	return nil, fmt.Errorf("failed to retrieve updated entity")
 }
 
-func (r *Neo4jRepository) UpdateRelationship(ctx context.Context, relationshipID string, updateData map[string]interface{}) (map[string]interface{}, error) {
+func (r *Neo4jRepository) UpdateRelationship(
+	ctx context.Context,
+	relationshipID string,
+	updateData map[string]interface{},
+) (map[string]interface{}, error) {
 	log.Printf("[neo4j_client.UpdateRelationship] Updating relationship %s with data: %+v", relationshipID, updateData)
 
 	if relationshipID == "" {
@@ -691,7 +711,10 @@ func (r *Neo4jRepository) UpdateRelationship(ctx context.Context, relationshipID
 	for key := range updateData {
 		if key != "Created" && key != "Terminated" {
 			log.Printf("[neo4j_client.UpdateRelationship] unsupported field '%s' provided for update", key)
-			return nil, fmt.Errorf("unsupported field '%s' for relationship update. Only 'Created' and 'Terminated' are allowed", key)
+			return nil, fmt.Errorf(
+				"unsupported field '%s' for relationship update. Only 'Created' and 'Terminated' are allowed",
+				key,
+			)
 		}
 	}
 
@@ -813,7 +836,10 @@ func (r *Neo4jRepository) DeleteGraphEntity(ctx context.Context, entityID string
 
 	// If there are relationships, return an error with relationship details
 	if len(relationships) > 0 {
-		log.Printf("[neo4j_client.DeleteGraphEntity] entity has relationships and cannot be deleted. Relationships: %v", relationships)
+		log.Printf(
+			"[neo4j_client.DeleteGraphEntity] entity has relationships and cannot be deleted. Relationships: %v",
+			relationships,
+		)
 		return fmt.Errorf("entity has relationships and cannot be deleted. Relationships: %v", relationships)
 	}
 
@@ -828,7 +854,11 @@ func (r *Neo4jRepository) DeleteGraphEntity(ctx context.Context, entityID string
 	return nil
 }
 
-func (r *Neo4jRepository) FilterEntities(ctx context.Context, kind *pb.Kind, filters map[string]interface{}) ([]map[string]interface{}, error) {
+func (r *Neo4jRepository) FilterEntities(
+	ctx context.Context,
+	kind *pb.Kind,
+	filters map[string]interface{},
+) ([]map[string]interface{}, error) {
 	// Open a session
 	session := r.getSession(ctx)
 	defer session.Close(ctx)
@@ -924,7 +954,12 @@ func (r *Neo4jRepository) FilterEntities(ctx context.Context, kind *pb.Kind, fil
 }
 
 // ReadFilteredRelationships retrieves relationships for an entity based on provided filters
-func (r *Neo4jRepository) ReadFilteredRelationships(ctx context.Context, entityID string, relationshipFilters map[string]interface{}, activeAt string) ([]map[string]interface{}, error) {
+func (r *Neo4jRepository) ReadFilteredRelationships(
+	ctx context.Context,
+	entityID string,
+	relationshipFilters map[string]interface{},
+	activeAt string,
+) ([]map[string]interface{}, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("entity Id cannot be empty")
 	}
@@ -998,7 +1033,11 @@ func (r *Neo4jRepository) ReadFilteredRelationships(ctx context.Context, entityI
 	if activeAt != "" {
 		paramName := fmt.Sprintf("activeAt%d", paramIndex)
 		params[paramName] = activeAt
-		activeAtCondition := fmt.Sprintf(` AND r.Created <= datetime($%s) AND (r.Terminated IS NULL OR r.Terminated > datetime($%s))`, paramName, paramName)
+		activeAtCondition := fmt.Sprintf(
+			` AND r.Created <= datetime($%s) AND (r.Terminated IS NULL OR r.Terminated > datetime($%s))`,
+			paramName,
+			paramName,
+		)
 		outgoingQuery += activeAtCondition
 		incomingQuery += activeAtCondition
 		paramIndex++

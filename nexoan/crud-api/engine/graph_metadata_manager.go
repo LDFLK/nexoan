@@ -159,7 +159,10 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 	// Check if the attribute node already exists
 	existingEntity, err := neo4jRepository.ReadGraphEntity(ctx, metadata.AttributeID)
 	if err == nil && existingEntity != nil {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Attribute node already exists: %s, skipping creation", metadata.AttributeID)
+		log.Printf(
+			"[GraphMetadataManager.CreateAttribute] Attribute node already exists: %s, skipping creation",
+			metadata.AttributeID,
+		)
 		// Node already exists, we can still proceed to create/update the relationship
 	} else {
 		// Node doesn't exist, create it
@@ -180,7 +183,11 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 		}
 	}
 
-	log.Printf("[GraphMetadataManager.CreateAttribute] Successfully created relationship for entity: %s, attribute: %s", metadata.EntityID, metadata.AttributeName)
+	log.Printf(
+		"[GraphMetadataManager.CreateAttribute] Successfully created relationship for entity: %s, attribute: %s",
+		metadata.EntityID,
+		metadata.AttributeName,
+	)
 
 	// create the attribute metadata in the mongo database
 	// stored parameters: attribute_id, attribute_name, storage_type, storage_path, updated, schema
@@ -189,7 +196,10 @@ func (g *GraphMetadataManager) createAttributeLookUpGraph(ctx context.Context, m
 	// Check if the attribute metadata already exists
 	existingMetadata, err := mongoRepository.ReadEntity(ctx, metadata.AttributeID)
 	if err == nil && existingMetadata != nil {
-		log.Printf("[GraphMetadataManager.CreateAttribute] Attribute metadata already exists: %s, skipping creation", metadata.AttributeID)
+		log.Printf(
+			"[GraphMetadataManager.CreateAttribute] Attribute metadata already exists: %s, skipping creation",
+			metadata.AttributeID,
+		)
 	} else {
 		// Metadata doesn't exist, create it
 		_, err = mongoRepository.CreateEntity(ctx, attributeNode)
@@ -242,7 +252,12 @@ func MakeRelationshipFromAttributeMetadata(metadata *AttributeMetadata) *pb.Rela
 }
 
 // GetAttributeMetadata retrieves metadata for an attribute
-func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string, attributeName string, startTime time.Time) (*AttributeMetadata, error) {
+func (g *GraphMetadataManager) GetAttribute(
+	ctx context.Context,
+	entityID string,
+	attributeName string,
+	startTime time.Time,
+) (*AttributeMetadata, error) {
 	fmt.Printf("Getting attribute metadata: EntityID=%s, AttributeName=%s\n", entityID, attributeName)
 
 	neo4jRepository, err := dbcommons.GetNeo4jRepository(ctx)
@@ -252,7 +267,16 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	}
 
 	// Get all IS_ATTRIBUTE relationships for the entity
-	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION, "startTime": startTime.Format(time.RFC3339)}, "")
+	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(
+		ctx,
+		entityID,
+		map[string]interface{}{
+			"name":      IS_ATTRIBUTE_RELATIONSHIP,
+			"direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION,
+			"startTime": startTime.Format(time.RFC3339),
+		},
+		"",
+	)
 	if err != nil {
 		log.Printf("[GraphMetadataManager.GetAttribute] Error getting relationships: %v", err)
 		return nil, err
@@ -294,7 +318,11 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	}
 
 	if !found {
-		log.Printf("[GraphMetadataManager.GetAttribute] Attribute '%s' not found for entity %s", attributeName, entityID)
+		log.Printf(
+			"[GraphMetadataManager.GetAttribute] Attribute '%s' not found for entity %s",
+			attributeName,
+			entityID,
+		)
 		return nil, fmt.Errorf("attribute '%s' not found for entity %s", attributeName, entityID)
 	}
 
@@ -302,12 +330,24 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	mongoRepository := dbcommons.GetMongoRepository(ctx)
 	attributeMetadataEntity, err := mongoRepository.ReadEntity(ctx, targetAttributeID)
 	if err != nil {
-		log.Printf("[GraphMetadataManager.GetAttribute] Error getting attribute metadata from MongoDB for attribute %s (entity %s): %v", targetAttributeID, entityID, err)
-		return nil, fmt.Errorf("failed to get attribute metadata from MongoDB for attribute %s (entity %s): %w", targetAttributeID, entityID, err)
+		log.Printf(
+			"[GraphMetadataManager.GetAttribute] Error getting attribute metadata from MongoDB for attribute %s (entity %s): %v",
+			targetAttributeID,
+			entityID,
+			err,
+		)
+		return nil, fmt.Errorf(
+			"failed to get attribute metadata from MongoDB for attribute %s (entity %s): %w",
+			targetAttributeID,
+			entityID,
+			err,
+		)
 	}
 
 	// Extract metadata fields
-	storageTypeStr, storagePathStr, updatedStr, schemaMap := commons.ExtractAttributeMetadataFields(attributeMetadataEntity)
+	storageTypeStr, storagePathStr, updatedStr, schemaMap := commons.ExtractAttributeMetadataFields(
+		attributeMetadataEntity,
+	)
 
 	// Convert storage type string to StorageType enum
 	storageType := commons.ConvertStorageTypeStringToEnum(storageTypeStr)
@@ -316,12 +356,22 @@ func (g *GraphMetadataManager) GetAttribute(ctx context.Context, entityID string
 	// Get creation time from the attribute entity
 	_, _, createdTimeStr, _, err := neo4jRepository.GetGraphEntity(ctx, targetAttributeID)
 	if err != nil {
-		log.Printf("[GraphMetadataManager.GetAttribute] Error getting creation time for attribute %s: %v", targetAttributeID, err)
+		log.Printf(
+			"[GraphMetadataManager.GetAttribute] Error getting creation time for attribute %s: %v",
+			targetAttributeID,
+			err,
+		)
 		createdTimeStr = ""
 	}
 
-	createdTime := commons.ParseTimestamp(createdTimeStr, fmt.Sprintf("attribute %s (entity %s) creation time", targetAttributeID, entityID))
-	updatedTime := commons.ParseTimestamp(updatedStr, fmt.Sprintf("attribute %s (entity %s) update time", targetAttributeID, entityID))
+	createdTime := commons.ParseTimestamp(
+		createdTimeStr,
+		fmt.Sprintf("attribute %s (entity %s) creation time", targetAttributeID, entityID),
+	)
+	updatedTime := commons.ParseTimestamp(
+		updatedStr,
+		fmt.Sprintf("attribute %s (entity %s) update time", targetAttributeID, entityID),
+	)
 
 	return &AttributeMetadata{
 		EntityID:      entityID,
@@ -345,7 +395,12 @@ func (g *GraphMetadataManager) ListAttributes(ctx context.Context, entityID stri
 		return nil, err
 	}
 
-	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(ctx, entityID, map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION}, "")
+	filteredRelationships, err := neo4jRepository.ReadFilteredRelationships(
+		ctx,
+		entityID,
+		map[string]interface{}{"name": IS_ATTRIBUTE_RELATIONSHIP, "direction": IS_ATTRIBUTE_RELATIONSHIP_DIRECTION},
+		"",
+	)
 	if err != nil {
 		log.Printf("[GraphMetadataManager.ListAttributes] Error getting relationships: %v", err)
 		return nil, err
@@ -364,8 +419,18 @@ func (g *GraphMetadataManager) ListAttributes(ctx context.Context, entityID stri
 		// TODO: determine if an attribute needs to be teriminated based on various conditions.
 		_, attributeName, createdTimeStr, _, err := neo4jRepository.GetGraphEntity(ctx, attributeID)
 		if err != nil {
-			log.Printf("[GraphMetadataManager.ListAttributes] Error verifying attribute %s in graph for entity %s: %v", attributeID, entityID, err)
-			return nil, fmt.Errorf("failed to verify attribute %s in graph for entity %s: %w", attributeID, entityID, err)
+			log.Printf(
+				"[GraphMetadataManager.ListAttributes] Error verifying attribute %s in graph for entity %s: %v",
+				attributeID,
+				entityID,
+				err,
+			)
+			return nil, fmt.Errorf(
+				"failed to verify attribute %s in graph for entity %s: %w",
+				attributeID,
+				entityID,
+				err,
+			)
 		}
 
 		attributeNameStr := commons.ExtractStringFromAny(attributeName.Value)
@@ -374,19 +439,37 @@ func (g *GraphMetadataManager) ListAttributes(ctx context.Context, entityID stri
 		mongoRepository := dbcommons.GetMongoRepository(ctx)
 		attributeMetadataEntity, err := mongoRepository.ReadEntity(ctx, attributeID)
 		if err != nil {
-			log.Printf("[GraphMetadataManager.ListAttributes] Error getting attribute metadata from MongoDB for attribute %s (entity %s): %v", attributeID, entityID, err)
-			return nil, fmt.Errorf("failed to get attribute metadata from MongoDB for attribute %s (entity %s): %w", attributeID, entityID, err)
+			log.Printf(
+				"[GraphMetadataManager.ListAttributes] Error getting attribute metadata from MongoDB for attribute %s (entity %s): %v",
+				attributeID,
+				entityID,
+				err,
+			)
+			return nil, fmt.Errorf(
+				"failed to get attribute metadata from MongoDB for attribute %s (entity %s): %w",
+				attributeID,
+				entityID,
+				err,
+			)
 		}
 
 		// Extract attribute metadata fields using utility function
-		storageTypeStr, storagePathStr, updatedStr, schemaMap := commons.ExtractAttributeMetadataFields(attributeMetadataEntity)
+		storageTypeStr, storagePathStr, updatedStr, schemaMap := commons.ExtractAttributeMetadataFields(
+			attributeMetadataEntity,
+		)
 
 		// Convert storage type string to StorageType enum using utility function
 		storageType := commons.ConvertStorageTypeStringToEnum(storageTypeStr)
 
 		// Parse timestamps using utility function
-		createdTime := commons.ParseTimestamp(createdTimeStr, fmt.Sprintf("attribute %s (entity %s) creation time", attributeID, entityID))
-		updatedTime := commons.ParseTimestamp(updatedStr, fmt.Sprintf("attribute %s (entity %s) update time", attributeID, entityID))
+		createdTime := commons.ParseTimestamp(
+			createdTimeStr,
+			fmt.Sprintf("attribute %s (entity %s) creation time", attributeID, entityID),
+		)
+		updatedTime := commons.ParseTimestamp(
+			updatedStr,
+			fmt.Sprintf("attribute %s (entity %s) update time", attributeID, entityID),
+		)
 
 		attrMetadata := &AttributeMetadata{
 			EntityID:      entityID,

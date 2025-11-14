@@ -137,7 +137,9 @@ func (si *StorageInferrer) InferType(anyValue *anypb.Any) (StorageType, error) {
 	}
 
 	// If none of the above, return an error
-	return UnknownData, fmt.Errorf("unable to determine storage type: data structure does not match tabular, graph, list, scalar, or map formats")
+	return UnknownData, fmt.Errorf(
+		"unable to determine storage type: data structure does not match tabular, graph, list, scalar, or map formats",
+	)
 }
 
 // isTabular checks if a struct represents tabular data

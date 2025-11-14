@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	"log"
+
+	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 )
 
 func debugMetadata(req *pb.Entity) {
-
 	log.Printf("Reading Entity metadata: %s", req.Id)
 	fmt.Println("DEBUG - Received request:")
 	fmt.Printf("DEBUG - Entity ID: %s\n", req.Id)
@@ -27,11 +27,9 @@ func debugMetadata(req *pb.Entity) {
 			fmt.Println("DEBUG - Metadata value is nil")
 		}
 	}
-
 }
 
 func debugUtils(req *pb.Entity) {
-
 	// Print attributes if present
 	fmt.Println("DEBUG - Attributes count:", len(req.Attributes))
 	for key, valueList := range req.Attributes {

@@ -148,16 +148,16 @@ func (r *PostgresRepository) TableExists(ctx context.Context, tableName string) 
 func (r *PostgresRepository) CreateDynamicTable(ctx context.Context, tableName string, columns []Column) error {
 	// Build column definitions
 	var columnDefs []string
-	
+
 	// Add primary key and entity_attribute_id first
 	columnDefs = append(columnDefs, "id SERIAL PRIMARY KEY")
 	columnDefs = append(columnDefs, "entity_attribute_id INTEGER REFERENCES entity_attributes(id)")
-	
+
 	// Add the rest of the columns
 	for _, col := range columns {
 		columnDefs = append(columnDefs, fmt.Sprintf("%s %s", col.Name, col.Type))
 	}
-	
+
 	// Add created_at timestamp at the end
 	columnDefs = append(columnDefs, "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
@@ -176,7 +176,13 @@ func (r *PostgresRepository) CreateDynamicTable(ctx context.Context, tableName s
 }
 
 // InsertTabularData inserts rows into a dynamic table
-func (r *PostgresRepository) InsertTabularData(ctx context.Context, tableName string, entityAttributeID int, columns []string, rows [][]interface{}) error {
+func (r *PostgresRepository) InsertTabularData(
+	ctx context.Context,
+	tableName string,
+	entityAttributeID int,
+	columns []string,
+	rows [][]interface{},
+) error {
 	// Build the INSERT query
 	columnNames := append([]string{"entity_attribute_id"}, columns...)
 	placeholders := make([]string, len(rows))

@@ -1,16 +1,16 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 	"time"
-	"context"
 
-	"lk/datafoundation/crud-api/pkg/typeinference"
+	commons "lk/datafoundation/crud-api/commons"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	schema "lk/datafoundation/crud-api/pkg/schema"
-	commons "lk/datafoundation/crud-api/commons"
+	"lk/datafoundation/crud-api/pkg/typeinference"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -111,8 +111,8 @@ func createTabularDataStruct(columns []string, rows [][]interface{}) (*anypb.Any
 
 func TestValidateAndReturnTabularDataTypes(t *testing.T) {
 	tests := []struct {
-		name           string
-		columns        []string
+		name          string
+		columns       []string
 		rows          [][]interface{}
 		expectedTypes map[string]typeinference.TypeInfo
 		expectError   bool
@@ -203,11 +203,11 @@ func TestValidateAndReturnTabularDataTypes(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:    "empty table",
-			columns: []string{"col1", "col2"},
-			rows:    [][]interface{}{},
+			name:          "empty table",
+			columns:       []string{"col1", "col2"},
+			rows:          [][]interface{}{},
 			expectedTypes: map[string]typeinference.TypeInfo{},
-			expectError: false,
+			expectError:   false,
 		},
 	}
 
@@ -232,7 +232,7 @@ func TestValidateAndReturnTabularDataTypes(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, len(tt.expectedTypes), len(columnTypes), 
+				assert.Equal(t, len(tt.expectedTypes), len(columnTypes),
 					"Number of column types mismatch")
 
 				for colName, expectedType := range tt.expectedTypes {
@@ -344,7 +344,7 @@ func TestIsDateTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := isDateTime(tt.input)
-			assert.Equal(t, tt.expected, result, "Test case '%s' failed: input '%s'", 
+			assert.Equal(t, tt.expected, result, "Test case '%s' failed: input '%s'",
 				tt.name, tt.input)
 		})
 	}
@@ -437,8 +437,8 @@ func TestInsertSampleData(t *testing.T) {
 			assert.NoError(t, err, "Failed to handle attributes")
 
 			// Verify table exists
-			tableName := fmt.Sprintf("attr_%s_%s", 
-				commons.SanitizeIdentifier(tt.entityID), 
+			tableName := fmt.Sprintf("attr_%s_%s",
+				commons.SanitizeIdentifier(tt.entityID),
 				commons.SanitizeIdentifier(tt.attrName))
 			exists, err := repo.TableExists(ctx, tableName)
 			assert.NoError(t, err, "Failed to check table existence")

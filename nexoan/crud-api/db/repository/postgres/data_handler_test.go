@@ -502,7 +502,15 @@ func TestInternalColumnFiltering(t *testing.T) {
 	assert.Len(t, rows, 2)
 
 	// Test 2: Explicitly request internal columns (should include them)
-	internalData, err := repo.GetData(context.Background(), tableName, nil, "id", "name", "created_at", "entity_attribute_id")
+	internalData, err := repo.GetData(
+		context.Background(),
+		tableName,
+		nil,
+		"id",
+		"name",
+		"created_at",
+		"entity_attribute_id",
+	)
 	assert.NoError(t, err)
 	assert.NotNil(t, internalData)
 

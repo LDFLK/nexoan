@@ -125,19 +125,23 @@ func TestStoragePathGeneration(t *testing.T) {
 // TestGraphMetadataIntegration tests the integration of graph metadata with attribute processing
 func TestGraphMetadataIntegration(t *testing.T) {
 	// Create an entity with mixed data types
-	entity, err := createEntityWithAttributes("engine-id-integration-test-entity-1", "integration-test-entity-1", map[string]string{
-		"tabular_data": `{
+	entity, err := createEntityWithAttributes(
+		"engine-id-integration-test-entity-1",
+		"integration-test-entity-1",
+		map[string]string{
+			"tabular_data": `{
 			"columns": ["id", "name"],
 			"rows": [[1, "John"], [2, "Jane"]]
 		}`,
-		"graph_data": `{
+			"graph_data": `{
 			"nodes": [{"n_id": "user1", "type": "user"}],
 			"edges": [{"source": "user1", "target": "user2"}]
 		}`,
-		"document_data": `{
+			"document_data": `{
 			"user_profile": {"name": "John", "age": 30}
 		}`,
-	})
+		},
+	)
 	assert.NoError(t, err)
 
 	processor := NewEntityAttributeProcessor()

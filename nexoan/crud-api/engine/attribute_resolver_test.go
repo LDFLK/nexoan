@@ -345,9 +345,13 @@ func TestComplexTabularEntity(t *testing.T) {
 		]
 	}`
 
-	entity, err := createEntityWithAttributes("id-complex-tabular-entity-1", "complex-tabular-entity-1", map[string]string{
-		"employee_data": complexTabularData,
-	})
+	entity, err := createEntityWithAttributes(
+		"id-complex-tabular-entity-1",
+		"complex-tabular-entity-1",
+		map[string]string{
+			"employee_data": complexTabularData,
+		},
+	)
 	assert.NoError(t, err)
 
 	processor := NewEntityAttributeProcessor()
@@ -415,9 +419,13 @@ func TestComplexDocumentEntity(t *testing.T) {
 		}
 	}`
 
-	entity, err := createEntityWithAttributes("id-complex-document-entity-1", "complex-document-entity-1", map[string]string{
-		"profile": complexDocumentData,
-	})
+	entity, err := createEntityWithAttributes(
+		"id-complex-document-entity-1",
+		"complex-document-entity-1",
+		map[string]string{
+			"profile": complexDocumentData,
+		},
+	)
 	assert.NoError(t, err)
 
 	processor := NewEntityAttributeProcessor()
@@ -611,8 +619,11 @@ func TestNilEntity(t *testing.T) {
 
 // TestInvalidOperation tests handling of invalid operation
 func TestInvalidOperation(t *testing.T) {
-	entity, err := createEntityWithAttributes("id-invalid-operation-entity-1", "invalid-operation-entity-1", map[string]string{
-		"test_data": `{
+	entity, err := createEntityWithAttributes(
+		"id-invalid-operation-entity-1",
+		"invalid-operation-entity-1",
+		map[string]string{
+			"test_data": `{
 			"user_profile": {
 				"name": "John Doe",
 				"email": "john@example.com",
@@ -622,7 +633,8 @@ func TestInvalidOperation(t *testing.T) {
 				}
 			}
 		}`,
-	})
+		},
+	)
 	assert.NoError(t, err)
 
 	processor := NewEntityAttributeProcessor()
@@ -646,9 +658,13 @@ func TestInvalidOperation(t *testing.T) {
 
 // TestUnsupportedStorageType tests handling of unsupported storage types
 func TestUnsupportedStorageType(t *testing.T) {
-	entity, err := createEntityWithAttributes("id-unsupported-storage-type-entity-1", "unsupported-storage-type-entity-1", map[string]string{
-		"scalar_data": `42`,
-	})
+	entity, err := createEntityWithAttributes(
+		"id-unsupported-storage-type-entity-1",
+		"unsupported-storage-type-entity-1",
+		map[string]string{
+			"scalar_data": `42`,
+		},
+	)
 	assert.NoError(t, err)
 
 	processor := NewEntityAttributeProcessor()

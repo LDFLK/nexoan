@@ -140,7 +140,17 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			if req.Entity != nil {
 				if len(req.Entity.Relationships) == 0 {
 					// No filters provided, fetch all relationships for the entity
-					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(ctx, req.Entity.Id, "", "", "", "", "", "", req.ActiveAt)
+					filteredRels, err := s.neo4jRepo.GetFilteredRelationships(
+						ctx,
+						req.Entity.Id,
+						"",
+						"",
+						"",
+						"",
+						"",
+						"",
+						req.ActiveAt,
+					)
 					if err != nil {
 						log.Printf("Error fetching related entity IDs for entity %s: %v", req.Entity.Id, err)
 						return nil, fmt.Errorf("error fetching related entity IDs: %v", err)
@@ -174,7 +184,11 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 
 			// For now, create a minimal entity with test attributes to demonstrate the conversion
 
-			log.Printf("[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v", req.Entity.Id, req.Entity.Attributes)
+			log.Printf(
+				"[server.ReadEntity] Processing attributes for entity: %s, attributes: %+v",
+				req.Entity.Id,
+				req.Entity.Attributes,
+			)
 
 			// Use the EntityAttributeProcessor to read and process attributes
 			processor := engine.NewEntityAttributeProcessor()
@@ -188,16 +202,29 @@ func (s *Server) ReadEntity(ctx context.Context, req *pb.ReadEntityRequest) (*pb
 			// Process the entity with attributes to get the results map
 			attributeResults := processor.ProcessEntityAttributes(ctx, req.Entity, "read", readOptions)
 
-			log.Printf("[server.ReadEntity] Successfully processed attributes for entity: %s, results: %+v", req.Entity.Id, attributeResults)
+			log.Printf(
+				"[server.ReadEntity] Successfully processed attributes for entity: %s, results: %+v",
+				req.Entity.Id,
+				attributeResults,
+			)
 
 			// Convert the results map back to TimeBasedValueList and attach to response.Attributes
 			for attrName, result := range attributeResults {
-				log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s, result: %+v", attrName, req.Entity.Id, result)
+				log.Printf(
+					"[server.ReadEntity] Successfully processed attribute %s for entity: %s, result: %+v",
+					attrName,
+					req.Entity.Id,
+					result,
+				)
 				if result.Success && result.Data != nil {
 					// Convert the result data back to TimeBasedValue format
 					if timeBasedValue, ok := result.Data.(*pb.TimeBasedValue); ok {
 						// If the data is already in TimeBasedValue format, use it directly
-						log.Printf("[server.ReadEntity] Successfully processed attribute %s for entity: %s", attrName, req.Entity.Id)
+						log.Printf(
+							"[server.ReadEntity] Successfully processed attribute %s for entity: %s",
+							attrName,
+							req.Entity.Id,
+						)
 						response.Attributes[attrName] = &pb.TimeBasedValueList{
 							Values: []*pb.TimeBasedValue{timeBasedValue},
 						}
@@ -315,7 +342,7 @@ func (s *Server) DeleteEntity(ctx context.Context, req *pb.EntityId) (*pb.Empty,
 	// Check if entity exists before deleting
 	_, err := s.mongoRepo.ReadEntity(ctx, req.Id)
 	if err != nil {
-		// NOTE: Not returning an error here because we want to delete the 
+		// NOTE: Not returning an error here because we want to delete the
 		// entity even if it does not contain metadata
 		log.Printf("[server.DeleteEntity] Entity %s does not contain metadata: %v", req.Id, err)
 	} else {

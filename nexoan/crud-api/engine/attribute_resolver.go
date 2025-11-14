@@ -3,14 +3,14 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
+
 	commons "lk/datafoundation/crud-api/commons"
 	dbcommons "lk/datafoundation/crud-api/commons/db"
 	pb "lk/datafoundation/crud-api/lk/datafoundation/crud-api"
 	schema "lk/datafoundation/crud-api/pkg/schema"
 	storageinference "lk/datafoundation/crud-api/pkg/storageinference"
-	"log"
-
-	"time"
 
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -26,7 +26,12 @@ type Result struct {
 type AttributeResolver interface {
 	Initialize() error
 	CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
-	ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result
+	ReadResolve(
+		ctx context.Context,
+		entityID, attrName string,
+		filters map[string]interface{},
+		fields ...string,
+	) *Result
 	UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
 	DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result
 	Finalize() error
@@ -82,8 +87,17 @@ func (p *EntityAttributeProcessor) GetResolver(storageType storageinference.Stor
 
 // ProcessEntityAttributes processes all attributes in an Entity with operation options
 // Returns a map of attribute names to their processing results
-func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, entity *pb.Entity, operation string, options *Options) map[string]*Result {
-	log.Printf("Processing entity attributes at [processor.ProcessEntityAttributes] [operation: %s] [entity: %+v]", operation, entity)
+func (p *EntityAttributeProcessor) ProcessEntityAttributes(
+	ctx context.Context,
+	entity *pb.Entity,
+	operation string,
+	options *Options,
+) map[string]*Result {
+	log.Printf(
+		"Processing entity attributes at [processor.ProcessEntityAttributes] [operation: %s] [entity: %+v]",
+		operation,
+		entity,
+	)
 	if entity == nil || entity.Attributes == nil {
 		return make(map[string]*Result)
 	}
@@ -104,7 +118,11 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			continue
 		}
 
-		log.Printf("DEBUG: Time-based value list is not nil for attribute %s, length: %d", attrName, len(timeBasedValueList.Values))
+		log.Printf(
+			"DEBUG: Time-based value list is not nil for attribute %s, length: %d",
+			attrName,
+			len(timeBasedValueList.Values),
+		)
 
 		// Process each time-based value
 		for _, value := range timeBasedValueList.Values {
@@ -142,7 +160,11 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			// Get appropriate resolver
 			resolver, exists := p.resolvers[storageType]
 			if !exists {
-				fmt.Printf("Warning: no resolver found for storage type %s, skipping attribute %s\n", storageType, attrName)
+				fmt.Printf(
+					"Warning: no resolver found for storage type %s, skipping attribute %s\n",
+					storageType,
+					attrName,
+				)
 				attributeResults[attrName] = &Result{
 					Success: false,
 					Data:    nil,
@@ -155,7 +177,7 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 			var operationOptions *Options
 			if operation == "read" {
 				// Use provided options or default to empty filters
-				// TODO: Limitation in multi-value attribute reads. 
+				// TODO: Limitation in multi-value attribute reads.
 				// FIXME: https://github.com/LDFLK/nexoan/issues/285
 				if options != nil {
 					operationOptions = options
@@ -194,7 +216,13 @@ func (p *EntityAttributeProcessor) ProcessEntityAttributes(ctx context.Context, 
 // It creates the attribute look up metadata and the attribute node in the graph.
 // It also creates the IS_ATTRIBUTE relationship between the entity and the attribute.
 // It also creates the attribute metadata in the document database.
-func (p *EntityAttributeProcessor) handleAttributeLookUp(ctx context.Context, entityID, attrName string, storageType storageinference.StorageType, operation string, startTime time.Time) error {
+func (p *EntityAttributeProcessor) handleAttributeLookUp(
+	ctx context.Context,
+	entityID, attrName string,
+	storageType storageinference.StorageType,
+	operation string,
+	startTime time.Time,
+) error {
 	// Generate attribute metadata
 	fmt.Printf("DEBUG: Handling graph metadata for attribute %s\n", attrName)
 	attributeID := GenerateAttributeID(entityID, attrName)
@@ -331,7 +359,13 @@ func NewDeleteOptions(deleteOpts *DeleteOptions) *Options {
 }
 
 // executeOperation executes the appropriate operation on the given resolver
-func (p *EntityAttributeProcessor) executeOperation(ctx context.Context, resolver AttributeResolver, operation, entityID, attrName string, value *pb.TimeBasedValue, options *Options) *Result {
+func (p *EntityAttributeProcessor) executeOperation(
+	ctx context.Context,
+	resolver AttributeResolver,
+	operation, entityID, attrName string,
+	value *pb.TimeBasedValue,
+	options *Options,
+) *Result {
 	if resolver == nil {
 		return &Result{
 			Data:    nil,
@@ -379,7 +413,11 @@ type GraphAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *GraphAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *GraphAttributeResolver) CreateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement graph-specific create logic
 	// - Validate graph structure (nodes and edges)
 	// - Store in graph database (Neo4j)
@@ -392,12 +430,23 @@ func (r *GraphAttributeResolver) CreateResolve(ctx context.Context, entityID, at
 	}
 }
 
-func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
+func (r *GraphAttributeResolver) ReadResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	filters map[string]interface{},
+	fields ...string,
+) *Result {
 	// TODO: implement graph-specific read logic
 	// - Query graph database
 	// - Retrieve nodes and edges
 	// - Return graph structure
-	fmt.Printf("Reading graph attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
+	fmt.Printf(
+		"Reading graph attribute %s for entity %s with filters: %+v and fields: %+v\n",
+		attrName,
+		entityID,
+		filters,
+		fields,
+	)
 
 	// TODO: Return actual graph data from Neo4j
 	// For now, return empty TimeBasedValue
@@ -414,7 +463,11 @@ func (r *GraphAttributeResolver) ReadResolve(ctx context.Context, entityID, attr
 	}
 }
 
-func (r *GraphAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *GraphAttributeResolver) UpdateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement graph-specific update logic
 	// - Update nodes and edges
 	// - Handle graph modifications
@@ -427,7 +480,11 @@ func (r *GraphAttributeResolver) UpdateResolve(ctx context.Context, entityID, at
 	}
 }
 
-func (r *GraphAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *GraphAttributeResolver) DeleteResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement graph-specific delete logic
 	// - Remove nodes and edges
 	// - Clean up relationships
@@ -445,7 +502,11 @@ type TabularAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *TabularAttributeResolver) CreateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: startDate and endDate must be stored in somewhere in the tabular database.
 	//  this will be useful for schema evolution setup.
 	startDate := value.StartTime
@@ -461,7 +522,13 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 		}
 	}
 
-	fmt.Printf("Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n", attrName, entityID, startDate, endDate)
+	fmt.Printf(
+		"Creating tabular attribute %s for entity %s (validated as tabular) from %v to %v\n",
+		attrName,
+		entityID,
+		startDate,
+		endDate,
+	)
 
 	repo, err := dbcommons.GetPostgresRepository(ctx)
 	if err != nil {
@@ -506,12 +573,23 @@ func (r *TabularAttributeResolver) CreateResolve(ctx context.Context, entityID, 
 	}
 }
 
-func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
+func (r *TabularAttributeResolver) ReadResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	filters map[string]interface{},
+	fields ...string,
+) *Result {
 	// TODO: implement tabular-specific read logic
 	// - Query database table
 	// - Retrieve rows and columns
 	// - Return tabular structure
-	fmt.Printf("[TabularAttributeResolver.ReadResolve] Reading tabular attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
+	fmt.Printf(
+		"[TabularAttributeResolver.ReadResolve] Reading tabular attribute %s for entity %s with filters: %+v and fields: %+v\n",
+		attrName,
+		entityID,
+		filters,
+		fields,
+	)
 
 	repo, err := dbcommons.GetPostgresRepository(ctx)
 	if err != nil {
@@ -552,7 +630,11 @@ func (r *TabularAttributeResolver) ReadResolve(ctx context.Context, entityID, at
 	}
 }
 
-func (r *TabularAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *TabularAttributeResolver) UpdateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement tabular-specific update logic
 	// - Update table schema if needed
 	// - Update data rows
@@ -565,7 +647,11 @@ func (r *TabularAttributeResolver) UpdateResolve(ctx context.Context, entityID, 
 	}
 }
 
-func (r *TabularAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *TabularAttributeResolver) DeleteResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement tabular-specific delete logic
 	// - Delete data rows
 	// - Optionally drop table
@@ -583,7 +669,11 @@ type DocumentAttributeResolver struct {
 	BaseAttributeResolver
 }
 
-func (r *DocumentAttributeResolver) CreateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *DocumentAttributeResolver) CreateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement document-specific create logic
 	// - Validate document structure
 	// - Store in document database (MongoDB)
@@ -596,12 +686,23 @@ func (r *DocumentAttributeResolver) CreateResolve(ctx context.Context, entityID,
 	}
 }
 
-func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, attrName string, filters map[string]interface{}, fields ...string) *Result {
+func (r *DocumentAttributeResolver) ReadResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	filters map[string]interface{},
+	fields ...string,
+) *Result {
 	// TODO: implement document-specific read logic
 	// - Query document database
 	// - Retrieve document structure
 	// - Return key-value pairs
-	fmt.Printf("Reading document attribute %s for entity %s with filters: %+v and fields: %+v\n", attrName, entityID, filters, fields)
+	fmt.Printf(
+		"Reading document attribute %s for entity %s with filters: %+v and fields: %+v\n",
+		attrName,
+		entityID,
+		filters,
+		fields,
+	)
 
 	// TODO: Return actual document data from MongoDB
 	// For now, return empty TimeBasedValue
@@ -618,7 +719,11 @@ func (r *DocumentAttributeResolver) ReadResolve(ctx context.Context, entityID, a
 	}
 }
 
-func (r *DocumentAttributeResolver) UpdateResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *DocumentAttributeResolver) UpdateResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement document-specific update logic
 	// - Update document fields
 	// - Handle partial updates
@@ -631,7 +736,11 @@ func (r *DocumentAttributeResolver) UpdateResolve(ctx context.Context, entityID,
 	}
 }
 
-func (r *DocumentAttributeResolver) DeleteResolve(ctx context.Context, entityID, attrName string, value *pb.TimeBasedValue) *Result {
+func (r *DocumentAttributeResolver) DeleteResolve(
+	ctx context.Context,
+	entityID, attrName string,
+	value *pb.TimeBasedValue,
+) *Result {
 	// TODO: implement document-specific delete logic
 	// - Remove document
 	// - Clean up indexes
