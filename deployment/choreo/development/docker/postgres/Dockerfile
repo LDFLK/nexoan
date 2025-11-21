@@ -4,7 +4,7 @@ FROM postgres:16
 # Set environment variables
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
-ENV POSTGRES_DB=nexoan
+ENV POSTGRES_DB=opengin
 
 # Create additional directories for backups
 RUN mkdir -p /var/lib/postgresql/backup && \

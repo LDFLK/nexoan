@@ -33,47 +33,47 @@ jobs:
         echo "Waiting for tests to complete..."
         sleep 30
         
-        # Check CRUD service test results
-        if docker compose logs crud | grep -q "^crud  | FAIL$"; then
-          echo "CRUD API tests failed!"
+        # Check CORE service test results
+        if docker compose logs core | grep -q "^core  | FAIL$"; then
+          echo "CORE API tests failed!"
           echo "Container logs:"
-          docker compose logs crud
+          docker compose logs core
           docker compose down
           exit 1
-        elif docker compose logs crud | grep -q "^crud  | PASS$"; then
-          echo "CRUD API tests passed!"
+        elif docker compose logs core | grep -q "^core  | PASS$"; then
+          echo "CORE API tests passed!"
         else
-          echo "CRUD API test results not found in logs"
+          echo "CORE API test results not found in logs"
           docker compose down
           exit 1
         fi
         
-        # Check Update service test results
-        if docker compose logs update | grep -q "failing" && ! docker compose logs update | grep -q "0 failing"; then
-          echo "Update API tests failed!"
+        # Check Ingestion service test results
+        if docker compose logs ingestion | grep -q "failing" && ! docker compose logs ingestion | grep -q "0 failing"; then
+          echo "Ingestion API tests failed!"
           echo "Container logs:"
-          docker compose logs update
+          docker compose logs ingestion
           docker compose down
           exit 1
-        elif docker compose logs update | grep -q "0 failing"; then
-          echo "Update API tests passed!"
+        elif docker compose logs ingestion | grep -q "0 failing"; then
+          echo "Ingestion API tests passed!"
         else
-          echo "Update API test results not found in logs"
+          echo "Ingestion API test results not found in logs"
           docker compose down
           exit 1
         fi
         
-        # Check Query service test results
-        if docker compose logs query | grep -q "failing" && ! docker compose logs query | grep -q "0 failing"; then
-          echo "Query API tests failed!"
+        # Check Read service test results
+        if docker compose logs read | grep -q "failing" && ! docker compose logs read | grep -q "0 failing"; then
+          echo "Read API tests failed!"
           echo "Container logs:"
-          docker compose logs query
+          docker compose logs read
           docker compose down
           exit 1
-        elif docker compose logs query | grep -q "0 failing"; then
-          echo "Query API tests passed!"
+        elif docker compose logs read | grep -q "0 failing"; then
+          echo "Read API tests passed!"
         else
-          echo "Query API test results not found in logs"
+          echo "Read API test results not found in logs"
           docker compose down
           exit 1
         fi

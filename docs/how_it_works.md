@@ -49,7 +49,7 @@ The system receives data through a REST API built with Ballerina. The API accept
 ## 2. Data Transformation (Ingestion API → Core API)
 
 ### 2.1 JSON to Protobuf Conversion
-The Update API converts the JSON payload into a protobuf Entity message. This conversion happens in the `convertJsonToEntity` function:
+The Ingestion API converts the JSON payload into a protobuf Entity message. This conversion happens in the `convertJsonToEntity` function:
 
 #### Conversion Process Flowchart
 ```
@@ -184,7 +184,7 @@ The conversion process involves several key transformations:
 The flowchart above shows the complete data transformation pipeline from JSON input to protobuf output.
 
 ### 2.2 gRPC Communication
-The converted protobuf message is sent to the CRUD service via gRPC. The communication happens on port 50051.
+The converted protobuf message is sent to the CORE service via gRPC. The communication happens on port 50051.
 
 ## 3. Core API 
 
