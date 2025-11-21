@@ -80,7 +80,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=choreo
+      - POSTGRES_DB=opengin
       # GitHub backup restore configuration (disabled for development)
       - GITHUB_BACKUP_REPO=${OPENGIN_GITHUB_BACKUP_REPO:-LDFLK/data-backups}
       - BACKUP_VERSION=${OPENGIN_DB_BACKUP_VERSION:-0.0.1}
