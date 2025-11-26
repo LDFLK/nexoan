@@ -1,4 +1,4 @@
-.PHONY: help build build-go build-ballerina test test-go test-ballerina e2e e2e-docker infra-up infra-down services-up services-down up down down-all logs clean-pre clean-post backup-mongodb backup-postgres backup-neo4j restore-mongodb restore-postgres restore-neo4j dev coverage coverage-go coverage-ballerina fmt fmt-go lint lint-go tools-go
+.PHONY: help build build-go build-ballerina test test-go test-ballerina e2e e2e-docker infra-up infra-down services-up services-down up down down-all logs clean-pre clean-post backup-mongodb backup-postgres backup-neo4j restore-mongodb restore-postgres restore-neo4j dev coverage coverage-go coverage-ballerina fmt fmt-go lint lint-go tools-go hooks-install
 
 # Select docker compose command. Override with: make COMPOSE="docker compose"
 COMPOSE ?= docker-compose
@@ -29,6 +29,7 @@ help:
 	@echo "lint                Lint Go code (golangci-lint)"
 	@echo "lint-go             Same as 'lint' (Core API only)"
 	@echo "tools-go            Install Go dev tools: gofumpt, golines, golangci-lint"
+	@echo "hooks-install       Install git pre-commit hooks (runs 'make fmt' and 'make lint')"
 	@echo "e2e                 Run E2E tests locally (requires services running)"
 	@echo "e2e-docker          Run E2E tests in docker-compose 'e2e' service"
 	@echo "infra-up            Start databases (MongoDB, Neo4j, Postgres)"
@@ -174,6 +175,12 @@ tools-go:
 	@go install mvdan.cc/gofumpt@latest
 	@go install github.com/segmentio/golines@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Install and activate git pre-commit hooks
+hooks-install:
+	@echo "Installing pre-commit and setting up git hooks"
+	@python3 -m pip install --user pre-commit
+	@pre-commit install
 
 # One-shot developer bootstrap: clean -> build -> full stack up -> tail logs hint
 # Note: Feel free to interrupt logs with Ctrl+C; services keep running.

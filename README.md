@@ -32,6 +32,38 @@ make lint
 
 These targets operate on the Core API module at `opengin/core-api`.
 
+### Git pre-commit hooks
+
+Automatically enforce formatting and linting before every commit using `pre-commit`.
+
+Setup (one time):
+
+```bash
+# Ensure Go tools are installed and on PATH
+make tools-go
+
+# Install pre-commit and register the hook
+make hooks-install
+```
+
+What it does:
+- Runs `make fmt` (gofumpt + golines with max line length 120) and then `make lint` (golangci-lint) on commit.
+
+Useful commands:
+
+```bash
+# Run hooks against all files now
+pre-commit run --all-files
+
+# Temporarily bypass hooks for a single commit
+git commit -n -m "your message"
+```
+
+Notes:
+- `make hooks-install` uses `pip` to install `pre-commit` for the current user. Ensure your user base bin is on PATH, e.g. `~/.local/bin` on macOS/Linux:
+  - Add to your shell profile, e.g., `export PATH="$HOME/.local/bin:$PATH"`.
+- Hooks are configured in `.pre-commit-config.yaml` and rely on the Makefile targets.
+
 ## 🚀 Running Services
 
 ### 1. Run CORE API Service
