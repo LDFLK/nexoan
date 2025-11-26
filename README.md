@@ -3,6 +3,35 @@
 > 💡 **Note (α)**  
 > Name needs to be proposed, voted and finalized. 
 
+## 🧰 Makefile shortcuts
+
+Use `make help` to see all available targets. Common ones:
+
+- `make dev` — Clean databases, build everything, and start the full stack (databases + services).
+- `make up` / `make down` — Start/stop the stack. Use `make down-all` to also remove volumes.
+- `make logs` — Tail logs for main services (core, ingestion, read).
+- `make e2e` — Run local E2E tests (requires services running). `make e2e-docker` runs them via Docker.
+- `make coverage` — Run coverage for Go (Core API) and Ballerina (Ingestion/Read APIs).
+
+### Formatting & linting (Go)
+
+This repository enforces Go formatting with `gofumpt` and line wrapping with `golines` (max line length 120), and linting via `golangci-lint`.
+
+Commands:
+
+```bash
+# Install tools once (ensure $GOPATH/bin is on your PATH)
+make tools-go
+
+# Format Go code (gofumpt + golines -m 120)
+make fmt
+
+# Lint Go code
+make lint
+```
+
+These targets operate on the Core API module at `opengin/core-api`.
+
 ## 🚀 Running Services
 
 ### 1. Run CORE API Service
@@ -38,6 +67,16 @@ docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
 - **Neo4j**: All nodes and relationships
 
 **Note**: The cleanup service uses the `cleanup` profile, so it won't start automatically with `docker-compose up`.
+
+You can also use Makefile helpers to run these via profiles:
+
+```bash
+# Clean databases before starting services
+make clean-pre
+
+# Clean databases after finishing work/tests
+make clean-post
+```
 
 ### 6. Database Backup and Restore
 The system provides comprehensive backup and restore capabilities for all databases.

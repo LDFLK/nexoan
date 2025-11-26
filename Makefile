@@ -3,11 +3,11 @@
 # Select docker compose command. Override with: make COMPOSE="docker compose"
 COMPOSE ?= docker-compose
 
-# Paths
-CRUD_DIR := nexoan/crud-api
-UPDATE_DIR := nexoan/update-api
-QUERY_DIR := nexoan/query-api
-E2E_DIR := nexoan/tests/e2e
+# Paths (updated after refactor)
+CRUD_DIR := opengin/core-api
+UPDATE_DIR := opengin/ingestion-api
+QUERY_DIR := opengin/read-api
+E2E_DIR := opengin/tests/e2e
 DEPLOY_DEV := deployment/development
 
 .DEFAULT_GOAL := help
@@ -16,24 +16,24 @@ help:
 	@echo "Nexoan — Make targets"
 	@echo "------------------------------------------------------------"
 	@echo "build               Build all components (Go + Ballerina)"
-	@echo "build-go            Build CRUD service (Go)"
-	@echo "build-ballerina     Build Update & Query APIs (Ballerina)"
+	@echo "build-go            Build Core service (Go)"
+	@echo "build-ballerina     Build Ingestion & Read APIs (Ballerina)"
 	@echo "test                Run all tests (Go + Ballerina)"
-	@echo "test-go             Run Go tests for CRUD API"
-	@echo "test-ballerina      Run Ballerina tests for Update & Query APIs"
+	@echo "test-go             Run Go tests for Core API"
+	@echo "test-ballerina      Run Ballerina tests for Ingestion & Read APIs"
 	@echo "coverage            Run coverage for Go + Ballerina"
-	@echo "coverage-go         Run Go coverage (CRUD API) and show summary"
-	@echo "coverage-ballerina  Run Ballerina coverage (Update & Query APIs)"
+	@echo "coverage-go         Run Go coverage (Core API) and show summary"
+	@echo "coverage-ballerina  Run Ballerina coverage (Ingestion & Read APIs)"
 	@echo "fmt                 Format Go code (gofumpt + golines -m 120)"
-	@echo "fmt-go              Same as 'fmt' (CRUD API only)"
+	@echo "fmt-go              Same as 'fmt' (Core API only)"
 	@echo "lint                Lint Go code (golangci-lint)"
-	@echo "lint-go             Same as 'lint' (CRUD API only)"
+	@echo "lint-go             Same as 'lint' (Core API only)"
 	@echo "tools-go            Install Go dev tools: gofumpt, golines, golangci-lint"
 	@echo "e2e                 Run E2E tests locally (requires services running)"
 	@echo "e2e-docker          Run E2E tests in docker-compose 'e2e' service"
 	@echo "infra-up            Start databases (MongoDB, Neo4j, Postgres)"
 	@echo "infra-down          Stop databases"
-	@echo "services-up         Start services (crud, update, query)"
+	@echo "services-up         Start services (core, ingestion, read)"
 	@echo "services-down       Stop services"
 	@echo "up                  Start full stack (infra + services)"
 	@echo "down                Stop stack (keeps volumes)"
@@ -50,48 +50,48 @@ help:
 build: build-go build-ballerina
 
 build-go:
-	@echo "Building CRUD service (Go)"
-	@cd $(CRUD_DIR) && go build ./... && go build -o crud-service cmd/server/service.go cmd/server/utils.go
+	@echo "Building Core service (Go)"
+	@cd $(CRUD_DIR) && go build ./... && go build -o core-service cmd/server/service.go cmd/server/utils.go
 
 build-ballerina:
-	@echo "Building Update & Query APIs (Ballerina)"
+	@echo "Building Ingestion & Read APIs (Ballerina)"
 	@cd $(UPDATE_DIR) && bal build
 	@cd $(QUERY_DIR) && bal build
 
 test: test-go test-ballerina
 
 test-go:
-	@echo "Running Go tests"
+	@echo "Running Go tests (Core API)"
 	@cd $(CRUD_DIR) && go test -v ./...
 
 test-ballerina:
-	@echo "Running Ballerina tests (Update API)"
+	@echo "Running Ballerina tests (Ingestion API)"
 	@cd $(UPDATE_DIR) && bal test
-	@echo "Running Ballerina tests (Query API)"
+	@echo "Running Ballerina tests (Read API)"
 	@cd $(QUERY_DIR) && bal test
 
 coverage: coverage-go coverage-ballerina
 
 coverage-go:
-	@echo "Running Go coverage"
+	@echo "Running Go coverage (Core API)"
 	@cd $(CRUD_DIR) && go test -coverprofile=coverage.out ./...
 	@cd $(CRUD_DIR) && go tool cover -func=coverage.out | tail -n 1 || true
 	@cd $(CRUD_DIR) && go tool cover -html=coverage.out -o coverage.html
 	@echo "Go coverage HTML report: $(CRUD_DIR)/coverage.html"
 
 coverage-ballerina:
-	@echo "Running Ballerina coverage (Update API)"
+	@echo "Running Ballerina coverage (Ingestion API)"
 	@cd $(UPDATE_DIR) && bal test --code-coverage
-	@echo "Running Ballerina coverage (Query API)"
+	@echo "Running Ballerina coverage (Read API)"
 	@cd $(QUERY_DIR) && bal test --code-coverage
 
 e2e:
 	@echo "Running local E2E tests (ensure services are up: make up)"
-	@cd $(E2E_DIR) && python3 basic_crud_tests.py && python3 basic_query_tests.py
+	@cd $(E2E_DIR) && python3 basic_core_tests.py && python3 basic_read_tests.py
 
 e2e-docker:
 	@echo "Running E2E tests via docker-compose (will build and run dependent services if needed)"
-	@$(COMPOSE) up --build -d mongodb neo4j postgres crud update query
+	@$(COMPOSE) up --build -d mongodb neo4j postgres core ingestion read
 	@$(COMPOSE) up --build e2e
 	@$(COMPOSE) rm -f e2e || true
 
@@ -104,21 +104,21 @@ infra-down:
 	@$(COMPOSE) stop mongodb neo4j postgres || true
 
 services-up:
-	@echo "Starting services (crud, update, query)"
-	@$(COMPOSE) up -d --build crud update query
+	@echo "Starting services (core, ingestion, read)"
+	@$(COMPOSE) up -d --build core ingestion read
 
 services-down:
-	@echo "Stopping services (crud, update, query)"
-	@$(COMPOSE) stop crud update query || true
+	@echo "Stopping services (core, ingestion, read)"
+	@$(COMPOSE) stop core ingestion read || true
 
 up: infra-up services-up
 	@echo "Full stack started."
-	@echo "- CRUD (gRPC): localhost:50051"
-	@echo "- Update API:  http://localhost:8080"
-	@echo "- Query API:   http://localhost:8081"
+	@echo "- Core (gRPC): localhost:50051"
+	@echo "- Ingestion API:  http://localhost:8080"
+	@echo "- Read API:   http://localhost:8081"
 
 logs:
-	@$(COMPOSE) logs -f crud update query
+	@$(COMPOSE) logs -f core ingestion read
 
 down:
 	@echo "Stopping stack (keeping volumes)"
@@ -179,8 +179,8 @@ tools-go:
 # Note: Feel free to interrupt logs with Ctrl+C; services keep running.
 dev: clean-pre build up
 	@echo "\n✅ Dev environment is up and ready!"
-	@echo "- CRUD (gRPC): localhost:50051"
-	@echo "- Update API:  http://localhost:8080"
-	@echo "- Query API:   http://localhost:8081"
+	@echo "- Core (gRPC): localhost:50051"
+	@echo "- Ingestion API:  http://localhost:8080"
+	@echo "- Read API:   http://localhost:8081"
 	@echo "- Tail logs:   make logs"
 	@echo "- Run E2E:     make e2e or make e2e-docker"
