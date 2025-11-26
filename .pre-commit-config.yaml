@@ -8,6 +8,7 @@ repos:
         name: Go format (gofumpt + golines -m 120)
         entry: make fmt
         language: system
+        types: [go]
         pass_filenames: false
         stages: [commit]
 
@@ -15,5 +16,6 @@ repos:
         name: GolangCI-Lint
         entry: make lint
         language: system
+        types: [go]
         pass_filenames: false
         stages: [commit]

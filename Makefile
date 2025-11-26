@@ -52,7 +52,7 @@ build: build-go build-ballerina
 
 build-go:
 	@echo "Building Core service (Go)"
-	@cd $(CRUD_DIR) && go build ./... && go build -o core-service cmd/server/service.go cmd/server/utils.go
+	@cd $(CRUD_DIR) && go build ./... && go build -o core-service ./cmd/server
 
 build-ballerina:
 	@echo "Building Ingestion & Read APIs (Ballerina)"
