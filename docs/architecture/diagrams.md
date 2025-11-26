@@ -630,14 +630,14 @@ mmdc -i diagrams.md -o output.png
 ### Updating Diagrams
 
 When updating the architecture:
-1. Ingestion the relevant Mermaid diagram in this file
-2. Ingestion the ASCII diagrams in `overview.md` if needed
+1. Update the relevant Mermaid diagram in this file
+2. Update the ASCII diagrams in `overview.md` if needed
 3. Ensure consistency across all documentation
 4. Commit changes with descriptive message
 
 ---
 
 **Document Version**: 1.0  
-**Last Ingestiond**: October 2024  
+**Last Updated**: October 2024  
 **Format**: Mermaid Diagram Language
 
