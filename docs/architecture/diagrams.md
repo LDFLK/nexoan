@@ -1,6 +1,6 @@
-# Nexoan Architecture Diagrams
+# Opengin Architecture Diagrams
 
-This document contains various architectural diagrams in Mermaid format for the Nexoan system.
+This document contains various architectural diagrams in Mermaid format for the Opengin system.
 
 ---
 
@@ -13,15 +13,15 @@ graph TB
     end
     
     subgraph "API Layer"
-        UpdateAPI[Update API<br/>Ballerina:8080<br/>CREATE/UPDATE/DELETE]
-        QueryAPI[Query API<br/>Ballerina:8081<br/>READ/QUERY]
+        IngestionAPI[Ingestion API<br/>Ballerina:8080<br/>CREATE/UPDATE/DELETE]
+        ReadAPI[Read API<br/>Ballerina:8081<br/>READ/QUERY]
         SwaggerUI[Swagger UI<br/>API Documentation]
     end
     
     subgraph "Service Layer"
-        CRUD[CRUD Service<br/>Go gRPC:50051]
+        CORE[CORE Service<br/>Go gRPC:50051]
         
-        subgraph "CRUD Components"
+        subgraph "CORE Components"
             Server[gRPC Server<br/>- CreateEntity<br/>- ReadEntity<br/>- UpdateEntity<br/>- DeleteEntity]
             Engine[Engine<br/>- AttributeProcessor<br/>- GraphMetadataManager<br/>- TypeInference<br/>- StorageInference]
             Repos[Repository Layer<br/>- MongoRepo<br/>- Neo4jRepo<br/>- PostgresRepo]
@@ -39,14 +39,14 @@ graph TB
         Backup[Backup/Restore<br/>Version Management]
     end
     
-    Client -->|HTTP/REST + JSON| UpdateAPI
-    Client -->|HTTP/REST + JSON| QueryAPI
+    Client -->|HTTP/REST + JSON| IngestionAPI
+    Client -->|HTTP/REST + JSON| ReadAPI
     Client -.->|View Docs| SwaggerUI
     
-    UpdateAPI -->|gRPC + Protobuf| CRUD
-    QueryAPI -->|gRPC + Protobuf| CRUD
+    IngestionAPI -->|gRPC + Protobuf| CORE
+    ReadAPI -->|gRPC + Protobuf| CORE
     
-    CRUD --> Server
+    CORE --> Server
     Server --> Engine
     Server --> Repos
     
@@ -63,9 +63,9 @@ graph TB
     Backup -.->|Backup/Restore| PostgreSQL
     
     style Client fill:#e1f5ff
-    style UpdateAPI fill:#fff4e6
-    style QueryAPI fill:#fff4e6
-    style CRUD fill:#f3e5f5
+    style IngestionAPI fill:#fff4e6
+    style ReadAPI fill:#fff4e6
+    style CORE fill:#f3e5f5
     style MongoDB fill:#e8f5e9
     style Neo4j fill:#e8f5e9
     style PostgreSQL fill:#e8f5e9
@@ -78,50 +78,50 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant Client
-    participant UpdateAPI as Update API<br/>(Ballerina)
-    participant CRUD as CRUD Service<br/>(Go gRPC)
+    participant IngestionAPI as Ingestion API<br/>(Ballerina)
+    participant CORE as CORE Service<br/>(Go gRPC)
     participant Mongo as MongoDB
     participant Neo4j
     participant Postgres as PostgreSQL
     
-    Client->>UpdateAPI: POST /entities<br/>(JSON payload)
-    activate UpdateAPI
+    Client->>IngestionAPI: POST /entities<br/>(JSON payload)
+    activate IngestionAPI
     
-    Note over UpdateAPI: Convert JSON<br/>to Protobuf Entity
+    Note over IngestionAPI: Convert JSON<br/>to Protobuf Entity
     
-    UpdateAPI->>CRUD: gRPC: CreateEntity(Entity)
-    activate CRUD
+    IngestionAPI->>CORE: gRPC: CreateEntity(Entity)
+    activate CORE
     
     par Save to Databases
-        CRUD->>Mongo: Save metadata
+        CORE->>Mongo: Save metadata
         activate Mongo
-        Mongo-->>CRUD: Success
+        Mongo-->>CORE: Success
         deactivate Mongo
     and
-        CRUD->>Neo4j: Create entity node
+        CORE->>Neo4j: Create entity node
         activate Neo4j
-        Neo4j-->>CRUD: Node created
+        Neo4j-->>CORE: Node created
         deactivate Neo4j
     and
-        CRUD->>Neo4j: Create relationships
+        CORE->>Neo4j: Create relationships
         activate Neo4j
-        Neo4j-->>CRUD: Relationships created
+        Neo4j-->>CORE: Relationships created
         deactivate Neo4j
     and
-        CRUD->>Postgres: Process & save attributes
+        CORE->>Postgres: Process & save attributes
         activate Postgres
         Note over Postgres: Infer types<br/>Create schemas<br/>Store values
-        Postgres-->>CRUD: Attributes saved
+        Postgres-->>CORE: Attributes saved
         deactivate Postgres
     end
     
-    CRUD-->>UpdateAPI: Entity (Protobuf)
-    deactivate CRUD
+    CORE-->>IngestionAPI: Entity (Protobuf)
+    deactivate CORE
     
-    Note over UpdateAPI: Convert Protobuf<br/>to JSON
+    Note over IngestionAPI: Convert Protobuf<br/>to JSON
     
-    UpdateAPI-->>Client: 201 Created<br/>(JSON response)
-    deactivate UpdateAPI
+    IngestionAPI-->>Client: 201 Created<br/>(JSON response)
+    deactivate IngestionAPI
 ```
 
 ---
@@ -131,54 +131,54 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant QueryAPI as Query API<br/>(Ballerina)
-    participant CRUD as CRUD Service<br/>(Go gRPC)
+    participant ReadAPI as Read API<br/>(Ballerina)
+    participant CORE as CORE Service<br/>(Go gRPC)
     participant Mongo as MongoDB
     participant Neo4j
     participant Postgres as PostgreSQL
     
-    Client->>QueryAPI: GET /entities/{id}?output=metadata,relationships
-    activate QueryAPI
+    Client->>ReadAPI: GET /entities/{id}?output=metadata,relationships
+    activate ReadAPI
     
-    QueryAPI->>CRUD: gRPC: ReadEntity(id, output=[metadata, relationships])
-    activate CRUD
+    ReadAPI->>CORE: gRPC: ReadEntity(id, output=[metadata, relationships])
+    activate CORE
     
-    Note over CRUD: Always fetch<br/>basic entity info
-    CRUD->>Neo4j: Get entity (id, kind, name, created)
+    Note over CORE: Always fetch<br/>basic entity info
+    CORE->>Neo4j: Get entity (id, kind, name, created)
     activate Neo4j
-    Neo4j-->>CRUD: Entity info
+    Neo4j-->>CORE: Entity info
     deactivate Neo4j
     
     alt Output includes metadata
-        CRUD->>Mongo: Get metadata by ID
+        CORE->>Mongo: Get metadata by ID
         activate Mongo
-        Mongo-->>CRUD: Metadata document
+        Mongo-->>CORE: Metadata document
         deactivate Mongo
     end
     
     alt Output includes relationships
-        CRUD->>Neo4j: Get relationships for entity
+        CORE->>Neo4j: Get relationships for entity
         activate Neo4j
-        Neo4j-->>CRUD: Related entities
+        Neo4j-->>CORE: Related entities
         deactivate Neo4j
     end
     
     alt Output includes attributes
-        CRUD->>Postgres: Get attributes for entity
+        CORE->>Postgres: Get attributes for entity
         activate Postgres
-        Postgres-->>CRUD: Attribute values
+        Postgres-->>CORE: Attribute values
         deactivate Postgres
     end
     
-    Note over CRUD: Assemble complete<br/>entity from parts
+    Note over CORE: Assemble complete<br/>entity from parts
     
-    CRUD-->>QueryAPI: Entity (Protobuf)
-    deactivate CRUD
+    CORE-->>ReadAPI: Entity (Protobuf)
+    deactivate CORE
     
-    Note over QueryAPI: Convert Protobuf<br/>to JSON
+    Note over ReadAPI: Convert Protobuf<br/>to JSON
     
-    QueryAPI-->>Client: 200 OK<br/>(JSON response)
-    deactivate QueryAPI
+    ReadAPI-->>Client: 200 OK<br/>(JSON response)
+    deactivate ReadAPI
 ```
 
 ---
@@ -187,8 +187,8 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "Update API - nexoan/update-api/"
-        UA_Service[update_api_service.bal<br/>REST Endpoints]
+    subgraph "Ingestion API - opengin/ingestion-api/"
+        UA_Service[ingestion_api_service.bal<br/>REST Endpoints]
         UA_Types[types_v1_pb.bal<br/>Protobuf Types]
         UA_Utils[utils/<br/>Helper Functions]
         
@@ -196,8 +196,8 @@ graph TB
         UA_Service --> UA_Utils
     end
     
-    subgraph "Query API - nexoan/query-api/"
-        QA_Service[query_api_service.bal<br/>REST Endpoints]
+    subgraph "Read API - opengin/read-api/"
+        QA_Service[read_api_service.bal<br/>REST Endpoints]
         QA_Types[types_v1_pb.bal<br/>Protobuf Types]
         QA_Utils[types.bal<br/>Type Definitions]
         
@@ -205,7 +205,7 @@ graph TB
         QA_Service --> QA_Utils
     end
     
-    subgraph "CRUD Service - nexoan/crud-api/"
+    subgraph "CORE Service - opengin/core-api/"
         subgraph "cmd/server/"
             Server[service.go<br/>gRPC Server Implementation]
             Utils[utils.go<br/>Helper Functions]
@@ -372,12 +372,12 @@ graph TB
     subgraph "Docker Host"
         subgraph "ldf-network (Bridge Network)"
             subgraph "API Containers"
-                UpdateCont[update<br/>Container<br/>Port: 8080]
-                QueryCont[query<br/>Container<br/>Port: 8081]
+                IngestionCont[ingestion<br/>Container<br/>Port: 8080]
+                ReadCont[read<br/>Container<br/>Port: 8081]
             end
             
             subgraph "Service Containers"
-                CrudCont[crud<br/>Container<br/>Port: 50051]
+                CoreCont[core<br/>Container<br/>Port: 50051]
             end
             
             subgraph "Database Containers"
@@ -390,12 +390,12 @@ graph TB
                 CleanupCont[cleanup<br/>Container<br/>Profile: cleanup]
             end
             
-            UpdateCont -->|gRPC| CrudCont
-            QueryCont -->|gRPC| CrudCont
+            IngestionCont -->|gRPC| CoreCont
+            ReadCont -->|gRPC| CoreCont
             
-            CrudCont -->|MongoDB Wire| MongoCont
-            CrudCont -->|Bolt| Neo4jCont
-            CrudCont -->|PostgreSQL Wire| PostgresCont
+            CoreCont -->|MongoDB Wire| MongoCont
+            CoreCont -->|Bolt| Neo4jCont
+            CoreCont -->|PostgreSQL Wire| PostgresCont
             
             CleanupCont -.->|Cleanup| MongoCont
             CleanupCont -.->|Cleanup| Neo4jCont
@@ -413,15 +413,15 @@ graph TB
         PostgresCont -.->|Mount| PostgresVol
     end
     
-    Internet[Internet/Local Network] -->|HTTP 8080| UpdateCont
-    Internet -->|HTTP 8081| QueryCont
+    Internet[Internet/Local Network] -->|HTTP 8080| IngestionCont
+    Internet -->|HTTP 8081| ReadCont
     Internet -.->|Dev Access 27017| MongoCont
     Internet -.->|Dev Access 7474/7687| Neo4jCont
     Internet -.->|Dev Access 5432| PostgresCont
     
-    style UpdateCont fill:#fff4e6
-    style QueryCont fill:#fff4e6
-    style CrudCont fill:#f3e5f5
+    style IngestionCont fill:#fff4e6
+    style ReadCont fill:#fff4e6
+    style CoreCont fill:#f3e5f5
     style MongoCont fill:#e8f5e9
     style Neo4jCont fill:#e8f5e9
     style PostgresCont fill:#e8f5e9
@@ -443,14 +443,14 @@ stateDiagram-v2
     Active --> BeingRead: GET /entities/{id}
     BeingRead --> Active: Return data
     
-    Active --> BeingUpdated: PUT /entities/{id}
-    BeingUpdated --> Active: Update complete
+    Active --> BeingIngested: PUT /entities/{id}
+    BeingIngested --> Active: Ingestion complete
     
     Active --> BeingDeleted: DELETE /entities/{id}
     BeingDeleted --> Deleted: Remove from all DBs
     
     Active --> Terminated: Set terminated timestamp
-    Terminated --> Historical: Query with activeAt
+    Terminated --> Historical: Read with activeAt
     
     Deleted --> [*]
     
@@ -487,9 +487,9 @@ flowchart TD
     CheckDatabases -->|All Healthy| Parallel[Parallel Backup]
     CheckDatabases -->|Unhealthy| Error1[Error: Database Unavailable]
     
-    Parallel --> BackupMongo[Backup MongoDB<br/>mongodump → nexoan.tar.gz]
+    Parallel --> BackupMongo[Backup MongoDB<br/>mongodump → opengin.tar.gz]
     Parallel --> BackupNeo4j[Backup Neo4j<br/>neo4j-admin dump → neo4j.dump]
-    Parallel --> BackupPostgres[Backup PostgreSQL<br/>pg_dump → nexoan.tar.gz]
+    Parallel --> BackupPostgres[Backup PostgreSQL<br/>pg_dump → opengin.tar.gz]
     
     BackupMongo --> LocalStore[Store in Local<br/>Backup Directory]
     BackupNeo4j --> LocalStore

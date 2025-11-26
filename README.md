@@ -1,21 +1,21 @@
-# Nexoan
+# OpenGIN
 
 > 💡 **Note (α)**  
 > Name needs to be proposed, voted and finalized. 
 
 ## 🚀 Running Services
 
-### 1. Run CRUD API Service
--Read about running the [CRUD Service](nexoan/crud-api/README.md)
+### 1. Run CORE API Service
+-Read about running the [CORE Service](opengin/core-api/README.md)
 
-### 2. Run Query API Serivce
--Read about running the [Query API](nexoan/query-api/README.md)
+### 2. Run Read API Service
+-Read about running the [Read API](opengin/read-api/README.md)
 
-### 3. Run Update API Service
--Read about running the [Update API](nexoan/update-api/README.md)
+### 3. Run Ingestion API Service
+-Read about running the [Ingestion API](opengin/ingestion-api/README.md)
 
 ### 4. Run Swagger-UI  
--Read about running the [Swagger UI](nexoan/swagger-ui/README.md)
+-Read about running the [Swagger UI](opengin/swagger-ui/README.md)
 
 ### 5. Database Cleanup Service
 The cleanup service provides a way to clean all databases (PostgreSQL, MongoDB, Neo4j) before and after running tests or services.
@@ -68,7 +68,7 @@ For detailed backup and restore documentation, see [Backup Integration Guide](do
 
 ## Run a sample query with CURL
 
-### Update API
+### Ingestion API
 
 **Create**
 
@@ -137,7 +137,7 @@ curl -X PUT http://localhost:8080/entities/12345 \
 curl -X DELETE http://localhost:8080/entities/12345
 ```
 
-### Query API 
+### Read API 
 
 **Retrieve Metadata**
 
@@ -147,7 +147,7 @@ curl -X GET "http://localhost:8081/v1/entities/12345/metadata"
 
 ## Run E2E Tests
 
-Make sure the CRUD server and the API server are running. 
+Make sure the CORE server and the API server are running. 
 
 Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
 
@@ -169,18 +169,18 @@ ReadEntityRequest readEntityRequest = {
     output: ["relationships"]
 };
 
-### Run Update API Tests
+### Run Ingestion API Tests
 
 ```bash
-cd nexoan/tests/e2e
-python basic_crud_tests.py
+cd opengin/tests/e2e
+python basic_core_tests.py
 ```
 
-### Run Query API Tests
+### Run Read API Tests
 
 ```bash
-cd nexoan/tests/e2e
-python basic_query_tests.py
+cd opengin/tests/e2e
+python basic_read_tests.py
 ```
 
 ## Implementation Progress

@@ -172,7 +172,7 @@ OpenGIN uses three specialized databases:
 
 ### Prerequisites
 - Docker and Docker Compose
-- Go 1.19+ (for CRUD service)
+- Go 1.19+ (for CORE service)
 - Ballerina (for APIs)
 
 ### Start the System
@@ -180,7 +180,7 @@ OpenGIN uses three specialized databases:
 # Start databases
 docker-compose up -d mongodb neo4j postgres
 
-# Start CRUD service
+# Start CORE service
 cd opengin/core-api && ./core-service
 
 # Start APIs
@@ -232,7 +232,7 @@ GET /v1/entities/{id}/attributes?name=salary&activeAt=2024-03-15T00:00:00Z
 
 ### 2. **Making Changes**
 - **API Changes**: Update OpenAPI contracts in `opengin/contracts/rest/`
-- **Service Changes**: Modify CRUD service in `opengin/crud-api/`
+- **Service Changes**: Modify CORE service in `opengin/core-api/`
 - **Database Changes**: Consider impact across all three databases
 
 ### 3. **Testing**

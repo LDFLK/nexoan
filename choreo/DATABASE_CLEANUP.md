@@ -82,7 +82,7 @@ END $$;
 - ✅ Automatically cleans all tables with `attr_` prefix
 - ✅ Skips system tables (pg_*, sql_*)
 
-## 🚀 Implementation in Dockerfile.crud
+## 🚀 Implementation in Dockerfile.core
 
 The cleanup is implemented in two phases:
 
@@ -123,7 +123,7 @@ docker exec neo4j cypher-shell -u neo4j -p neo4j123 "MATCH ()-[r]->() RETURN cou
 ### **Verify PostgreSQL Cleanup**
 ```bash
 # Check table row counts
-docker exec postgres psql -U postgres -d nexoan -c "SELECT 'metadata' as table_name, COUNT(*) as row_count FROM metadata UNION ALL SELECT 'entities', COUNT(*) FROM entities UNION ALL SELECT 'relationships', COUNT(*) FROM relationships;"
+docker exec postgres psql -U postgres -d opengin -c "SELECT 'metadata' as table_name, COUNT(*) as row_count FROM metadata UNION ALL SELECT 'entities', COUNT(*) FROM entities UNION ALL SELECT 'relationships', COUNT(*) FROM relationships;"
 ```
 
 ## 🎯 Best Practices
@@ -178,12 +178,12 @@ docker exec postgres psql -U postgres -d nexoan -c "SELECT 'metadata' as table_n
 docker compose ps
 
 # View service logs
-docker compose logs mongodb neo4j postgres crud
+docker compose logs mongodb neo4j postgres core
 
 # Interactive debugging
 docker compose exec mongodb mongosh
 docker compose exec neo4j cypher-shell -u neo4j -p neo4j123
-docker compose exec postgres psql -U postgres -d nexoan
+docker compose exec postgres psql -U postgres -d opengin
 ```
 
 ## 📚 References
@@ -214,7 +214,7 @@ cleanup:
     - POSTGRES_PORT=5432
     - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=postgres
-    - POSTGRES_DB=nexoan
+    - POSTGRES_DB=opengin
     - MONGO_URI=mongodb://admin:admin123@mongodb:27017/admin?authSource=admin
     - MONGO_DB_NAME=testdb
     - NEO4J_URI=bolt://neo4j:7687
@@ -336,7 +336,7 @@ docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
 If you're migrating from the old embedded cleanup approach:
 
 1. **Remove cleanup logic** from individual service Dockerfiles
-2. **Update service startup scripts** to remove cleanup calls
+2. **Ingestion service startup scripts** to remove cleanup calls
 3. **Use the dedicated cleanup service** for all database cleaning needs
 4. **Update CI/CD pipelines** to call cleanup service at appropriate times
 

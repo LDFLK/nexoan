@@ -10,14 +10,14 @@ FROM golang:1.24 AS builder
 WORKDIR /app
 COPY . .
 
-RUN cd nexoan/crud-api && go mod download
-RUN cd nexoan/crud-api && go build ./...
-RUN cd nexoan/crud-api && go build -o crud-service cmd/server/service.go cmd/server/utils.go
+RUN cd opengin/core-api && go mod download
+RUN cd opengin/core-api && go build ./...
+RUN cd opengin/core-api && go build -o core-service cmd/server/service.go cmd/server/utils.go
 
 RUN mkdir -p /app/testbin
-RUN cd nexoan/crud-api/cmd/server && go test -c -o /app/testbin/crud-test .
-RUN cd nexoan/crud-api/db/repository/mongo && go test -c -o /app/testbin/mongo-test .
-RUN cd nexoan/crud-api/db/repository/neo4j && go test -c -o /app/testbin/neo4j-test .
+RUN cd opengin/core-api/cmd/server && go test -c -o /app/testbin/core-test .
+RUN cd opengin/core-api/db/repository/mongo && go test -c -o /app/testbin/mongo-test .
+RUN cd opengin/core-api/db/repository/neo4j && go test -c -o /app/testbin/neo4j-test .
 
 # -------------------
 # Stage 2: Final Image
@@ -81,10 +81,10 @@ RUN sed -i 's/#server.default_listen_address=0.0.0.0/server.default_listen_addre
     && echo "dbms.security.procedures.unrestricted=apoc.*" >> /etc/neo4j/neo4j.conf
 
 # Copy compiled binaries and source code
-COPY --from=builder /app/nexoan/crud-api/crud-service /usr/local/bin/
+COPY --from=builder /app/opengin/core-api/core-service /usr/local/bin/
 COPY --from=builder /app/testbin/* /usr/local/bin/
-COPY --from=builder /app/nexoan/crud-api /app/nexoan/crud-api
-COPY --from=builder /app/nexoan/update-api /app/nexoan/update-api
+COPY --from=builder /app/opengin/core-api /app/opengin/core-api
+COPY --from=builder /app/opengin/ingestion-api /app/opengin/ingestion-api
 
 WORKDIR /app
 
@@ -124,21 +124,21 @@ until mongosh --eval "db.version()" > /dev/null 2>&1; do\n\
     sleep 2\n\
 done\n\
 \n\
-echo "Running CRUD service tests..."\n\
-cd /app/nexoan/crud-api\n\
-crud-test -test.v && mongo-test -test.v && neo4j-test -test.v\n\
+echo "Running CORE service tests..."\n\
+cd /app/opengin/core-api\n\
+core-test -test.v && mongo-test -test.v && neo4j-test -test.v\n\
 \n\
-echo "Starting CRUD server..."\n\
-./crud-service &\n\
-CRUD_PID=$!\n\
+echo "Starting CORE server..."\n\
+./core-service &\n\
+CORE_PID=$!\n\
 sleep 5\n\
 \n\
-echo "Running update-api tests..."\n\
-cd /app/nexoan/update-api\n\
+echo "Running ingestion-api tests..."\n\
+cd /app/opengin/ingestion-api\n\
 bal test\n\
 \n\
-echo "Stopping CRUD server..."\n\
-kill $CRUD_PID\n\
+echo "Stopping CORE server..."\n\
+kill $CORE_PID\n\
 \n\
 tail -f /dev/null' > /start.sh && chmod +x /start.sh
 

@@ -94,7 +94,7 @@
   - Accept JSON payloads from clients
   - Validate request structure
   - Convert JSON to Protobuf Entity messages
-  - Communicate with CRUD Service via gRPC
+  - Communicate with CORE Service via gRPC
   - Convert Protobuf responses back to JSON
 - **Contract**: OpenAPI specification at `opengin/contracts/rest/ingestion_api.yaml`
 
@@ -103,10 +103,10 @@
 - **Technology**: Ballerina REST service
 - **Location**: `opengin/read-api/`
 - **Responsibilities**:
-  - Accept query requests from clients
+  - Accept read requests from clients
   - Support selective field retrieval (metadata, relationships, attributes)
   - Filter and search capabilities
-  - Communicate with CRUD Service via gRPC
+  - Communicate with CORE Service via gRPC
   - Return formatted JSON responses
 - **Contract**: OpenAPI specification at `opengin/contracts/rest/read_api.yaml`
 
@@ -169,7 +169,7 @@ Central orchestration service that manages data networking and all database inte
    - **MongoRepository** (`mongo/mongodb_client.go`, `mongo/metadata_handler.go`)
      - Handles metadata storage and retrieval
      - Connection management
-     - CRUD operations for metadata
+     - CORE operations for metadata
    
    - **Neo4jRepository** (`neo4j/neo4j_client.go`, `neo4j/graph_entity_handler.go`)
      - Manages entity nodes and relationships
@@ -456,7 +456,7 @@ The entity data is strategically distributed across three databases:
 
 ### Type Inference System
 
-**Location**: `opengin/crud-api/pkg/typeinference/`
+**Location**: `opengin/core-api/pkg/typeinference/`
 
 **Primitive Types:**
 - `int` - Whole numbers without decimal points
@@ -691,8 +691,8 @@ Based on TODOs found in the codebase:
 - [Storage Types](../storage.md) - Storage type inference details
 - [Backup Integration](../deployment/BACKUP_INTEGRATION.md) - Backup and restore guide
 - [Core API](../architecture/core-api.md) - Core API documentation
-- [Ingestion API](../../nexoan/update-api/README.md) - Ingestion API documentation
-- [Read API](../../nexoan/query-api/README.md) - Read API documentation
+- [Ingestion API](../../opengin/ingestion-api/README.md) - Ingestion API documentation
+- [Read API](../../opengin/read-api/README.md) - Read API documentation
 
 ---
 
@@ -701,7 +701,7 @@ Based on TODOs found in the codebase:
 ### Service Endpoints
 
 ```bash
-# Update API
+# Ingestion API
 POST   http://localhost:8080/entities          # Create entity
 GET    http://localhost:8080/entities/{id}     # Read entity
 PUT    http://localhost:8080/entities/{id}     # Update entity

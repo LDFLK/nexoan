@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Performance testing script for Nexoan Query API
+Performance testing script for OpenGIN Read API
 Runs the curl command 20 times and calculates average response times
 python3 perf/performance_test.py --count 10
 """
@@ -106,10 +106,10 @@ def run_curl_test(url, debug=False):
 def main():
     """Run 20 tests and calculate averages"""
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Performance test for Nexoan Query API')
+    parser = argparse.ArgumentParser(description='Performance test for OpenGIN Read API')
     parser.add_argument('--url', '-u', 
-                       default=os.getenv('QUERY_API_URL', 'https://aaf8ece1-3077-4a52-ab05-183a424f6d93-prod.e1-us-east-azure.choreoapis.dev/data-platform/query-api/v1.1'),
-                       help='Query API URL (default: from QUERY_API_URL env var or hardcoded default)')
+                       default=os.getenv('READ_API_URL', 'https://aaf8ece1-3077-4a52-ab05-183a424f6d93-prod.e1-us-east-azure.choreoapis.dev/data-platform/read-api/v1.1'),
+                       help='Read API URL (default: from READ_API_URL env var or hardcoded default)')
     parser.add_argument('--count', '-c', type=int, default=20,
                        help='Number of requests to run (default: 20)')
     parser.add_argument('--delay', '-d', type=float, default=0.5,
@@ -119,7 +119,7 @@ def main():
     
     args = parser.parse_args()
     
-    print("🚀 Starting Nexoan Query API Performance Test")
+    print("🚀 Starting OpenGIN Read API Performance Test")
     print("=" * 60)
     print(f"Target URL: {args.url}")
     print(f"Running {args.count} requests to measure performance...")

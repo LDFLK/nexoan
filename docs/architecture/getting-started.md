@@ -39,7 +39,7 @@ In-depth documentation of the CRUD Service:
 ### 3. [API Layer Details](./api-layer-details.md)
 Complete API layer documentation:
 - Ingestion API (CREATE, UPDATE, DELETE operations)
-- Read API (READ, QUERY operations)
+- Read API (READ operations)
 - Request/response formats
 - JSON to Protobuf conversion
 - OpenAPI contracts
@@ -243,8 +243,8 @@ Returns attribute value as it was on specific date.
 ### 2. Setting Up Development Environment
 - Clone repository
 - Start databases: `docker-compose up -d mongodb neo4j postgres`
-- Start CRUD service: `cd opengin/crud-api && ./crud-service`
-- Start APIs: Update API (port 8080), Query API (port 8081)
+- Start CORE service: `cd opengin/core-api && ./core-service`
+- Start APIs: Ingestion API (port 8080), Query API (port 8081)
 
 ### 3. Making Changes
 
@@ -362,9 +362,9 @@ Update architecture docs when:
 - [Data Types](../datatype.md) - Type inference system
 - [Storage Types](../storage.md) - Storage inference system
 - [Deployment Guide](../deployment/BACKUP_INTEGRATION.md) - Backup and restore
-- [Core API README](../../nexoan/crud-api/README.md) - Polyglot Database Query Processing
-- [Ingestion API README](../../nexoan/update-api/README.md) - Ingestion API setup
-- [Read API README](../../nexoan/query-api/README.md) - Read API setup
+- [Core API README](../../opengin/core-api/README.md) - Polyglot Database Query Processing
+- [Ingestion API README](../../opengin/ingestion-api/README.md) - Ingestion API setup
+- [Read API README](../../opengin/read-api/README.md) - Read API setup
 
 ### External Resources
 
