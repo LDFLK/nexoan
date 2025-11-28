@@ -43,6 +43,8 @@ The core unit of data in OpenGIN is the **Entity**. An Entity represents any obj
         {
             "key": "reports_to",
             "value": {
+                "id": "rel-manager-001",
+                "name": "reports_to",
                 "relatedEntityId": "manager-id",
                 "startTime": "2024-01-01T00:00:00Z",
                 "endTime": ""
