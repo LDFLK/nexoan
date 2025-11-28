@@ -50,7 +50,7 @@ curl -X POST http://localhost:8080/entities \
 -d '{
   "id": "test-entity-1",
   "kind": {"major": "test", "minor": "unit"},
-  "name": {"value": "Test Entity", "startTime": "2024-01-01T00:00:00Z"},
+  "name": {"value": "Test Entity", "startTime": "2024-01-01T00:00:00Z", "endTime": ""},
   "metadata": [{"key": "owner", "value": "admin"}]
 }'
 ```
