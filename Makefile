@@ -1,4 +1,4 @@
-.PHONY: help env build build-core build-ingestion build-read test test-core test-ingestion test-read run-core run-ingestion run-read stop-core stop-ingestion stop-read e2e e2e-venv e2e-ingestion e2e-read e2e-docker infra-up infra-down services-up services-down up up-core up-ingestion up-read down down-core down-ingestion down-read down-all logs clean-pre clean-post dev hooks-install
+.PHONY: help env build build-core build-ingestion build-read test test-core test-ingestion test-read run-core run-ingestion run-read stop-core stop-ingestion stop-read e2e e2e-venv e2e-ingestion e2e-read e2e-docker infra-up infra-down services-up services-down up up-core up-ingestion up-read down down-core down-ingestion down-read down-all logs clean-pre clean-post dev
 
 # Select docker compose command. Override with: make COMPOSE="docker compose"
 COMPOSE ?= docker-compose
@@ -39,7 +39,7 @@ help:
 	@# echo "lint                Lint Core API code (golangci-lint)"  # Disabled - requires testing
 	@# echo "lint-core           Same as 'lint' (Core API only)"  # Disabled - requires testing
 	@# echo "tools-core          Install Go dev tools for Core API: gofumpt, golines, golangci-lint"  # Disabled - requires testing
-	@echo "hooks-install       Install git pre-commit hooks"
+	@# echo "hooks-install       Install git pre-commit hooks"  # Disabled - requires testing
 	@echo "e2e-venv            Set up Python virtual environment for E2E tests"
 	@echo "e2e                 Run all E2E tests locally (requires services running)"
 	@echo "e2e-ingestion       Run E2E tests for Ingestion API (basic_core_tests.py)"
@@ -127,7 +127,7 @@ test-core:
 		if [ -f .env ]; then \
 			set -a && source .env && set +a; \
 		fi && \
-		go test -v ./...
+		go test -v -count=1 ./...
 
 test-ingestion:
 	@echo "Running tests for Ingestion API"
@@ -385,10 +385,11 @@ clean-post:
 # 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # Install and activate git pre-commit hooks
-hooks-install:
-	@echo "Installing pre-commit and setting up git hooks"
-	@python3 -m pip install --user pre-commit
-	@pre-commit install
+# hooks-install target disabled - requires testing in separate PR
+# hooks-install:
+# 	@echo "Installing pre-commit and setting up git hooks"
+# 	@python3 -m pip install --user pre-commit
+# 	@pre-commit install
 
 # One-shot developer bootstrap: clean -> build -> full stack up -> tail logs hint
 # Note: Feel free to interrupt logs with Ctrl+C; services keep running.
