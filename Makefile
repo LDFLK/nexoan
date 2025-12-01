@@ -1,12 +1,12 @@
-.PHONY: help build build-go build-ballerina test test-go test-ballerina e2e e2e-docker infra-up infra-down services-up services-down up down down-all logs clean-pre clean-post backup-mongodb backup-postgres backup-neo4j restore-mongodb restore-postgres restore-neo4j dev coverage coverage-go coverage-ballerina fmt fmt-go lint lint-go tools-go hooks-install
+.PHONY: help env build build-core build-ingestion build-read test test-core test-ingestion test-read run-core run-ingestion run-read e2e e2e-venv e2e-ingestion e2e-read e2e-docker infra-up infra-down services-up services-down up up-core up-ingestion up-read down down-core down-ingestion down-read down-all logs clean-pre clean-post backup-mongodb backup-postgres backup-neo4j restore-mongodb restore-postgres restore-neo4j dev hooks-install
 
 # Select docker compose command. Override with: make COMPOSE="docker compose"
 COMPOSE ?= docker-compose
 
 # Paths (updated after refactor)
-CRUD_DIR := opengin/core-api
-UPDATE_DIR := opengin/ingestion-api
-QUERY_DIR := opengin/read-api
+CORE_DIR := opengin/core-api
+INGESTION_DIR := opengin/ingestion-api
+READ_DIR := opengin/read-api
 E2E_DIR := opengin/tests/e2e
 DEPLOY_DEV := deployment/development
 
@@ -15,29 +15,45 @@ DEPLOY_DEV := deployment/development
 help:
 	@echo "Nexoan — Make targets"
 	@echo "------------------------------------------------------------"
-	@echo "build               Build all components (Go + Ballerina)"
-	@echo "build-go            Build Core service (Go)"
-	@echo "build-ballerina     Build Ingestion & Read APIs (Ballerina)"
-	@echo "test                Run all tests (Go + Ballerina)"
-	@echo "test-go             Run Go tests for Core API"
-	@echo "test-ballerina      Run Ballerina tests for Ingestion & Read APIs"
-	@echo "coverage            Run coverage for Go + Ballerina"
-	@echo "coverage-go         Run Go coverage (Core API) and show summary"
-	@echo "coverage-ballerina  Run Ballerina coverage (Ingestion & Read APIs)"
-	@echo "fmt                 Format Go code (gofumpt + golines -m 120)"
-	@echo "fmt-go              Same as 'fmt' (Core API only)"
-	@echo "lint                Lint Go code (golangci-lint)"
-	@echo "lint-go             Same as 'lint' (Core API only)"
-	@echo "tools-go            Install Go dev tools: gofumpt, golines, golangci-lint"
-	@echo "hooks-install       Install git pre-commit hooks (runs 'make fmt' and 'make lint')"
-	@echo "e2e                 Run E2E tests locally (requires services running)"
+	@echo "env                 Copy env.template to .env for all services"
+	@echo "build               Build all APIs (Core, Ingestion, Read)"
+	@echo "build-core          Build Core API"
+	@echo "build-ingestion     Build Ingestion API"
+	@echo "build-read          Build Read API"
+	@echo "test                Run all tests (Core, Ingestion, Read)"
+	@echo "test-core           Run tests for Core API"
+	@echo "test-ingestion      Run tests for Ingestion API"
+	@echo "test-read           Run tests for Read API"
+	@echo "run-core            Run Core API service directly (without docker, sources .env)"
+	@echo "run-ingestion       Run Ingestion API service directly (without docker, sources .env)"
+	@echo "run-read            Run Read API service directly (without docker, sources .env)"
+	@# echo "coverage            Run coverage for all APIs"  # Disabled - requires testing
+	@# echo "coverage-core       Run coverage for Core API"  # Disabled - requires testing
+	@# echo "coverage-ingestion  Run coverage for Ingestion API"  # Disabled - requires testing
+	@# echo "coverage-read       Run coverage for Read API"  # Disabled - requires testing
+	@# echo "fmt                 Format Core API code (gofumpt + golines -m 120)"  # Disabled - requires testing
+	@# echo "fmt-core            Same as 'fmt' (Core API only)"  # Disabled - requires testing
+	@# echo "lint                Lint Core API code (golangci-lint)"  # Disabled - requires testing
+	@# echo "lint-core           Same as 'lint' (Core API only)"  # Disabled - requires testing
+	@# echo "tools-core          Install Go dev tools for Core API: gofumpt, golines, golangci-lint"  # Disabled - requires testing
+	@echo "hooks-install       Install git pre-commit hooks"
+	@echo "e2e-venv            Set up Python virtual environment for E2E tests"
+	@echo "e2e                 Run all E2E tests locally (requires services running)"
+	@echo "e2e-ingestion       Run E2E tests for Ingestion API (basic_core_tests.py)"
+	@echo "e2e-read            Run E2E tests for Read API (basic_read_tests.py)"
 	@echo "e2e-docker          Run E2E tests in docker-compose 'e2e' service"
 	@echo "infra-up            Start databases (MongoDB, Neo4j, Postgres)"
 	@echo "infra-down          Stop databases"
 	@echo "services-up         Start services (core, ingestion, read)"
 	@echo "services-down       Stop services"
 	@echo "up                  Start full stack (infra + services)"
+	@echo "up-core             Start Core API service (assumes infra is running)"
+	@echo "up-ingestion        Start Ingestion API service (assumes infra is running)"
+	@echo "up-read             Start Read API service (assumes infra is running)"
 	@echo "down                Stop stack (keeps volumes)"
+	@echo "down-core           Stop Core API service"
+	@echo "down-ingestion      Stop Ingestion API service"
+	@echo "down-read           Stop Read API service"
 	@echo "down-all            Stop stack and remove volumes"
 	@echo "logs                Tail logs for main services"
 	@echo "clean-pre           Clean databases (pre) using cleanup profile"
@@ -48,47 +64,151 @@ help:
 	@echo "------------------------------------------------------------"
 	@echo "Tip: override compose command with COMPOSE=\"docker compose\" if needed"
 
-build: build-go build-ballerina
+env:
+	@echo "Setting up .env files from templates..."
+	@if [ ! -f $(CORE_DIR)/.env ]; then \
+		cp $(CORE_DIR)/env.template $(CORE_DIR)/.env && \
+		echo "✓ Created $(CORE_DIR)/.env"; \
+	else \
+		echo "⚠ $(CORE_DIR)/.env already exists, skipping"; \
+	fi
+	@if [ ! -f $(INGESTION_DIR)/.env ]; then \
+		cp $(INGESTION_DIR)/env.template $(INGESTION_DIR)/.env && \
+		echo "✓ Created $(INGESTION_DIR)/.env"; \
+	else \
+		echo "⚠ $(INGESTION_DIR)/.env already exists, skipping"; \
+	fi
+	@if [ ! -f $(READ_DIR)/.env ]; then \
+		cp $(READ_DIR)/env.template $(READ_DIR)/.env && \
+		echo "✓ Created $(READ_DIR)/.env"; \
+	else \
+		echo "⚠ $(READ_DIR)/.env already exists, skipping"; \
+	fi
+	@echo ""
+	@echo "✅ Environment files created. Please edit the .env files as required:"
+	@echo "   - $(CORE_DIR)/.env"
+	@echo "   - $(INGESTION_DIR)/.env"
+	@echo "   - $(READ_DIR)/.env"
 
-build-go:
-	@echo "Building Core service (Go)"
-	@cd $(CRUD_DIR) && go build ./... && go build -o core-service ./cmd/server
+build: build-core build-ingestion build-read
 
-build-ballerina:
-	@echo "Building Ingestion & Read APIs (Ballerina)"
-	@cd $(UPDATE_DIR) && bal build
-	@cd $(QUERY_DIR) && bal build
+build-core:
+	@echo "Building Core API"
+	@cd $(CORE_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		go build ./... && go build -o core-service ./cmd/server
 
-test: test-go test-ballerina
+build-ingestion:
+	@echo "Building Ingestion API"
+	@cd $(INGESTION_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal build
 
-test-go:
-	@echo "Running Go tests (Core API)"
-	@cd $(CRUD_DIR) && go test -v ./...
+build-read:
+	@echo "Building Read API"
+	@cd $(READ_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal build
 
-test-ballerina:
-	@echo "Running Ballerina tests (Ingestion API)"
-	@cd $(UPDATE_DIR) && bal test
-	@echo "Running Ballerina tests (Read API)"
-	@cd $(QUERY_DIR) && bal test
+test: test-core test-ingestion test-read
 
-coverage: coverage-go coverage-ballerina
+test-core:
+	@echo "Running tests for Core API"
+	@cd $(CORE_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		go test -v ./...
 
-coverage-go:
-	@echo "Running Go coverage (Core API)"
-	@cd $(CRUD_DIR) && go test -coverprofile=coverage.out ./...
-	@cd $(CRUD_DIR) && go tool cover -func=coverage.out | tail -n 1 || true
-	@cd $(CRUD_DIR) && go tool cover -html=coverage.out -o coverage.html
-	@echo "Go coverage HTML report: $(CRUD_DIR)/coverage.html"
+test-ingestion:
+	@echo "Running tests for Ingestion API"
+	@cd $(INGESTION_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal test
 
-coverage-ballerina:
-	@echo "Running Ballerina coverage (Ingestion API)"
-	@cd $(UPDATE_DIR) && bal test --code-coverage
-	@echo "Running Ballerina coverage (Read API)"
-	@cd $(QUERY_DIR) && bal test --code-coverage
+test-read:
+	@echo "Running tests for Read API"
+	@cd $(READ_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal test
 
-e2e:
-	@echo "Running local E2E tests (ensure services are up: make up)"
-	@cd $(E2E_DIR) && python3 basic_core_tests.py && python3 basic_read_tests.py
+run-core:
+	@echo "Running Core API service directly (without docker)"
+	@cd $(CORE_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		go run ./cmd/server
+
+run-ingestion:
+	@echo "Running Ingestion API service directly (without docker)"
+	@cd $(INGESTION_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal run
+
+run-read:
+	@echo "Running Read API service directly (without docker)"
+	@cd $(READ_DIR) && \
+		if [ -f .env ]; then \
+			set -a && source .env && set +a; \
+		fi && \
+		bal run
+
+# Coverage targets disabled - requires testing in separate PR
+# coverage: coverage-core coverage-ingestion coverage-read
+#
+# coverage-core:
+# 	@echo "Running coverage for Core API"
+# 	@cd $(CORE_DIR) && go test -coverprofile=coverage.out ./...
+# 	@cd $(CORE_DIR) && go tool cover -func=coverage.out | tail -n 1 || true
+# 	@cd $(CORE_DIR) && go tool cover -html=coverage.out -o coverage.html
+# 	@echo "Core API coverage HTML report: $(CORE_DIR)/coverage.html"
+#
+# coverage-ingestion:
+# 	@echo "Running coverage for Ingestion API"
+# 	@cd $(INGESTION_DIR) && bal test --code-coverage
+#
+# coverage-read:
+# 	@echo "Running coverage for Read API"
+# 	@cd $(READ_DIR) && bal test --code-coverage
+
+e2e-venv:
+	@echo "Setting up Python virtual environment for E2E tests..."
+	@cd $(E2E_DIR) && \
+		if [ ! -d .venv ]; then \
+			python3 -m venv .venv && \
+			echo "✓ Created virtual environment"; \
+		else \
+			echo "✓ Virtual environment already exists"; \
+		fi
+	@cd $(E2E_DIR) && \
+		.venv/bin/pip install --quiet --upgrade pip && \
+		.venv/bin/pip install --quiet requests && \
+		.venv/bin/pip install --quiet protobuf && \
+		.venv/bin/pip install --quiet pandas && \
+		echo "✓ Installed requests library"
+
+e2e: e2e-venv e2e-ingestion e2e-read
+
+e2e-ingestion: e2e-venv
+	@echo "Running E2E tests for Ingestion API (ensure services are up: make up)"
+	@cd $(E2E_DIR) && .venv/bin/python basic_core_tests.py
+
+e2e-read: e2e-venv
+	@echo "Running E2E tests for Read API (ensure services are up: make up)"
+	@cd $(E2E_DIR) && .venv/bin/python basic_read_tests.py
 
 e2e-docker:
 	@echo "Running E2E tests via docker-compose (will build and run dependent services if needed)"
@@ -118,12 +238,42 @@ up: infra-up services-up
 	@echo "- Ingestion API:  http://localhost:8080"
 	@echo "- Read API:   http://localhost:8081"
 
+up-core:
+	@echo "Starting Core API service (ensure infra is running: make infra-up)"
+	@$(COMPOSE) up -d --build core
+	@echo "Core API started."
+	@echo "- Core (gRPC): localhost:50051"
+
+up-ingestion:
+	@echo "Starting Ingestion API service (ensure infra is running: make infra-up)"
+	@$(COMPOSE) up -d --build ingestion
+	@echo "Ingestion API started."
+	@echo "- Ingestion API:  http://localhost:8080"
+
+up-read:
+	@echo "Starting Read API service (ensure infra is running: make infra-up)"
+	@$(COMPOSE) up -d --build read
+	@echo "Read API started."
+	@echo "- Read API:   http://localhost:8081"
+
 logs:
 	@$(COMPOSE) logs -f core ingestion read
 
 down:
 	@echo "Stopping stack (keeping volumes)"
 	@$(COMPOSE) down
+
+down-core:
+	@echo "Stopping Core API service"
+	@$(COMPOSE) stop core || true
+
+down-ingestion:
+	@echo "Stopping Ingestion API service"
+	@$(COMPOSE) stop ingestion || true
+
+down-read:
+	@echo "Stopping Read API service"
+	@$(COMPOSE) stop read || true
 
 down-all:
 	@echo "Stopping stack and removing volumes"
@@ -156,25 +306,28 @@ restore-neo4j:
 	@cd $(DEPLOY_DEV) && ./init.sh restore_neo4j
 
 # Formatting & linting
-fmt: fmt-go
+# Formatting targets disabled - requires testing in separate PR
+# fmt: fmt-core
+#
+# fmt-core:
+# 	@echo "Formatting Core API code (gofumpt + golines -m 120)"
+# 	@cd $(CORE_DIR) && gofumpt -w .
+# 	@cd $(CORE_DIR) && golines -m 120 -w .
 
-fmt-go:
-	@echo "Formatting Go code (gofumpt + golines -m 120)"
-	@cd $(CRUD_DIR) && gofumpt -w .
-	@cd $(CRUD_DIR) && golines -m 120 -w .
-
-lint: lint-go
-
-lint-go:
-	@echo "Linting Go code (golangci-lint)"
-	@cd $(CRUD_DIR) && golangci-lint run ./...
+# Linting targets disabled - requires testing in separate PR
+# lint: lint-core
+#
+# lint-core:
+# 	@echo "Linting Core API code (golangci-lint)"
+# 	@cd $(CORE_DIR) && golangci-lint run ./...
 
 # Install dev tools locally (ensure GOPATH/bin is on your PATH)
-tools-go:
-	@echo "Installing gofumpt, golines, golangci-lint"
-	@go install mvdan.cc/gofumpt@latest
-	@go install github.com/segmentio/golines@latest
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Tools target disabled - requires testing in separate PR
+# tools-core:
+# 	@echo "Installing Go dev tools for Core API: gofumpt, golines, golangci-lint"
+# 	@go install mvdan.cc/gofumpt@latest
+# 	@go install github.com/segmentio/golines@latest
+# 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # Install and activate git pre-commit hooks
 hooks-install:
