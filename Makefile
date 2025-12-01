@@ -1,4 +1,4 @@
-.PHONY: help env build build-core build-ingestion build-read test test-core test-ingestion test-read run-core run-ingestion run-read e2e e2e-venv e2e-ingestion e2e-read e2e-docker infra-up infra-down services-up services-down up up-core up-ingestion up-read down down-core down-ingestion down-read down-all logs clean-pre clean-post backup-mongodb backup-postgres backup-neo4j restore-mongodb restore-postgres restore-neo4j dev hooks-install
+.PHONY: help env build build-core build-ingestion build-read test test-core test-ingestion test-read run-core run-ingestion run-read stop-core stop-ingestion stop-read e2e e2e-venv e2e-ingestion e2e-read e2e-docker infra-up infra-down services-up services-down up up-core up-ingestion up-read down down-core down-ingestion down-read down-all logs clean-pre clean-post dev hooks-install
 
 # Select docker compose command. Override with: make COMPOSE="docker compose"
 COMPOSE ?= docker-compose
@@ -24,9 +24,12 @@ help:
 	@echo "test-core           Run tests for Core API"
 	@echo "test-ingestion      Run tests for Ingestion API"
 	@echo "test-read           Run tests for Read API"
-	@echo "run-core            Run Core API service directly (without docker, sources .env)"
-	@echo "run-ingestion       Run Ingestion API service directly (without docker, sources .env)"
-	@echo "run-read            Run Read API service directly (without docker, sources .env)"
+	@echo "run-core            Run Core API service directly (without docker, sources .env, runs in background)"
+	@echo "run-ingestion       Run Ingestion API service directly (without docker, sources .env, runs in background)"
+	@echo "run-read            Run Read API service directly (without docker, sources .env, runs in background)"
+	@echo "stop-core           Stop Core API service (started with make run-core)"
+	@echo "stop-ingestion      Stop Ingestion API service (started with make run-ingestion)"
+	@echo "stop-read           Stop Read API service (started with make run-read)"
 	@# echo "coverage            Run coverage for all APIs"  # Disabled - requires testing
 	@# echo "coverage-core       Run coverage for Core API"  # Disabled - requires testing
 	@# echo "coverage-ingestion  Run coverage for Ingestion API"  # Disabled - requires testing
@@ -58,8 +61,8 @@ help:
 	@echo "logs                Tail logs for main services"
 	@echo "clean-pre           Clean databases (pre) using cleanup profile"
 	@echo "clean-post          Clean databases (post) using cleanup profile"
-	@echo "backup-<db>         Backup mongodb | postgres | neo4j"
-	@echo "restore-<db>        Restore mongodb | postgres | neo4j"
+	@# echo "backup-<db>         Backup mongodb | postgres | neo4j"  # Disabled - requires testing
+	@# echo "restore-<db>        Restore mongodb | postgres | neo4j"  # Disabled - requires testing
 	@echo "dev                 One command: clean, build, start full stack, ready for development"
 	@echo "------------------------------------------------------------"
 	@echo "Tip: override compose command with COMPOSE=\"docker compose\" if needed"
@@ -143,28 +146,79 @@ test-read:
 		bal test
 
 run-core:
-	@echo "Running Core API service directly (without docker)"
+	@echo "Running Core API service directly (without docker, in background)"
 	@cd $(CORE_DIR) && \
 		if [ -f .env ]; then \
 			set -a && source .env && set +a; \
 		fi && \
-		go run ./cmd/server
+		(go run ./cmd/server > /tmp/core-api.log 2>&1 & echo $$! > /tmp/core-api.pid) && \
+		echo "Core API started in background (PID: $$(cat /tmp/core-api.pid))"
+	@echo "Logs: tail -f /tmp/core-api.log"
+	@echo "Stop: make stop-core"
 
 run-ingestion:
-	@echo "Running Ingestion API service directly (without docker)"
+	@echo "Running Ingestion API service directly (without docker, in background)"
 	@cd $(INGESTION_DIR) && \
 		if [ -f .env ]; then \
 			set -a && source .env && set +a; \
 		fi && \
-		bal run
+		(bal run > /tmp/ingestion-api.log 2>&1 & echo $$! > /tmp/ingestion-api.pid) && \
+		echo "Ingestion API started in background (PID: $$(cat /tmp/ingestion-api.pid))"
+	@echo "Logs: tail -f /tmp/ingestion-api.log"
+	@echo "Stop: make stop-ingestion"
 
 run-read:
-	@echo "Running Read API service directly (without docker)"
+	@echo "Running Read API service directly (without docker, in background)"
 	@cd $(READ_DIR) && \
 		if [ -f .env ]; then \
 			set -a && source .env && set +a; \
 		fi && \
-		bal run
+		(bal run > /tmp/read-api.log 2>&1 & echo $$! > /tmp/read-api.pid) && \
+		echo "Read API started in background (PID: $$(cat /tmp/read-api.pid))"
+	@echo "Logs: tail -f /tmp/read-api.log"
+	@echo "Stop: make stop-read"
+
+stop-core:
+	@if [ -f /tmp/core-api.pid ]; then \
+		PID=$$(cat /tmp/core-api.pid); \
+		if ps -p $$PID > /dev/null 2>&1; then \
+			kill $$PID && echo "Stopped Core API (PID: $$PID)"; \
+			rm -f /tmp/core-api.pid; \
+		else \
+			echo "Core API process (PID: $$PID) not running"; \
+			rm -f /tmp/core-api.pid; \
+		fi; \
+	else \
+		echo "Core API PID file not found. Service may not be running."; \
+	fi
+
+stop-ingestion:
+	@if [ -f /tmp/ingestion-api.pid ]; then \
+		PID=$$(cat /tmp/ingestion-api.pid); \
+		if ps -p $$PID > /dev/null 2>&1; then \
+			kill $$PID && echo "Stopped Ingestion API (PID: $$PID)"; \
+			rm -f /tmp/ingestion-api.pid; \
+		else \
+			echo "Ingestion API process (PID: $$PID) not running"; \
+			rm -f /tmp/ingestion-api.pid; \
+		fi; \
+	else \
+		echo "Ingestion API PID file not found. Service may not be running."; \
+	fi
+
+stop-read:
+	@if [ -f /tmp/read-api.pid ]; then \
+		PID=$$(cat /tmp/read-api.pid); \
+		if ps -p $$PID > /dev/null 2>&1; then \
+			kill $$PID && echo "Stopped Read API (PID: $$PID)"; \
+			rm -f /tmp/read-api.pid; \
+		else \
+			echo "Read API process (PID: $$PID) not running"; \
+			rm -f /tmp/read-api.pid; \
+		fi; \
+	else \
+		echo "Read API PID file not found. Service may not be running."; \
+	fi
 
 # Coverage targets disabled - requires testing in separate PR
 # coverage: coverage-core coverage-ingestion coverage-read
@@ -287,23 +341,24 @@ clean-post:
 	@echo "Cleaning databases (post) via cleanup profile"
 	@$(COMPOSE) --profile cleanup run --rm cleanup /app/cleanup.sh post
 
-backup-mongodb:
-	@cd $(DEPLOY_DEV) && ./init.sh backup_mongodb
-
-backup-postgres:
-	@cd $(DEPLOY_DEV) && ./init.sh backup_postgres
-
-backup-neo4j:
-	@cd $(DEPLOY_DEV) && ./init.sh backup_neo4j
-
-restore-mongodb:
-	@cd $(DEPLOY_DEV) && ./init.sh restore_mongodb
-
-restore-postgres:
-	@cd $(DEPLOY_DEV) && ./init.sh restore_postgres
-
-restore-neo4j:
-	@cd $(DEPLOY_DEV) && ./init.sh restore_neo4j
+# Backup and restore targets disabled - requires testing in separate PR
+# backup-mongodb:
+# 	@cd $(DEPLOY_DEV) && ./init.sh backup_mongodb
+#
+# backup-postgres:
+# 	@cd $(DEPLOY_DEV) && ./init.sh backup_postgres
+#
+# backup-neo4j:
+# 	@cd $(DEPLOY_DEV) && ./init.sh backup_neo4j
+#
+# restore-mongodb:
+# 	@cd $(DEPLOY_DEV) && ./init.sh restore_mongodb
+#
+# restore-postgres:
+# 	@cd $(DEPLOY_DEV) && ./init.sh restore_postgres
+#
+# restore-neo4j:
+# 	@cd $(DEPLOY_DEV) && ./init.sh restore_neo4j
 
 # Formatting & linting
 # Formatting targets disabled - requires testing in separate PR
