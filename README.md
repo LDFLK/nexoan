@@ -1,139 +1,139 @@
 # OpenGIN
 
-> 💡 **Note (α)**  
-> Name needs to be proposed, voted and finalized. 
+Open General Information Network here after referred as **OpenGIN** is an open-source platform designed to build a time-aware digital twin of an eco-system by defining its entities, relationships and data according to a specification. OpenGIN core supports a vide variety of data formats to provide efficient querying to simulate the digital twin. Underneath OpenGIN uses a polyglot database definition which supports to represent the changes of an eco-system through time-travelling. 
 
-## 🧰 Makefile shortcuts
+## Data Model
 
-Use `make help` to see all available targets. Common ones:
+* **Temporal Data Model**: The use of `TimeBasedValue` enables temporal data management, allowing the system to track both when data is valid (business time) and when it was recorded (system time)
+* **Flexible Schema**: The `metadata` field uses `google.protobuf.Any` to support arbitrary key-value pairs without schema constraints
+* **Immutable Core Fields**: Fields like `id`, `kind`, and `created` are read-only, ensuring data integrity
+* **Graph-Ready Structure**: The `relationships` field enables graph-based data modeling and traversal
+* **Storage Awareness**: The `attributes` of each entity can be stored in the most suitable storage format via a Polyglot database.
 
-- `make dev` — Clean databases, build everything, and start the full stack (databases + services).
-- `make up` / `make down` — Start/stop the stack. Use `make down-all` to also remove volumes.
-- `make logs` — Tail logs for main services (core, ingestion, read).
-- `make e2e` — Run local E2E tests (requires services running). `make e2e-docker` runs them via Docker.
-- `make coverage` — Run coverage for Go (Core API) and Ballerina (Ingestion/Read APIs).
+## Entity Definition
 
-### Formatting & linting (Go)
+An **Entity** is defined by a set of core parameters: **Metadata**, **Relationships**, and **Attributes**. The core parameters are defined such that they are common to any data stored through the system.
 
-This repository enforces Go formatting with `gofumpt` and line wrapping with `golines` (max line length 120), and linting via `golangci-lint`.
+* The **Metadata** contains any unstructured data associated with an Entity.
+* The **Relationships** refer to how an Entity is connected with other entities.
+* The **Attributes** can be data in any format such as tabular, unstructured, graph, or blob. These can also be interpreted as the datasets owned by an entity.
 
-Commands:
+The format of the **Entity** is as follows:
 
-```bash
-# Install tools once (ensure $GOPATH/bin is on your PATH)
-make tools-go
+* `Id`: Unique Read-only identifier for the entity
+* `Kind`: Read-only entity type classification
+* `Created Time`: Read-only timestamp indicating entity creation time
+* `Terminated Time`: Nullable timestamp indicating when the entity was terminated
+* `Name` (**TimeBasedValue**): TimeBased value representing the entity's name
+* `Metadata` (`map<string, Any>`): Flexible key-value map to store arbitrary metadata
+* `Attributes` (`map<string, List<TimeBasedValue>>`): TimeBased attributes stored as lists
+* `Relationships` (`map<string, Relationship>`): Relationships to other entities
 
-# Format Go code (gofumpt + golines -m 120)
-make fmt
+The core attributes of an **Entity** are *Id*, *Kind*, *Created Time*, *Terminated Time*, and *Name*.
 
-# Lint Go code
-make lint
-```
+**Metadata** is very useful when we have to store unstructured values that can be subject to change from one entity to the other. **Attributes** are defined in such a way that they have the generic capability to store data of any storage type (we will look into modeling various types of storage in the **Attribute** section).
 
-These targets operate on the Core API module at `opengin/core-api`.
+**Relationships** are defined as a map in which the key is a unique identity and the value is a relationship. Note that the relationship contains the type (referred to as name) where one entity can have many relationships of the same type. This resembles the connections an entity has with other entities. The general idea of this specification is to provide a generic model to represent a workflow, an event, or static content in the real world.
 
-### Git pre-commit hooks
 
-Automatically enforce formatting and linting before every commit using `pre-commit`.
 
-Setup (one time):
+---
 
-```bash
-# Ensure Go tools are installed and on PATH
-make tools-go
+## Kind
 
-# Install pre-commit and register the hook
-make hooks-install
-```
+**OpenGIN** introduces a type system to interpret and represent the entities in a generalized manner. The type system defined in OpenGIN follows the definition of MIME (Multipurpose Internet Mail Extensions) and is named as **Kind**.
 
-What it does:
-- Runs `make fmt` (gofumpt + golines with max line length 120) and then `make lint` (golangci-lint) on commit.
+**Kind** refers to a classification of various entities based on the nature of existence. It is defined by following the MIME type definition, where a major and a minor component together define a Kind.
 
-Useful commands:
+* `Major`: Base category of the type
+* `Minor`: Sub-category of the type
 
-```bash
-# Run hooks against all files now
-pre-commit run --all-files
+For instance, when we define an entity like a "Department of Education," the major of the Kind could be *Organization*, and the minor of the *Kind* could be *Department*. This information needs to be determined before creating a dataset for insertion. Once the major and the minor are selected for an entity, they cannot be changed once it is inserted into the system.
 
-# Temporarily bypass hooks for a single commit
-git commit -n -m "your message"
-```
+---
 
-Notes:
-- `make hooks-install` uses `pip` to install `pre-commit` for the current user. Ensure your user base bin is on PATH, e.g. `~/.local/bin` on macOS/Linux:
-  - Add to your shell profile, e.g., `export PATH="$HOME/.local/bin:$PATH"`.
-- Hooks are configured in `.pre-commit-config.yaml` and rely on the Makefile targets.
+## TimeBasedValue
 
-## 🚀 Running Services
+Any value except for immutable types is defined as a `TimeBasedValue`. This value has a start and an end time. One of the major purposes of Opengin is to record with time sensitivity. Also, the value of a record is defined as *Any* (protobuf) in order to support all data types and custom data types as decided by the user.
 
-### 1. Run CORE API Service
--Read about running the [CORE Service](opengin/core-api/README.md)
+It enables temporal versioning of values with the following fields:
 
-### 2. Run Read API Service
--Read about running the [Read API](opengin/read-api/README.md)
+* `Start Time`: Timestamp when the value becomes active
+* `End Time`: Timestamp when the value becomes inactive (nullable)
+* `Value` (`Any`): Value to be stored of any type
 
-### 3. Run Ingestion API Service
--Read about running the [Ingestion API](opengin/ingestion-api/README.md)
+> **Example:** A `TimeBasedValue` would be: *Start Time=2025-01-10*, *End Time=N/A*, *Value=Facebook Handle of a user*.
 
-### 4. Run Swagger-UI  
--Read about running the [Swagger UI](opengin/swagger-ui/README.md)
+---
 
-### 5. Database Cleanup Service
-The cleanup service provides a way to clean all databases (PostgreSQL, MongoDB, Neo4j) before and after running tests or services.
+## Metadata
 
-**Usage:**
-```bash
-# Clean databases before starting services
-docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
+**Metadata** in OpenGIN provides a flexible mechanism to store unstructured, key-value data associated with entities. Unlike **Attributes** which are time-based and stored in PostgreSQL, metadata is schema-less and stored in MongoDB, making it ideal for storing arbitrary information that doesn't require temporal tracking or complex querying.
 
-# Clean databases after services complete
-docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh post
+Metadata is defined as a `map<string, Any>` where:
+* **Key**: A string identifier for the metadata field
+* **Value**: Any protobuf `Any` type, allowing for maximum flexibility
 
-# Clean databases anytime you need
-docker-compose --profile cleanup run --rm cleanup /app/cleanup.sh pre
-```
+---
 
-**What it cleans:**
-- **PostgreSQL**: `attribute_schemas`, `entity_attributes`, and all `attr_*` tables
-- **MongoDB**: `metadata` and `metadata_test` collections  
-- **Neo4j**: All nodes and relationships
+## Relationship
 
-**Note**: The cleanup service uses the `cleanup` profile, so it won't start automatically with `docker-compose up`.
+**Relationship** defines the connection between two entities. Any parameter that changes with time is easy to process with Opengin. Likewise, a Relationship also contains the temporal values in the definition along with a direction.
 
-You can also use Makefile helpers to run these via profiles:
+A Relationship can be defined from one entity to another only in one direction, but it could be queried as an incoming or an outgoing relationship. "Incoming" refers to a relationship originated from another entity towards the referred entity, and "outgoing" refers to that of the opposite.
 
-```bash
-# Clean databases before starting services
-make clean-pre
+* `Id`: Unique identifier for the relationship
+* `Related Entity Id`: ID of the related entity
+* `Name`: Name or type of the relationship
+* `Start Time`: Timestamp when the relationship begins
+* `End Time`: Timestamp when the relationship ends (nullable)
+* `Direction`: Direction of the relationship (Incoming or Outgoing)
 
-# Clean databases after finishing work/tests
-make clean-post
-```
+**Example:** A Relationship definition could include a scenario where we need to define a relationship between an organization and its employees. The entities here are *Employee* and *Organization*. The Relationship is *HIRED_AS* at a given time. The start time refers to the moment this employee gets into the organization. When that employee no longer continues to work, this relationship comes to an end, and the end time is updated.
 
-### 6. Database Backup and Restore
-The system provides comprehensive backup and restore capabilities for all databases.
+---
 
-**Local Backup Management:**
-```bash
-# Create backups
-./deployment/development/init.sh backup_mongodb
-./deployment/development/init.sh backup_postgres
-./deployment/development/init.sh backup_neo4j
+## Attribute
 
-# Restore from local backups
-./deployment/development/init.sh restore_mongodb
-./deployment/development/init.sh restore_postgres
-./deployment/development/init.sh restore_neo4j
-```
+OpenGIN considers that an **Entity** has a sense of belonging to data that originated through it or which are part of its core definition. To represent this, OpenGIN supports various storage types since various data can take various formats. Thus, one of the main objectives of OpenGIN is to provide a variety of storage formats.
 
-**GitHub Integration:**
-```bash
-# Restore from GitHub releases
-./deployment/development/init.sh restore_from_github 0.0.1
-./deployment/development/init.sh list_github_versions
-```
+This is motivated by two main reasons:
+1.  **Storage Representation:** Representing entities and their connections in a traditional primary-key and foreign-key approach through a tabular data storage format may not be practical when those connections get denser (Vicknair et al., 2010). At scale, this implies the usage of a high-performance graph database.
+2.  **Efficient Data Ownership:** There is a necessity to efficiently store various datasets owned by each entity. These attributes can be in various forms, such as structured, unstructured, graph, or blob data.
 
-For detailed backup and restore documentation, see [Backup Integration Guide](docs/deployment/BACKUP_INTEGRATION.md).
+From the aforementioned cases, the necessity of a **polyglot database** is justified.
+
+OpenGIN automatically detects and classifies the core storage types when attributes are entered into the system. The system uses a hierarchical detection approach with the following precedence order for the four core storage types:
+
+1.  Graph
+2.  Tabular
+3.  Document
+4.  Blob[^1]
+
+[^1]: *Blob storage format has not yet been released.*
+
+
+## Key Features
+
+- **Temporal Data**: Native support for time-based values (startTime, endTime) for attributes and relationships.
+- **Graph Capabilities**: Powerful relationship traversal and querying.
+- **Scalability**: Microservices architecture allows independent scaling of components.
+- **Strict Contracts**: Uses Protobuf for internal communication and OpenAPI for external REST APIs.
+
+## 🚀 APIs
+
+### 1. [CORE Service](opengin/core-api/README.md)
+
+Core API is the heart of the OpenGIN. The OpenGIN specification, data model, query executors, database handlers, data types are defined in this layer. This layer can be directly used to develop applications but we encourage users to work with the Read and Ingestion APIs for application development. 
+
+### 2. [Read API](opengin/read-api/README.md)
+
+Read API is the read-only API which can be used to query data from OpenGIN. This API is recommended to be used with data
+applications which are designed only to browse data. 
+
+### 3. [Ingestion API](opengin/ingestion-api/README.md)
+
+Ingestion API is a write-only API which mainly handles the data ingress. Representing entities, relationships and datasets can be done through this API. 
 
 ---
 
@@ -215,45 +215,3 @@ curl -X DELETE http://localhost:8080/entities/12345
 ```bash
 curl -X GET "http://localhost:8081/v1/entities/12345/metadata"
 ```
-
-## Run E2E Tests
-
-Make sure the CORE server and the API server are running. 
-
-Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
-
-ReadEntityRequest readEntityRequest = {
-    entity: {
-        id: entityId,
-        kind: {},
-        created: "",
-        terminated: "",
-        name: {
-            startTime: "",
-            endTime: "",
-            value: check pbAny:pack("")
-        },
-        metadata: [],
-        attributes: [],
-        relationships: []
-    },
-    output: ["relationships"]
-};
-
-### Run Ingestion API Tests
-
-```bash
-cd opengin/tests/e2e
-python basic_core_tests.py
-```
-
-### Run Read API Tests
-
-```bash
-cd opengin/tests/e2e
-python basic_read_tests.py
-```
-
-## Implementation Progress
-
-[Track Progress](https://github.com/LDFLK/nexoan/issues/29)
