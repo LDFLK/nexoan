@@ -46,7 +46,7 @@ The core attributes of an **Entity** are *Id*, *Kind*, *Created Time*, *Terminat
 **Kind** refers to a classification of various entities based on the nature of existence. It is defined by following the MIME type definition, where a major and a minor component together define a Kind.
 
 * `Major`: Base category of the type
-* `Minor`: Sub-subcategory of the type
+* `Minor`: Sub-category of the type
 
 For instance, when we define an entity like a "Department of Education," the major of the Kind could be *Organization*, and the minor of the *Kind* could be *Department*. This information needs to be determined before creating a dataset for insertion. Once the major and the minor are selected for an entity, they cannot be changed once it is inserted into the system.
 
