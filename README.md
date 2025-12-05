@@ -41,7 +41,7 @@ The core attributes of an **Entity** are *Id*, *Kind*, *Created Time*, *Terminat
 
 ## Kind
 
-**Opengin** introduces a type system to interpret and represent the entities in a generalized manner. The type system defined in Opengin follows the definition of MIME (Multipurpose Internet Mail Extensions) and is named as **Kind**.
+**OpenGIN** introduces a type system to interpret and represent the entities in a generalized manner. The type system defined in OpenGIN follows the definition of MIME (Multipurpose Internet Mail Extensions) and is named as **Kind**.
 
 **Kind** refers to a classification of various entities based on the nature of existence. It is defined by following the MIME type definition, where a major and a minor component together define a Kind.
 
