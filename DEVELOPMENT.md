@@ -1,23 +1,50 @@
-## Development
+## 🧰 Development Shortcuts
 
-For the development mode make sure you `source` the file containing the secrets. For instance 
-you can keep a secret file like `ldf.testing.profile`
+Use `make help` to see all available targets. Recommended to save development time using this setup. 
+
+## Running Services
+
+Refer to the docker-based setup where all services can be started quite simply. No need to setup environmental variables separately for layers that you are not developing. 
+
+## Run E2E Tests
+
+Make sure the CORE server and the API server are running. 
+
+Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
+
+ReadEntityRequest readEntityRequest = {
+    entity: {
+        id: entityId,
+        kind: {},
+        created: "",
+        terminated: "",
+        name: {
+            startTime: "",
+            endTime: "",
+            value: check pbAny:pack("")
+        },
+        metadata: [],
+        attributes: [],
+        relationships: []
+    },
+    output: ["relationships"]
+};
+
+### Run Ingestion API Tests
 
 ```bash
-export MONGO_TESTING_DB_URI=""
-export MONGO_TESTING_DB=""
-export MONGO_TESTING_COLLECTION=""
-
-export NEO4J_TESTING_DB_URI=""
-export NEO4J_TESTING_USERNAME=""
-export NEO4J_TESTING_PASSWORD=""
-
-export POSTGRES_TESTING_HOST=""
-export POSTGRES_TESTING_PORT=""
-export POSTGRES_TESTING_USER=""
-export POSTGRES_TESTING_PASSWORD=""
-export POSTGRES_TESTING_DB=""
+cd opengin/tests/e2e
+python basic_core_tests.py
 ```
+
+### Run Read API Tests
+
+```bash
+cd opengin/tests/e2e
+python basic_read_tests.py
+```
+
+## Environmental Variables
 
 `config.env` or secrets in Github would make up `NEO4J_AUTH=${NEO4J_TESTING_USERNAME}/${NEO4J_TESTING_PASSWORD}`.
 
@@ -50,7 +77,6 @@ docker compose down -v
 ### Docker Compose
 
 Use the `docker compose` to up the services to run tests and to check the current version of the software is working. 
-
 
 
 #### Up the Services
@@ -236,3 +262,7 @@ Entity relFilterName = {
 ```bash
 choreo connect --project ldf_sandbox_vibhatha --component core-service
 ```
+
+## Backup Guide
+
+OpenGIN provides a [Backup Integration Guide](docs/deployment/BACKUP_INTEGRATION.md) which discusses how to make backups from the polyglot and make data releases. At the moment we have shown a workflow which works with the Github, but you can customize this guideline to match the backup servers.  
