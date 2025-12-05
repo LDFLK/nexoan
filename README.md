@@ -103,7 +103,7 @@ This is motivated by two main reasons:
 
 From the aforementioned cases, the necessity of a **polyglot database** is justified.
 
-Opengin automatically detects and classifies the core storage types when attributes are entered into the system. The system uses a hierarchical detection approach with the following precedence order for the four core storage types:
+OpenGIN automatically detects and classifies the core storage types when attributes are entered into the system. The system uses a hierarchical detection approach with the following precedence order for the four core storage types:
 
 1.  Graph
 2.  Tabular
