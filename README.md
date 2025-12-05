@@ -10,8 +10,6 @@ Open General Information Network here after referred as **OpenGIN** is an open-s
 * **Graph-Ready Structure**: The `relationships` field enables graph-based data modeling and traversal
 * **Storage Awareness**: The `attributes` of each entity can be stored in the most suitable storage format via a Polyglot database.
 
-Here is the text converted into a clean Markdown format.
-
 ## Entity Definition
 
 An **Entity** is defined by a set of core parameters: **Metadata**, **Relationships**, and **Attributes**. The core parameters are defined such that they are common to any data stored through the system.
