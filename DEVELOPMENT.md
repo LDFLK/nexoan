@@ -12,6 +12,7 @@ Make sure the CORE server and the API server are running.
 
 Note when making a call to ReadEntity, the ReadEntityRequest must be in the following format (output can be one or more of metadata, relationships, attributes):
 
+```
 ReadEntityRequest readEntityRequest = {
     entity: {
         id: entityId,
@@ -29,6 +30,7 @@ ReadEntityRequest readEntityRequest = {
     },
     output: ["relationships"]
 };
+```
 
 ### Run Ingestion API Tests
 
