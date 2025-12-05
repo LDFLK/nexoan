@@ -95,7 +95,7 @@ A Relationship can be defined from one entity to another only in one direction, 
 
 ## Attribute
 
-Opengin considers that an **Entity** has a sense of belonging to data that originated through it or which are part of its core definition. To represent this, Opengin supports various storage types since various data can take various formats. Thus, one of the main objectives of Opengin is to provide a variety of storage formats.
+OpenGIN considers that an **Entity** has a sense of belonging to data that originated through it or which are part of its core definition. To represent this, OpenGIN supports various storage types since various data can take various formats. Thus, one of the main objectives of OpenGIN is to provide a variety of storage formats.
 
 This is motivated by two main reasons:
 1.  **Storage Representation:** Representing entities and their connections in a traditional primary-key and foreign-key approach through a tabular data storage format may not be practical when those connections get denser (Vicknair et al., 2010). At scale, this implies the usage of a high-performance graph database.
